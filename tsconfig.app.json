@@ -17,9 +17,8 @@
     "jsx": "react-jsx",
 
     /* Rutas base y Alias */
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
 
     /* Linting */

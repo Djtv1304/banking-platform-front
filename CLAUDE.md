@@ -13,7 +13,7 @@
 - **Estructura estricta de carpetas**: Todo el código fuente está en `src/`. El alias `@/` apunta a `src/`.
     - `app/`: Proveedores, enrutador y layouts principales.
     - `features/`: Módulos de la aplicación (`auth/`, `caja/`, `catalogos/`, etc.).
-    - `shared/`: Código reutilizable (`api/` para transporte y errores, `config/`  para valores públicos, `ui/` para piezas visuales reutilizables).
+    - `shared/`: Código reutilizable (`api/` para transporte y errores, `config/`  para valores públicos, `lib/` para utilidades sin UI como `cn`, `ui/` para piezas visuales reutilizables).
     - `styles/`: Estilos globales (`index.css`).
 - **Archivos Barril (Barrel Files)**: Los `index.ts` **solo** deben existir dentro de las subcarpetas de `features/` (ej. `src/features/auth/index.ts`) y `shared/` (ej. `src/shared/ui/index.ts`). Estos archivos exponen la API pública del módulo.
 - **Importaciones**: Usar siempre el alias absoluto (ej. `import { Button } from '@/shared/ui'`).
