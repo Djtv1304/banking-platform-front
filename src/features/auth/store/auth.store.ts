@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 import type { MeResponse } from '../api/auth.contract'
+import { getAccessProfile, type AccessProfile } from '../lib/access'
 
 export type AuthStatus = 'restoring' | 'authenticated' | 'anonymous'
 
@@ -23,3 +24,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
 }))
 
 export const useAuthStatus = () => useAuthStore((state) => state.status)
+
+/** Perfil de acceso del usuario autenticado (null mientras no hay sesión) */
+export const useAccessProfile = (): AccessProfile | null =>
+  useAuthStore((state) => (state.user ? getAccessProfile(state.user.roles) : null))

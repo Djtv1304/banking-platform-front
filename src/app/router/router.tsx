@@ -4,7 +4,8 @@ import { DashboardLayout } from '@/app/layouts/DashboardLayout'
 import { LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
 import { RegisterPage } from '@/features/clientes'
-import { GuestOnly, RequireAuth } from './guards'
+import { GuestOnly, RequireAuth, RequireProfile } from './guards'
+import { ROUTE_ACCESS } from './route-access'
 
 export const router = createBrowserRouter([
   {
@@ -18,7 +19,10 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/', element: <HomePage /> },
-          { path: '/register', element: <RegisterPage /> },
+          {
+            element: <RequireProfile allowed={ROUTE_ACCESS.register} />,
+            children: [{ path: '/register', element: <RegisterPage /> }],
+          },
         ],
       },
     ],

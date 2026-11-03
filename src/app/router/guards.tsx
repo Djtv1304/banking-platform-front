@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router'
 
-import { sanitizeReturnTo, useAuthStatus } from '@/features/auth'
+import { canAccess, sanitizeReturnTo, useAccessProfile, useAuthStatus, type AccessProfile } from '@/features/auth'
 
 // Pantalla vacía mientras GET /api/v1/auth/me responde
 function SessionRestoring() {
@@ -33,5 +33,13 @@ export function GuestOnly() {
   if (status === 'authenticated') {
     return <Navigate to={sanitizeReturnTo(searchParams.get('return_to')) ?? '/'} replace />
   }
+  return <Outlet />
+}
+
+/** Rutas restringidas por perfil (va dentro de RequireAuth): sin acceso redirige al Home. */
+export function RequireProfile({ allowed }: { allowed: readonly AccessProfile[] }) {
+  const profile = useAccessProfile()
+
+  if (!profile || !canAccess(profile, allowed)) return <Navigate to="/" replace />
   return <Outlet />
 }

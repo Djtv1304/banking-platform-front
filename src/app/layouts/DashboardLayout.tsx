@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { Bell, CircleHelp, House, LogOut, Moon, PanelLeft, Sun, UserPlus, type LucideIcon } from 'lucide-react'
 
-import { signOut, useAuthStore } from '@/features/auth'
+import { canAccess, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
+import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
 import {
@@ -21,12 +22,26 @@ interface NavItem {
   label: string
   Icon: LucideIcon
   end?: boolean
+  /** Perfiles que ven la opción. Sin valor = todos. El admin ve todas. */
+  profiles?: readonly AccessProfile[]
 }
 
 const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   { items: [{ to: '/', label: 'Inicio', Icon: House, end: true }] },
-  { title: 'Clientes', items: [{ to: '/register', label: 'Registrar cliente', Icon: UserPlus }] },
+  {
+    title: 'Clientes',
+    items: [{ to: '/register', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.register }],
+  },
 ]
+
+/** Solo las opciones (y secciones con al menos una opción) que el perfil puede ver */
+function getVisibleSections(profile: AccessProfile | null) {
+  if (!profile) return []
+  return NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => canAccess(profile, item.profiles)),
+  })).filter((section) => section.items.length > 0)
+}
 
 const SIDEBAR_STORAGE_KEY = 'enquocoop-sidebar-collapsed'
 
@@ -45,7 +60,8 @@ function useSidebarCollapsed() {
 export function DashboardLayout() {
   const [collapsed, toggleCollapsed] = useSidebarCollapsed()
   const { pathname } = useLocation()
-  const currentPage = NAV_SECTIONS.flatMap((section) => section.items).find(({ to, end }) =>
+  const sections = getVisibleSections(useAccessProfile())
+  const currentPage = sections.flatMap((section) => section.items).find(({ to, end }) =>
     end ? pathname === to : pathname.startsWith(to),
   )
 
@@ -79,7 +95,7 @@ export function DashboardLayout() {
         </div>
 
         <nav aria-label="Secciones" className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-2">
-          {NAV_SECTIONS.map((section, index) => (
+          {sections.map((section, index) => (
             <div key={section.title ?? index} className="flex flex-col gap-0.5">
               {section.title &&
                 (collapsed ? (
