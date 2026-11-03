@@ -35,14 +35,14 @@
     --brand-shell: #262C3D;        /* Fondo exterior en modo claro */
 
     /* Neutros oscuros */
-    --brand-night: #0B0F17;        /* Fondo exterior en modo oscuro */
-    --brand-night-panel: #121926;
-    --brand-night-card: #161E2D;
-    --brand-night-field: #0F1521;
-    --brand-night-muted: #1E2738;
-    --brand-night-border: #263042;
-    --brand-cloud: #F1F5F9;
-    --brand-fog: #9AA4B5;
+    --brand-night: #0A0A0B;        /* Fondo exterior en modo oscuro (Login) */
+    --brand-night-panel: #111113;  /* Fondo principal */
+    --brand-night-card: #18191B;   /* Tarjetas, sidebar, barra superior, menús */
+    --brand-night-field: #0E0E10;  /* Campos de formulario */
+    --brand-night-muted: #232427;  /* Hover, ítem activo, fondos suaves */
+    --brand-night-border: #2B2C30;
+    --brand-cloud: #F4F4F5;        /* Texto principal */
+    --brand-fog: #A1A1AA;          /* Texto secundario */
 }
 
 /* ── 2. Tokens semánticos ───────────────────────────────────────────── */

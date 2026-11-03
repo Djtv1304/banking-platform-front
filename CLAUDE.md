@@ -10,7 +10,7 @@
 - **Comando Shadcn**: Para añadir componentes usar `npx shadcn@latest add <nombre-componente>`.
 
 ## 02 Anything you do differently to the normal way
-- **Estructura estricta de carpetas**: Todo el código fuente está en `src/`. El alias `@/` apunta a `src/`.
+- **Estructura estricta de carpetas**: Todo el código fuente está en `src/`. Utiliza siempre el alias `@/` que apunta a `src/`.
     - `app/`: Proveedores, enrutador y layouts principales.
     - `features/`: Módulos de la aplicación (`auth/`, `caja/`, `catalogos/`, etc.).
     - `shared/`: Código reutilizable (`api/` para transporte y errores, `config/`  para valores públicos, `lib/` para utilidades sin UI como `cn`, `ui/` para piezas visuales reutilizables).
@@ -20,6 +20,8 @@
 
 ## 03 The gotchas it's got wrong more than once
 *(Sección vacía por el momento. Se llenará a medida que se identifiquen errores recurrentes en el desarrollo).*
+
+- En toda la app solo se habla de clientes, nunca de socios.
 
 ## 04 Your boundaries
 - **Regla de dependencias de módulos**: `app` compone `features` y `shared`; `features` utiliza `shared`; `shared` **nunca** importa de `features`. Ningún módulo de `features` debe importar archivos internos de otro módulo de `features`.
