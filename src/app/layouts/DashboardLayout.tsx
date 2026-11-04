@@ -30,7 +30,7 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   { items: [{ to: '/', label: 'Inicio', Icon: House, end: true }] },
   {
     title: 'Clientes',
-    items: [{ to: '/register', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.register }],
+    items: [{ to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente }],
   },
 ]
 

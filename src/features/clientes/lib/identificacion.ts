@@ -1,5 +1,3 @@
-export type TipoDocumento = 'C' | 'R' | 'P'
-
 /** Códigos de provincia válidos en Ecuador: 01–24 y 30 (ecuatorianos registrados en el exterior) */
 function provinciaValida(codigo: number) {
   return (codigo >= 1 && codigo <= 24) || codigo === 30
@@ -30,20 +28,4 @@ export function esRucValido(ruc: string) {
   const tercerDigito = Number(ruc[2])
   if (tercerDigito < 6) return esCedulaValida(ruc.slice(0, 10))
   return tercerDigito === 6 || tercerDigito === 9
-}
-
-export function esPasaporteValido(pasaporte: string) {
-  return /^[A-Z0-9]{5,20}$/i.test(pasaporte)
-}
-
-/** Devuelve el mensaje de error, o null si la identificación es válida para el tipo indicado. */
-export function validarIdentificacion(tipo: TipoDocumento, identificacion: string): string | null {
-  switch (tipo) {
-    case 'C':
-      return esCedulaValida(identificacion) ? null : 'Ingresa una cédula válida de 10 dígitos'
-    case 'R':
-      return esRucValido(identificacion) ? null : 'Ingresa un RUC válido de 13 dígitos'
-    case 'P':
-      return esPasaporteValido(identificacion) ? null : 'Ingresa un pasaporte válido (5 a 20 letras o números)'
-  }
 }

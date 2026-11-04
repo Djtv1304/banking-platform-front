@@ -6,5 +6,5 @@ import type { AccessProfile } from '@/features/auth'
  * Sin entrada = todos los usuarios autenticados. El admin siempre tiene acceso.
  */
 export const ROUTE_ACCESS = {
-  register: ['staff'],
+  registrarCliente: ['staff'],
 } as const satisfies Record<string, readonly AccessProfile[]>
