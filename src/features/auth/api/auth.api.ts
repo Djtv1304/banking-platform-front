@@ -1,6 +1,6 @@
 import { apiClient } from '@/shared/api'
 import { env } from '@/shared/config'
-import { AUTH_ENDPOINTS, type LogoutResponse, type MeResponse } from './auth.contract'
+import { AUTH_ENDPOINTS, type LogoutResponse, type MeResponse } from '@/features/auth/api/auth.contract'
 
 /**
  * URL para iniciar sesión. Se usa como `href` (navegación completa): el backend responde con un 302

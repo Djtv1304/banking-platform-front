@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 import { env } from '@/shared/config'
-import { toApiError } from './errors'
+import { toApiError } from '@/shared/api/errors'
 
 /**
  * `shared` no conoce la feature de autenticación: ella registra aquí qué hacer cuando la API

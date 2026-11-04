@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
-import type { MeResponse } from '../api/auth.contract'
-import { getAccessProfile, type AccessProfile } from '../lib/access'
+import type { MeResponse } from '@/features/auth/api/auth.contract'
+import { getAccessProfile, type AccessProfile } from '@/features/auth/lib/access'
 
 export type AuthStatus = 'restoring' | 'authenticated' | 'anonymous'
 

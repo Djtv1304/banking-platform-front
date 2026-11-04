@@ -15,14 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui'
-import { CELULAR_PREFIJO, formatearCelular, normalizarCelular } from '../lib/celular'
+import { CELULAR_PREFIJO, formatearCelular, normalizarCelular } from '@/features/clientes/lib/celular'
 import {
   GENEROS,
   registroClienteSchema,
   TIPOS_DOCUMENTO,
   type RegistroClienteData,
   type RegistroClienteFormInput,
-} from '../schemas/registro-cliente.schema'
+} from '@/features/clientes/schemas/registro-cliente.schema'
 
 const fieldClassName =
   'h-[52px] rounded-xl border-border bg-field px-4 text-base md:text-base placeholder:text-muted-foreground/80 dark:bg-field'

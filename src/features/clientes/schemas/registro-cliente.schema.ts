@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import { CELULAR_PREFIJO } from '../lib/celular'
-import { validarIdentificacion } from '../lib/identificacion'
+import { CELULAR_PREFIJO } from '@/features/clientes/lib/celular'
+import { validarIdentificacion } from '@/features/clientes/lib/identificacion'
 
 export const TIPOS_DOCUMENTO = [
   { value: 'C', label: 'Cédula' },

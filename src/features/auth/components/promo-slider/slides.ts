@@ -1,9 +1,9 @@
 import type { ComponentType } from 'react'
 
-import { BalanceIllustration } from './illustrations/BalanceIllustration'
-import { SavingsGoalIllustration } from './illustrations/SavingsGoalIllustration'
-import { SecurityCodeIllustration } from './illustrations/SecurityCodeIllustration'
-import { SecuritySettingsIllustration } from './illustrations/SecuritySettingsIllustration'
+import { BalanceIllustration } from '@/features/auth/components/promo-slider/illustrations/BalanceIllustration'
+import { SavingsGoalIllustration } from '@/features/auth/components/promo-slider/illustrations/SavingsGoalIllustration'
+import { SecurityCodeIllustration } from '@/features/auth/components/promo-slider/illustrations/SecurityCodeIllustration'
+import { SecuritySettingsIllustration } from '@/features/auth/components/promo-slider/illustrations/SecuritySettingsIllustration'
 
 // Clases por slide. Los colores son fijos en ambos modos y salen de la paleta de marca (src/styles/index.css)
 export interface SlideTheme {

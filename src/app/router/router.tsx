@@ -4,8 +4,8 @@ import { DashboardLayout } from '@/app/layouts/DashboardLayout'
 import { LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
 import { RegisterPage } from '@/features/clientes'
-import { GuestOnly, RequireAuth, RequireProfile } from './guards'
-import { ROUTE_ACCESS } from './route-access'
+import { GuestOnly, RequireAuth, RequireProfile } from '@/app/router/guards'
+import { ROUTE_ACCESS } from '@/app/router/route-access'
 
 export const router = createBrowserRouter([
   {

@@ -1,5 +1,5 @@
 import { Badge } from '@/shared/ui'
-import { IllustrationCard } from './IllustrationCard'
+import { IllustrationCard } from '@/features/auth/components/promo-slider/illustrations/IllustrationCard'
 
 const SETTINGS = [
   { title: 'Tarjeta de débito ···· 4821', detail: 'Bloqueada temporalmente' },

@@ -1,6 +1,6 @@
 import { Lock } from 'lucide-react'
 
-import { IllustrationCard } from './IllustrationCard'
+import { IllustrationCard } from '@/features/auth/components/promo-slider/illustrations/IllustrationCard'
 
 const CODE = ['4', '8', '2', '9', '1', '6']
 const SECONDS_LEFT = 24

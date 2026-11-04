@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
 import { cn } from '@/shared/lib'
-import { PromoSlide } from './PromoSlide'
-import { SLIDES } from './slides'
+import { PromoSlide } from '@/features/auth/components/promo-slider/PromoSlide'
+import { SLIDES } from '@/features/auth/components/promo-slider/slides'
 
 /*
  * El avance automático lo marca la animación de la barra activa (7 s, `animate-slide-progress` en index.css):

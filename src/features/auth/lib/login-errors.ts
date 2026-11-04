@@ -1,4 +1,4 @@
-import type { LoginErrorCode } from '../api/auth.contract'
+import type { LoginErrorCode } from '@/features/auth/api/auth.contract'
 
 const LOGIN_ERROR_MESSAGES: Record<LoginErrorCode, string> = {
   LOGIN_CANCELADO: 'Cancelaste el inicio de sesión. Puedes intentarlo nuevamente cuando quieras.',

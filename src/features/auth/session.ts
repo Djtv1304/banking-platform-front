@@ -1,6 +1,6 @@
 import { setUnauthorizedHandler } from '@/shared/api'
-import { getMe, logout } from './api/auth.api'
-import { useAuthStore } from './store/auth.store'
+import { getMe, logout } from '@/features/auth/api/auth.api'
+import { useAuthStore } from '@/features/auth/store/auth.store'
 
 /**
  * Al cargar la app pregunta al backend quién es el usuario.

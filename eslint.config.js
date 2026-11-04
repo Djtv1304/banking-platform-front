@@ -20,6 +20,23 @@ export default defineConfig([
     },
   },
   {
+    // CLAUDE.md: usar siempre el alias absoluto `@/` (nada de './' ni '../')
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['./*', '../*'],
+              message: "Usa el alias absoluto '@/' (p. ej. '@/features/auth' o '@/shared/ui').",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Los componentes de Shadcn exportan variantes (cva) junto al componente
     files: ['src/shared/ui/**/*.tsx'],
     rules: {

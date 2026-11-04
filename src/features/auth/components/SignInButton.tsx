@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowRight, LoaderCircle } from 'lucide-react'
 
 import { Button } from '@/shared/ui'
-import { buildLoginUrl } from '../api/auth.api'
+import { buildLoginUrl } from '@/features/auth/api/auth.api'
 
 interface SignInButtonProps {
   /** Ruta interna a la que volver después del login */

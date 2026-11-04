@@ -1,7 +1,7 @@
 import { CircleCheck } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
-import type { Slide } from './slides'
+import type { Slide } from '@/features/auth/components/promo-slider/slides'
 
 export function PromoSlide({ slide }: { slide: Slide }) {
   const { title, bullets, Illustration, theme } = slide

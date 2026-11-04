@@ -1,7 +1,7 @@
 import { ArrowDownLeft, ArrowUpRight } from 'lucide-react'
 
 import { Badge } from '@/shared/ui'
-import { IllustrationCard } from './IllustrationCard'
+import { IllustrationCard } from '@/features/auth/components/promo-slider/illustrations/IllustrationCard'
 
 const BAR_HEIGHTS = ['35%', '55%', '30%', '65%', '45%', '75%', '58%', '72%', '100%']
 

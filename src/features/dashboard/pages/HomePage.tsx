@@ -1,8 +1,8 @@
 import type { ComponentType } from 'react'
 
 import { useAccessProfile, type AccessProfile } from '@/features/auth'
-import { ClientHome } from '../components/ClientHome'
-import { StaffHome } from '../components/StaffHome'
+import { ClientHome } from '@/features/dashboard/components/ClientHome'
+import { StaffHome } from '@/features/dashboard/components/StaffHome'
 
 /** Qué Home ve cada perfil de acceso (ver `getAccessProfile` en features/auth) */
 const HOME_BY_PROFILE: Record<AccessProfile, ComponentType> = {

@@ -1,8 +1,8 @@
 import { Moon, Sun } from "lucide-react"
 
-import { cn } from "@/shared/lib/utils"
+import { cn } from "@/shared/lib"
 import { useThemeStore } from "@/shared/theme"
-import { Button } from "./button"
+import { Button } from "@/shared/ui/button"
 
 function ThemeToggle({ className }: { className?: string }) {
   const theme = useThemeStore((state) => state.theme)

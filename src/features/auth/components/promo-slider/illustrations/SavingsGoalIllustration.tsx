@@ -1,7 +1,7 @@
 import { TrendingUp } from 'lucide-react'
 
 import { Badge } from '@/shared/ui'
-import { IllustrationCard } from './IllustrationCard'
+import { IllustrationCard } from '@/features/auth/components/promo-slider/illustrations/IllustrationCard'
 
 const STATS = [
   { label: 'Aporte mensual', value: '$150,00' },
