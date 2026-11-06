@@ -14,5 +14,10 @@
   "vars": {
     // Origen del backend, sin "/" final. No es un secreto: el navegador nunca lo ve ni lo usa.
     "BACKEND_URL": "https://backend-bcgxcrfbg7dpdebp.mexicocentral-01.azurewebsites.net"
+  },
+  "previews": {
+    "vars": {
+      "BACKEND_URL": "https://backend-bcgxcrfbg7dpdebp.mexicocentral-01.azurewebsites.net"
+    }
   }
 }
