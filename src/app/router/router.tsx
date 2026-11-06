@@ -3,7 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router'
 import { DashboardLayout } from '@/app/layouts/DashboardLayout'
 import { LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
-import { RegistrarClientePage } from '@/features/clientes'
+import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { GuestOnly, RequireAuth, RequireProfile } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 
@@ -19,6 +19,8 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/', element: <HomePage /> },
+          { path: '/clientes', element: <BuscarClientesPage /> },
+          { path: '/clientes/:idCliente', element: <FichaClientePage /> },
           {
             element: <RequireProfile allowed={ROUTE_ACCESS.registrarCliente} />,
             children: [{ path: '/registrar-cliente', element: <RegistrarClientePage /> }],
