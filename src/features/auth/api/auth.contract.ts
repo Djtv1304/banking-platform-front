@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 /*
  * Contrato con el backend (FastAPI, patrón BFF) para AuthKit de WorkOS.
  *
@@ -28,17 +30,24 @@ export const AUTH_ENDPOINTS = {
   logout: '/api/v1/auth/logout',
 } as const
 
-/** GET /api/v1/auth/me · 200 OK */
-export interface MeResponse {
+/**
+ * GET /api/v1/auth/me · 200 OK
+ *
+ * Se valida en tiempo de ejecución porque un 200 no garantiza JSON: si `/api` no llega al backend
+ * (p. ej. en un hosting estático con fallback de SPA), el servidor responde `index.html` con 200.
+ */
+export const meResponseSchema = z.object({
   /** ID de WorkOS (`user_...`) */
-  idUsuario: string
-  nombre: string
-  email: string
-  idOrganizacion: string | null
-  roles: string[]
-  permisos: string[]
-  idAgencia: string | null
-}
+  idUsuario: z.string(),
+  nombre: z.string(),
+  email: z.string(),
+  idOrganizacion: z.string().nullable(),
+  roles: z.array(z.string()),
+  permisos: z.array(z.string()),
+  idAgencia: z.string().nullable(),
+})
+
+export type MeResponse = z.infer<typeof meResponseSchema>
 
 /** POST /api/v1/auth/logout · 200 OK */
 export interface LogoutResponse {
