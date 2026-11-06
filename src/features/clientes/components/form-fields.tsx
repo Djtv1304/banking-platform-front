@@ -67,6 +67,35 @@ export function SelectField({ id, value, onChange, onBlur, options, placeholder,
   )
 }
 
+interface CatalogoEstadoProps {
+  nombre: string
+  consulta: {
+    data: readonly unknown[] | undefined
+    isFetching: boolean
+    isError: boolean
+    refetch: () => Promise<unknown>
+  }
+}
+
+export function CatalogoEstado({ nombre, consulta }: CatalogoEstadoProps) {
+  if (consulta.data?.length) return null
+  if (consulta.isFetching) {
+    return <p role="status" className="text-sm text-muted-foreground">Cargando {nombre}…</p>
+  }
+  if (consulta.isError) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-2 text-sm">
+        <p role="alert" className="text-destructive">No se pudieron cargar {nombre}.</p>
+        <Button type="button" variant="link" size="sm" onClick={() => void consulta.refetch()}>
+          Reintentar
+        </Button>
+      </div>
+    )
+  }
+  if (!consulta.data) return null
+  return <p role="status" className="text-sm text-muted-foreground">Sin resultados para {nombre}.</p>
+}
+
 /** Título de un bloque dentro de un paso */
 export function FormSection({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (

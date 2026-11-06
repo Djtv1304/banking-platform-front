@@ -6,7 +6,7 @@ import { cn } from '@/shared/lib'
 import { Checkbox, Input, Label } from '@/shared/ui'
 import { useActividadesEconomicas } from '@/features/catalogos'
 import { a11y } from '@/features/clientes/lib/a11y'
-import { fieldClassName, FormSection, StepActions } from '@/features/clientes/components/form-fields'
+import { CatalogoEstado, fieldClassName, FormSection, StepActions } from '@/features/clientes/components/form-fields'
 import type { ActividadData, ActividadInput } from '@/features/clientes/schemas/registro-cliente.schema'
 
 const TODAS = 'Todas'
@@ -33,7 +33,8 @@ export function ActividadEconomicaStep({ form, onBack, onSubmit }: ActividadEcon
   const [busqueda, setBusqueda] = useState('')
   const [area, setArea] = useState(TODAS)
 
-  const { data: actividades } = useActividadesEconomicas()
+  const consultaActividades = useActividadesEconomicas()
+  const { data: actividades = [] } = consultaActividades
   const areas = [TODAS, ...new Set(actividades.map((actividad) => actividad.areaActividad))]
   const filtradas = actividades.filter(
     (actividad) =>
@@ -94,7 +95,7 @@ export function ActividadEconomicaStep({ form, onBack, onSubmit }: ActividadEcon
             errorActividad ? 'border-destructive' : 'border-border',
           )}
         >
-          {filtradas.length === 0 && (
+          {actividades.length > 0 && filtradas.length === 0 && (
             <p className="px-4 py-10 text-center text-sm text-muted-foreground">
               No hay actividades que coincidan con la búsqueda.
             </p>
@@ -126,6 +127,7 @@ export function ActividadEconomicaStep({ form, onBack, onSubmit }: ActividadEcon
             </label>
           ))}
         </div>
+        <CatalogoEstado nombre="actividades económicas" consulta={consultaActividades} />
 
         {errorActividad ? (
           <p id="idActividadEconomica-error" className="-mt-2 text-sm text-destructive">

@@ -1,6 +1,5 @@
 /*
  * Contrato de los catálogos (tablas Paises, Ciudad y ActividadEconomica) en camelCase.
- * Ajustar a la respuesta real de la API cuando se publiquen sus endpoints.
  */
 
 export interface Pais {
@@ -20,5 +19,4 @@ export interface ActividadEconomica {
   idActividadEconomica: number
   descripcion: string
   areaActividad: string
-  estado: 'A' | 'I'
 }

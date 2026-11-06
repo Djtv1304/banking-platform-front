@@ -1,6 +1,13 @@
+import { queryClient } from '@/app/providers/query-client'
+import { catalogosQueryKey } from '@/features/catalogos'
 import { setUnauthorizedHandler } from '@/shared/api'
 import { getMe, logout } from '@/features/auth/api/auth.api'
 import { useAuthStore } from '@/features/auth/store/auth.store'
+
+function clearSession() {
+  useAuthStore.getState().clearSession()
+  queryClient.removeQueries({ queryKey: catalogosQueryKey })
+}
 
 /**
  * Al cargar la app pregunta al backend quién es el usuario.
@@ -14,7 +21,7 @@ export async function restoreSession() {
     useAuthStore.getState().setSession(await getMe())
   } catch {
     // 401 (sin sesión) o error de red/servidor: se trata como anónimo y el guard lleva a /login
-    useAuthStore.getState().clearSession()
+    clearSession()
   }
 }
 
@@ -29,7 +36,7 @@ export async function signOut() {
   } catch {
     // Aunque el backend falle, se limpia el estado local
   }
-  useAuthStore.getState().clearSession()
+  clearSession()
   window.location.href = logoutUrl ?? '/login'
 }
 
@@ -38,5 +45,5 @@ export async function signOut() {
  * la sesión ya no es válida (el backend renueva la sesión sellada por su cuenta mientras pueda).
  */
 export function registerAuthHandlers() {
-  setUnauthorizedHandler(() => useAuthStore.getState().clearSession())
+  setUnauthorizedHandler(clearSession)
 }

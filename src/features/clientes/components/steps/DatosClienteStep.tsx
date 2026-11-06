@@ -8,6 +8,7 @@ import { usePaises } from '@/features/catalogos'
 import { CELULAR_PREFIJO, formatearCelular, normalizarCelular } from '@/features/clientes/lib/celular'
 import { a11y } from '@/features/clientes/lib/a11y'
 import {
+  CatalogoEstado,
   Field,
   fieldClassName,
   FormSection,
@@ -45,6 +46,7 @@ export function DatosClienteStep({ form, onNext }: DatosClienteStepProps) {
     control,
     handleSubmit,
     clearErrors,
+    setError,
     formState: { errors },
   } = form
   /** register para campos solo numéricos: descarta lo que no sea dígito antes de guardarlo */
@@ -61,11 +63,20 @@ export function DatosClienteStep({ form, onNext }: DatosClienteStepProps) {
   const tipoCliente = useWatch({ control, name: 'tipoCliente' })
   const natural = tipoCliente === 'NATURAL'
   const identificacion = IDENTIFICACION_POR_TIPO[tipoCliente]
-  const { data: paises } = usePaises()
+  const consultaPaises = usePaises()
+  const { data: paises = [] } = consultaPaises
   const opcionesPais = paises.map((pais) => ({ value: pais.codigoPais, label: pais.nombrePais }))
 
+  const continuar = (datos: DatosClienteData) => {
+    if (natural && !paises.some((pais) => pais.codigoPais === datos.codigoPaisNacionalidad)) {
+      setError('codigoPaisNacionalidad', { message: 'Selecciona una nacionalidad disponible.' })
+      return
+    }
+    onNext()
+  }
+
   return (
-    <form onSubmit={handleSubmit(onNext)} noValidate className="flex flex-col gap-10">
+    <form onSubmit={handleSubmit(continuar)} noValidate className="flex flex-col gap-10">
       <FormSection title="Tipo de cliente" description="Define el documento con el que se identificará al cliente.">
         <div role="radiogroup" aria-label="Tipo de cliente" className="grid gap-3 sm:grid-cols-2">
           {TIPOS_CLIENTE.map(({ value, label, documento }) => {
@@ -132,8 +143,10 @@ export function DatosClienteStep({ form, onNext }: DatosClienteStepProps) {
                       onBlur={field.onBlur}
                       options={opcionesPais}
                       placeholder="Selecciona el país"
+                      disabled={!opcionesPais.length}
                       error={fieldState.error?.message}
                     />
+                    <CatalogoEstado nombre="países" consulta={consultaPaises} />
                   </Field>
                 )}
               />
