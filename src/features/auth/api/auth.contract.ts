@@ -9,7 +9,10 @@ import { z } from 'zod'
  * solo navega a /login, consulta /me y llama a /logout.
  */
 
-/** Rutas del backend. Son relativas a `env.apiUrl` (vacío = mismo origen, ver proxy en vite.config.ts). */
+/**
+ * Rutas del backend, siempre relativas (mismo origen que la SPA): en desarrollo las reenvía el proxy
+ * de Vite (vite.config.ts) y en producción el Worker de Cloudflare (worker/index.ts).
+ */
 export const AUTH_ENDPOINTS = {
   /**
    * GET · Navegación completa (no fetch). Guarda `state` y `return_to` en la cookie `__Host-oauth_state`

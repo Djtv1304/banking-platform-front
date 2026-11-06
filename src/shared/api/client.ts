@@ -1,6 +1,5 @@
 import axios from 'axios'
 
-import { env } from '@/shared/config'
 import { toApiError } from '@/shared/api/errors'
 
 /**
@@ -13,11 +12,12 @@ export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler
 }
 
+/**
+ * Sin `baseURL`: todas las rutas son relativas (`/api/v1/...`) y van al mismo origen de la SPA.
+ * En desarrollo las reenvía el proxy de Vite y en producción el Worker de Cloudflare (worker/index.ts),
+ * así que la cookie httpOnly `__Host-session` viaja sola, sin CORS ni credenciales cross-origin.
+ */
 export const apiClient = axios.create({
-  // Vacío = mismo origen que la SPA (en desarrollo, Vite hace de proxy de /api hacia FastAPI)
-  baseURL: env.apiUrl,
-  // Envía la cookie httpOnly de sesión (__Host-session) que emite el backend
-  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 })
 

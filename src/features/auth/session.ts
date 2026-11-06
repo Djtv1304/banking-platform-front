@@ -30,7 +30,7 @@ export async function signOut() {
     // Aunque el backend falle, se limpia el estado local
   }
   useAuthStore.getState().clearSession()
-  window.location.assign(logoutUrl ?? '/login')
+  window.location.href = logoutUrl ?? '/login'
 }
 
 /**

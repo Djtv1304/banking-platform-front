@@ -1,5 +1,4 @@
 import { ApiError, apiClient } from '@/shared/api'
-import { env } from '@/shared/config'
 import { AUTH_ENDPOINTS, meResponseSchema, type LogoutResponse } from '@/features/auth/api/auth.contract'
 
 /**
@@ -8,7 +7,7 @@ import { AUTH_ENDPOINTS, meResponseSchema, type LogoutResponse } from '@/feature
  */
 export function buildLoginUrl(returnTo?: string) {
   const query = returnTo && returnTo !== '/' ? `?${new URLSearchParams({ return_to: returnTo })}` : ''
-  return `${env.apiUrl}${AUTH_ENDPOINTS.login}${query}`
+  return `${AUTH_ENDPOINTS.login}${query}`
 }
 
 /**
