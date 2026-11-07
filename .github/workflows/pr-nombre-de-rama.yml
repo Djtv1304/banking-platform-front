@@ -1,0 +1,47 @@
+# Política de Pull Requests: valida el nombre de la rama de origen.
+# Marcar "Nombre de rama" como status check obligatorio en master y develop.
+# Sin filtros de paths: debe ejecutarse en TODO PR o el check quedaría pendiente y bloquearía el merge.
+name: PR · Nombre de rama
+
+on:
+  pull_request:
+    branches: [master, develop]
+    types: [opened, reopened, synchronize, edited] # edited: cubre el cambio de rama base
+
+permissions: {}
+
+concurrency:
+  group: pr-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  branch-name:
+    name: Nombre de rama
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      # Los nombres de rama los controla quien abre el PR: se pasan por env, nunca interpolados en el script.
+      - name: Validar rama de origen
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if [[ "$HEAD_REF" =~ ^(feat|fix|refactor)/.+$ ]]; then
+            echo "Rama '$HEAD_REF' válida."
+            exit 0
+          fi
+
+          # Promoción de integración a producción: develop -> master
+          if [ "$HEAD_REF" = "develop" ] && [ "$BASE_REF" = "master" ]; then
+            echo "Promoción develop -> master permitida."
+            exit 0
+          fi
+
+          # PRs automáticos de Dependabot (su prefijo no es configurable)
+          if [[ "$HEAD_REF" =~ ^dependabot/.+$ ]]; then
+            echo "Rama de Dependabot permitida."
+            exit 0
+          fi
+
+          echo "::error title=Nombre de rama no permitido::La rama '$HEAD_REF' debe comenzar con feat/, fix/ o refactor/ (ejemplo: feat/login-biometrico)."
+          exit 1
