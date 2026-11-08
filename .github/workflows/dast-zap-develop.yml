@@ -30,7 +30,8 @@ jobs:
           CF_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
-          mkdir -p zap-out && chmod 777 zap-out
+          # El contenedor de ZAP corre como uid 1000: solo ese usuario necesita escribir (sin permisos 777)
+          mkdir -p zap-out && sudo chown 1000:1000 zap-out
           # Cabeceras del Service Token para atravesar Cloudflare Access (solo si hay secretos)
           zargs=()
           if [ -n "$CF_ID" ] && [ -n "$CF_SECRET" ]; then
@@ -41,6 +42,10 @@ jobs:
           docker run --rm -v "$PWD/zap-out:/zap/wrk:rw" \
             ghcr.io/zaproxy/zaproxy:2.17.0 \
             zap-baseline.py -t "$TARGET" -r zap-report.html -J zap-report.json -I "${zargs[@]}"
+
+      - name: Recuperar permisos del reporte
+        if: always()
+        run: sudo chown -R "$(id -u):$(id -g)" zap-out
 
       - name: Subir reporte
         if: always()

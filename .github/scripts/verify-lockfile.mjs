@@ -1,9 +1,10 @@
 // Verifica la integridad de package-lock.json ANTES de instalar dependencias.
-// Todo paquete debe resolverse desde https://registry.npmjs.org con hash sha512.
+// Los paquetes deben resolverse desde https://registry.npmjs.org con hash sha512.
 // Bloquea dependencias desde git, tarballs externos, registros alternativos o sin hash.
 import { readFileSync } from 'node:fs';
 
-const LOCKFILE = process.argv[2] ?? 'package-lock.json';
+// Ruta fija: el script no acepta argumentos externos
+const LOCKFILE = 'package-lock.json';
 const ALLOWED_HOST = 'registry.npmjs.org';
 
 let lock;
