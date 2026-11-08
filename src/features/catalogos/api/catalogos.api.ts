@@ -14,6 +14,7 @@ import {
   tipoCreditoSchema,
   tipoMovimientoCajaSchema,
   type TipoProducto,
+  type TipoTarjeta,
 } from '@/features/catalogos/api/catalogos.contract'
 
 /**
@@ -42,9 +43,16 @@ export const getDenominaciones = () => getLista(CATALOGOS_ENDPOINTS.denominacion
 
 export const getAgencias = () => getLista(CATALOGOS_ENDPOINTS.agencias, agenciaSchema)
 
-/** Sin `tipo` devuelve todos los productos activos */
-export const getProductos = (tipo?: TipoProducto) =>
-  getLista(CATALOGOS_ENDPOINTS.productos, productoSchema, tipo ? { tipo } : undefined)
+/**
+ * Sin filtros devuelve todos los productos activos con sus subproductos. `tipoTarjeta` deja solo
+ * productos Tarjeta con los subproductos de ese tipo (emisión de tarjetas, TAR-01).
+ */
+export const getProductos = (tipo?: TipoProducto, tipoTarjeta?: TipoTarjeta) => {
+  const params: Record<string, string> = {}
+  if (tipo) params.tipo = tipo
+  if (tipoTarjeta) params.tipoTarjeta = tipoTarjeta
+  return getLista(CATALOGOS_ENDPOINTS.productos, productoSchema, params)
+}
 
 export const getCanales = () => getLista(CATALOGOS_ENDPOINTS.canales, canalSchema)
 

@@ -9,10 +9,12 @@ export type {
   Denominacion,
   Pais,
   Producto,
+  SubProducto,
   TipoAntecedente,
   TipoCredito,
   TipoMovimientoCaja,
   TipoProducto,
+  TipoTarjeta,
 } from '@/features/catalogos/api/catalogos.contract'
 export {
   useActividadesEconomicas,
