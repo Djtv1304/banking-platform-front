@@ -13,4 +13,6 @@ export const ROUTE_ACCESS = {
   consultarCuentas: ['staff'],
   // CTA-07: ASESOR, SUPERVISOR y ADMIN (editar e historial se deciden por rol dentro de la página)
   consultarCupos: ['staff'],
+  // CLI-03/04: ASESOR, CAJERO, SUPERVISOR y ADMIN
+  consultarClientes: ['staff'],
 } as const satisfies Record<string, readonly AccessProfile[]>
