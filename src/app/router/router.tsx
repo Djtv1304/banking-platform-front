@@ -5,7 +5,7 @@ import { LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
 import { RegistrarClientePage } from '@/features/clientes'
 import { SolicitarTarjetaPage } from '@/features/tarjetas'
-import { BuscarCuentasPage } from '@/features/cuenta'
+import { BuscarCuentasPage, DetalleCuentaPage } from '@/features/cuenta'
 import { GuestOnly, RequireAuth, RequireProfile } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 
@@ -31,7 +31,10 @@ export const router = createBrowserRouter([
           },
           {
             element: <RequireProfile allowed={ROUTE_ACCESS.consultarCuentas} />,
-            children: [{ path: '/cuentas', element: <BuscarCuentasPage /> }],
+            children: [
+              { path: '/cuentas', element: <BuscarCuentasPage /> },
+              { path: '/cuentas/:idCuenta', element: <DetalleCuentaPage /> },
+            ],
           },
         ],
       },

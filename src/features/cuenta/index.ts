@@ -2,3 +2,4 @@
 // Sirve para exportar únicamente los componentes, hooks o tipos que otros módulos necesitan usar, ocultando los archivos internos.
 
 export { BuscarCuentasPage } from '@/features/cuenta/pages/BuscarCuentasPage'
+export { DetalleCuentaPage } from '@/features/cuenta/pages/DetalleCuentaPage'
