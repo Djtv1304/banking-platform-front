@@ -1,13 +1,17 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, History, Pencil } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { Button } from '@/shared/ui'
 import { useCanales } from '@/features/catalogos'
+import type { CupoEfectivo } from '@/features/cuenta/api/cupos.contract'
 import { Aviso, Cargando } from '@/features/cuenta/components/Aviso'
+import { EditarCupoDialog } from '@/features/cuenta/components/EditarCupoDialog'
+import { HistorialCupoDialog } from '@/features/cuenta/components/HistorialCupoDialog'
 import { TarjetaCupo } from '@/features/cuenta/components/TarjetaCupo'
 import { useCuenta } from '@/features/cuenta/hooks/useCuentas'
-import { useCupos } from '@/features/cuenta/hooks/useCupos'
+import { useCupos, usePermisosCupos } from '@/features/cuenta/hooks/useCupos'
 import { mensajeErrorCupos } from '@/features/cuenta/lib/cupos'
 import { leerIdCuenta } from '@/features/cuenta/lib/filtros'
 
@@ -23,6 +27,27 @@ export function CuposCuentaPage() {
   // CAT-08 lista solo los canales activos; uno inactivo con cupo se muestra por su id
   const nombreCanal = (idCanal: number) =>
     canales.find((canal) => canal.idCanal === idCanal)?.nombreCanal ?? `Canal ${idCanal}`
+  // Editar (CTA-08) e historial (CTA-09) solo se muestran a los roles que el backend permite
+  const permisos = usePermisosCupos()
+  const [editando, setEditando] = useState<CupoEfectivo | null>(null)
+  const [historialDe, setHistorialDe] = useState<number | null>(null)
+  const [guardado, setGuardado] = useState<string | null>(null)
+
+  const editar = (cupo: CupoEfectivo) => {
+    setGuardado(null)
+    setEditando(cupo)
+  }
+
+  const alGuardar = (cupo: CupoEfectivo) => {
+    const nombre = nombreCanal(cupo.idCanal)
+    setEditando(null)
+    // Una vigencia ya vencida se guarda, pero sigue rigiendo el cupo del producto
+    setGuardado(
+      cupo.origen === 'Personalizado'
+        ? `Guardamos el cupo personalizado de ${nombre}.`
+        : `Guardamos el cupo de ${nombre}, pero su vigencia ya terminó: rige el cupo del producto.`,
+    )
+  }
 
   const contenido = (() => {
     if (idCuenta === null || (cupos.isError && toApiError(cupos.error).status === 404)) {
@@ -35,7 +60,29 @@ export function CuposCuentaPage() {
     return (
       <div className="grid gap-6 lg:grid-cols-2">
         {cupos.data.map((cupo) => (
-          <TarjetaCupo key={cupo.idCanal} cupo={cupo} nombreCanal={nombreCanal(cupo.idCanal)} />
+          <TarjetaCupo key={cupo.idCanal} cupo={cupo} nombreCanal={nombreCanal(cupo.idCanal)}>
+            {(permisos.editar || permisos.historial) && (
+              <>
+                {permisos.editar && (
+                  <Button variant="outline" size="lg" onClick={() => editar(cupo)} className="rounded-lg px-3">
+                    <Pencil />
+                    Editar cupo
+                  </Button>
+                )}
+                {permisos.historial && (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={() => setHistorialDe(cupo.idCanal)}
+                    className="rounded-lg px-3"
+                  >
+                    <History />
+                    Ver historial
+                  </Button>
+                )}
+              </>
+            )}
+          </TarjetaCupo>
         ))}
       </div>
     )
@@ -58,7 +105,26 @@ export function CuposCuentaPage() {
         </p>
       </header>
 
+      {guardado && <Aviso>{guardado}</Aviso>}
       {contenido}
+
+      {idCuenta !== null && (
+        <>
+          <EditarCupoDialog
+            idCuenta={idCuenta}
+            cupo={editando}
+            nombreCanal={editando ? nombreCanal(editando.idCanal) : ''}
+            onCerrar={() => setEditando(null)}
+            onGuardado={alGuardar}
+          />
+          <HistorialCupoDialog
+            idCuenta={idCuenta}
+            idCanal={historialDe}
+            nombreCanal={historialDe === null ? '' : nombreCanal(historialDe)}
+            onCerrar={() => setHistorialDe(null)}
+          />
+        </>
+      )}
     </div>
   )
 }

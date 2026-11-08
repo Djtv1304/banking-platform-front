@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 import type { ApiError } from '@/shared/api'
 import type { CupoEfectivo } from '@/features/cuenta/api/cupos.contract'
 
@@ -63,3 +65,71 @@ export function mensajeErrorCupos(error: ApiError, accion: AccionCupos) {
   if (error.status === 403) return SIN_PERMISO[accion]
   return MENSAJES[error.code] ?? error.message
 }
+
+/*
+ * Formulario del cupo personalizado (CTA-08). Los campos son texto y el esquema arma el body
+ * numérico. Mismas reglas que `CupoUpdate` del backend: importes > 0 con 2 decimales como máximo
+ * (decimal(18,2)), frecuencia entera de 1 a 32 767 (smallint) y vigencia opcional.
+ */
+
+/** Hasta 16 enteros y 2 decimales; se acepta punto o coma decimal, sin separador de miles */
+const MONTO_REGEX = /^\d{1,16}([.,]\d{1,2})?$/
+const FECHA_REGEX = /^\d{4}-\d{2}-\d{2}$/
+export const MAX_TRANSACCIONES_DIA = 32_767
+
+/**
+ * `abort`: el primer error del campo detiene sus demás reglas y también la coherencia entre
+ * montos, que solo se revisa con los tres montos válidos.
+ */
+const corta = (error: string) => ({ error, abort: true })
+
+const monto = z
+  .string()
+  .trim()
+  .min(1, corta('Ingresa un monto.'))
+  .regex(MONTO_REGEX, corta('Ingresa un monto válido, con 2 decimales como máximo.'))
+  .transform((valor) => Number(valor.replace(',', '.')))
+  .refine((valor) => valor > 0, corta('El monto debe ser mayor que 0.'))
+
+export const cupoFormSchema = z
+  .object({
+    cupoDiario: monto,
+    cupoMensual: monto,
+    montoMaxTransaccion: monto,
+    maxTransaccionesDia: z
+      .string()
+      .trim()
+      .regex(/^\d+$/, corta('Ingresa un número entero.'))
+      .transform(Number)
+      .refine(
+        (valor) => valor >= 1 && valor <= MAX_TRANSACCIONES_DIA,
+        corta(`Ingresa un número entre 1 y ${MAX_TRANSACCIONES_DIA.toLocaleString('es-EC')}.`),
+      ),
+    /** '' = sin caducidad (null en el body) */
+    fechaVigencia: z
+      .string()
+      .refine((valor) => valor === '' || FECHA_REGEX.test(valor), corta('Ingresa una fecha válida.'))
+      .transform((valor) => valor || null),
+  })
+  // Misma coherencia que exige el backend (422 CUPOS_INCONSISTENTES): máx. por transacción ≤ diario ≤ mensual
+  .superRefine((valor, ctx) => {
+    if (valor.montoMaxTransaccion > valor.cupoDiario) {
+      ctx.addIssue({ code: 'custom', path: ['montoMaxTransaccion'], message: 'No puede superar el cupo diario.' })
+    }
+    if (valor.cupoDiario > valor.cupoMensual) {
+      ctx.addIssue({ code: 'custom', path: ['cupoMensual'], message: 'Debe ser mayor o igual al cupo diario.' })
+    }
+  })
+
+export type CupoFormInput = z.input<typeof cupoFormSchema>
+/** Exactamente el body de CTA-08 (`CupoUpdate`): ni un campo más */
+export type CupoFormData = z.output<typeof cupoFormSchema>
+
+/** El formulario arranca con el cupo que rige hoy en el canal */
+export const valoresCupo = (cupo: CupoEfectivo): CupoFormInput => ({
+  cupoDiario: String(cupo.cupoDiario),
+  cupoMensual: String(cupo.cupoMensual),
+  montoMaxTransaccion: String(cupo.montoMaxTransaccion),
+  maxTransaccionesDia: String(cupo.maxTransaccionesDia),
+  fechaVigencia: cupo.fechaVigencia ?? '',
+})

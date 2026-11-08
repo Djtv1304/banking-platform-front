@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import { ApiError } from '@/shared/api'
 import {
+  cupoFormSchema,
   disponible,
   disponibleCupo,
   mensajeErrorCupos,
   permisosCupos,
   textoVigencia,
+  valoresCupo,
+  type CupoFormInput,
 } from '@/features/cuenta/lib/cupos'
 
 describe('disponible', () => {
@@ -87,5 +90,77 @@ describe('mensajeErrorCupos', () => {
   it('un código desconocido muestra el mensaje del backend', () => {
     const error = new ApiError('No se pudo comprobar el cupo efectivo del canal.', 503, 'CUPO_EFECTIVO_NO_VERIFICABLE')
     expect(mensajeErrorCupos(error, 'editar')).toBe('No se pudo comprobar el cupo efectivo del canal.')
+  })
+})
+
+describe('cupoFormSchema', () => {
+  const valido: CupoFormInput = {
+    cupoDiario: '400',
+    cupoMensual: '5000.50',
+    montoMaxTransaccion: '200,25',
+    maxTransaccionesDia: '10',
+    fechaVigencia: '',
+  }
+
+  const errores = (cambios: Partial<CupoFormInput>) => {
+    const resultado = cupoFormSchema.safeParse({ ...valido, ...cambios })
+    return resultado.success ? {} : Object.fromEntries(resultado.error.issues.map((i) => [i.path.join('.'), i.message]))
+  }
+
+  it('arma el body de CTA-08 con números, sin campos de más y null si no caduca', () => {
+    expect(cupoFormSchema.parse(valido)).toEqual({
+      cupoDiario: 400,
+      cupoMensual: 5000.5,
+      montoMaxTransaccion: 200.25,
+      maxTransaccionesDia: 10,
+      fechaVigencia: null,
+    })
+    expect(cupoFormSchema.parse({ ...valido, fechaVigencia: '2026-12-31' }).fechaVigencia).toBe('2026-12-31')
+  })
+
+  it('los montos deben ser mayores que 0 y con 2 decimales como máximo', () => {
+    expect(errores({ cupoDiario: '0' })).toEqual({ cupoDiario: 'El monto debe ser mayor que 0.' })
+    expect(errores({ cupoDiario: '-5' }).cupoDiario).toBe('Ingresa un monto válido, con 2 decimales como máximo.')
+    // El error del campo no arrastra el de coherencia entre montos
+    expect(errores({ cupoDiario: '10.123' })).toEqual({ cupoDiario: 'Ingresa un monto válido, con 2 decimales como máximo.' })
+    expect(errores({ cupoDiario: '' }).cupoDiario).toBe('Ingresa un monto.')
+  })
+
+  it('el máximo de transacciones es un entero entre 1 y 32 767', () => {
+    expect(errores({ maxTransaccionesDia: '0' }).maxTransaccionesDia).toBe('Ingresa un número entre 1 y 32.767.')
+    expect(errores({ maxTransaccionesDia: '32768' }).maxTransaccionesDia).toBe('Ingresa un número entre 1 y 32.767.')
+    expect(errores({ maxTransaccionesDia: '2.5' }).maxTransaccionesDia).toBe('Ingresa un número entero.')
+    expect(errores({ maxTransaccionesDia: '32767' })).toEqual({})
+  })
+
+  it('exige máximo por transacción ≤ cupo diario ≤ cupo mensual', () => {
+    expect(errores({ montoMaxTransaccion: '500' })).toEqual({ montoMaxTransaccion: 'No puede superar el cupo diario.' })
+    expect(errores({ cupoMensual: '300' })).toEqual({ cupoMensual: 'Debe ser mayor o igual al cupo diario.' })
+    expect(errores({ cupoDiario: '200.25', cupoMensual: '200.25' })).toEqual({})
+  })
+
+  it('rechaza una fecha de vigencia mal formada', () => {
+    expect(errores({ fechaVigencia: '31/12/2026' })).toEqual({ fechaVigencia: 'Ingresa una fecha válida.' })
+  })
+
+  it('arranca con el cupo que rige hoy', () => {
+    const cupo = {
+      idCanal: 1,
+      origen: 'Producto' as const,
+      cupoDiario: 1000,
+      cupoMensual: 10000,
+      montoMaxTransaccion: 500.5,
+      maxTransaccionesDia: 20,
+      fechaVigencia: null,
+      consumidoHoy: 0,
+      consumidoMes: 2500,
+    }
+    expect(valoresCupo(cupo)).toEqual({
+      cupoDiario: '1000',
+      cupoMensual: '10000',
+      montoMaxTransaccion: '500.5',
+      maxTransaccionesDia: '20',
+      fechaVigencia: '',
+    })
   })
 })
