@@ -5,6 +5,7 @@ import {
   CircleHelp,
   CreditCard,
   House,
+  Landmark,
   LogOut,
   Moon,
   PanelLeft,
@@ -52,6 +53,10 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     items: [
       { to: '/solicitar-tarjeta', label: 'Solicitar tarjeta', Icon: CreditCard, profiles: ROUTE_ACCESS.solicitarTarjeta },
     ],
+  },
+  {
+    title: 'Cuentas',
+    items: [{ to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas }],
   },
 ]
 
