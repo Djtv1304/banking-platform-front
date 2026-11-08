@@ -86,7 +86,7 @@ export function BuscarCliente({ buscada, cliente, buscando, error, onBuscar }: B
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="truncate font-semibold text-heading">{nombreCliente(cliente)}</span>
             <span className="text-sm text-muted-foreground">
-              {cliente.identificacion} · {cliente.tipoCliente === 'NATURAL' ? 'Persona natural' : 'Persona jurídica'}
+              {cliente.identificacion} · {cliente.tipoCliente === 'Natural' ? 'Persona natural' : 'Persona jurídica'}
             </span>
           </div>
           <Badge variant={cliente.estado === 'Activo' ? 'default' : 'destructive'}>{cliente.estado}</Badge>

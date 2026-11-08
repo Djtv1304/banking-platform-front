@@ -5,7 +5,8 @@ import { z } from 'zod'
  *
  * - CLI-03 GET /clientes?identificacion=…  → buscar al cliente
  * - CTA-02 GET /cuentas?idCliente=…         → sus cuentas (solo una Activa admite tarjeta)
- * - TAR-02 GET /tarjetas?idCuenta=…         → tarjetas de la cuenta (titular de una extensión)
+ * - CLI-09 GET /clientes/{id}/direcciones   → direcciones para el envío de la tarjeta
+ * - TAR-02 GET /tarjetas?idCuenta=…&esExtension=false → principales (titular de una extensión)
  * - TAR-01 POST /tarjetas                   → registra la solicitud (estado Solicitada, sin PIN)
  *
  * Los esquemas solo describen los campos que usa el formulario; zod descarta el resto.
@@ -15,6 +16,7 @@ const BASE = '/api/v1'
 
 export const TARJETAS_ENDPOINTS = {
   clientes: `${BASE}/clientes`,
+  direcciones: (idCliente: number) => `${BASE}/clientes/${idCliente}/direcciones`,
   cuentas: `${BASE}/cuentas`,
   tarjetas: `${BASE}/tarjetas`,
 } as const
@@ -26,7 +28,7 @@ export const pageSchema = <T extends z.ZodType>(item: T) =>
 export const clienteSchema = z.object({
   idCliente: z.number(),
   identificacion: z.string(),
-  tipoCliente: z.string(),
+  tipoCliente: z.enum(['Natural', 'Juridico']),
   nombres: z.string(),
   apellidos: z.string().nullish(),
   razonSocial: z.string().nullish(),
@@ -43,6 +45,18 @@ export const cuentaSchema = z.object({
   estado: z.string(),
 })
 
+/** CLI-09 · Activas e inactivas; el país sale de la ciudad */
+export const direccionSchema = z.object({
+  idDireccion: z.number(),
+  tipoDireccion: z.string(),
+  idCiudad: z.number(),
+  sector: z.string().nullish(),
+  calleDireccion: z.string(),
+  referenciaUbicacion: z.string(),
+  esPrincipal: z.boolean(),
+  estado: z.string(),
+})
+
 export const tipoTarjetaSchema = z.enum(['Debito', 'Credito'])
 
 /** TAR-02 · Sin token ni PAN: solo el número enmascarado */
@@ -54,6 +68,9 @@ export const tarjetaResumenSchema = z.object({
   numeroEnmascarado: z.string(),
   estadoActual: z.string(),
   fechaEmision: z.string(),
+  /** Extensión (adicional) y su tarjeta titular; las principales llevan false y null */
+  esExtension: z.boolean(),
+  idTarjetaTitular: z.number().nullable(),
 })
 
 /** TAR-01 · Respuesta 201 */
@@ -82,6 +99,7 @@ export interface TarjetaCreate {
 
 export type Cliente = z.infer<typeof clienteSchema>
 export type Cuenta = z.infer<typeof cuentaSchema>
+export type Direccion = z.infer<typeof direccionSchema>
 export type TipoTarjeta = z.infer<typeof tipoTarjetaSchema>
 export type TarjetaResumen = z.infer<typeof tarjetaResumenSchema>
 export type Tarjeta = z.infer<typeof tarjetaSchema>

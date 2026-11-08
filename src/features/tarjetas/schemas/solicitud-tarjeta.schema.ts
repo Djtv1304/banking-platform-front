@@ -10,8 +10,12 @@ import type { TarjetaCreate } from '@/features/tarjetas/api/tarjetas.contract'
 
 /** Mismo patrón que valida el backend (TarjetaCreate.nombreTarjeta); se guarda en mayúsculas */
 const NOMBRE_TARJETA_REGEX = /^[A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ .'-]*$/
-export const NOMBRE_TARJETA_MAX = 50
+/** Lo que admite el grabado de una tarjeta física (NombreTarjeta varchar(26)) */
+export const NOMBRE_TARJETA_MAX = 26
 const DIRECCION_MAX = 250
+
+/** Valor de `origenDireccion` cuando la dirección se escribe a mano */
+export const DIRECCION_NUEVA = 'nueva'
 
 export const solicitudTarjetaSchema = z
   .object({
@@ -27,6 +31,8 @@ export const solicitudTarjetaSchema = z
     esExtension: z.boolean(),
     idTarjetaTitular: z.string(),
     requiereEnvio: z.boolean(),
+    /** Id de una dirección del cliente, o DIRECCION_NUEVA para escribirla a mano */
+    origenDireccion: z.string(),
     direccionEnvio: z.string().trim().max(DIRECCION_MAX, `Máximo ${DIRECCION_MAX} caracteres.`),
     provinciaEnvio: z.string(),
     idCiudadEnvio: z.string(),
@@ -35,7 +41,10 @@ export const solicitudTarjetaSchema = z
     if (valor.esExtension && !valor.idTarjetaTitular) {
       ctx.addIssue({ code: 'custom', path: ['idTarjetaTitular'], message: 'Selecciona la tarjeta titular.' })
     }
-    if (valor.requiereEnvio) {
+    if (valor.requiereEnvio && !valor.origenDireccion) {
+      ctx.addIssue({ code: 'custom', path: ['origenDireccion'], message: 'Elige la dirección de envío.' })
+    }
+    if (valor.requiereEnvio && valor.origenDireccion === DIRECCION_NUEVA) {
       if (!valor.direccionEnvio) {
         ctx.addIssue({ code: 'custom', path: ['direccionEnvio'], message: 'Ingresa la dirección de envío.' })
       }
@@ -56,6 +65,7 @@ export const SOLICITUD_VACIA: SolicitudTarjetaInput = {
   esExtension: false,
   idTarjetaTitular: '',
   requiereEnvio: false,
+  origenDireccion: '',
   direccionEnvio: '',
   provinciaEnvio: '',
   idCiudadEnvio: '',
@@ -73,8 +83,28 @@ export function nombreImpreso(nombre: string) {
     .slice(0, NOMBRE_TARJETA_MAX)
 }
 
+/** Dirección de envío ya resuelta: la elegida del cliente o la escrita a mano */
+export interface DireccionEnvio {
+  texto: string
+  idCiudad: number
+}
+
+/** Texto de envío a partir de una dirección registrada del cliente (máx. 250, como TAR-01) */
+export function textoDireccion(direccion: {
+  calleDireccion: string
+  sector?: string | null
+  referenciaUbicacion: string
+}) {
+  const partes = [direccion.calleDireccion, direccion.sector, `Ref.: ${direccion.referenciaUbicacion}`]
+  return partes.filter(Boolean).join(', ').slice(0, DIRECCION_MAX)
+}
+
 /** Body de TAR-01. `idProducto` es el producto dueño del subproducto elegido */
-export function aSolicitud(valor: SolicitudTarjetaData, idProducto: number): TarjetaCreate {
+export function aSolicitud(
+  valor: SolicitudTarjetaData,
+  idProducto: number,
+  envio: DireccionEnvio | null,
+): TarjetaCreate {
   return {
     idCuenta: Number(valor.idCuenta),
     idProducto,
@@ -83,10 +113,7 @@ export function aSolicitud(valor: SolicitudTarjetaData, idProducto: number): Tar
     nombreTarjeta: valor.nombreTarjeta,
     esExtension: valor.esExtension,
     ...(valor.esExtension && { idTarjetaTitular: Number(valor.idTarjetaTitular) }),
-    requiereEnvio: valor.requiereEnvio,
-    ...(valor.requiereEnvio && {
-      direccionEnvio: valor.direccionEnvio,
-      idCiudadEnvio: Number(valor.idCiudadEnvio),
-    }),
+    requiereEnvio: valor.requiereEnvio && !!envio,
+    ...(valor.requiereEnvio && envio && { direccionEnvio: envio.texto, idCiudadEnvio: envio.idCiudad }),
   }
 }

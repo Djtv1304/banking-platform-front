@@ -4,6 +4,7 @@ import { ApiError, apiClient } from '@/shared/api'
 import {
   clienteSchema,
   cuentaSchema,
+  direccionSchema,
   pageSchema,
   TARJETAS_ENDPOINTS,
   tarjetaResumenSchema,
@@ -42,10 +43,17 @@ export async function getCuentasCliente(idCliente: number) {
   return page.items
 }
 
-/** TAR-02 · Tarjetas de una cuenta */
-export async function getTarjetasCuenta(idCuenta: number) {
+/** CLI-09 · Solo las activas sirven para enviar la tarjeta */
+export async function getDireccionesCliente(idCliente: number) {
+  const direcciones = await getValidado(TARJETAS_ENDPOINTS.direcciones(idCliente), direccionSchema.array(), {})
+  return direcciones.filter((direccion) => direccion.estado === 'Activo')
+}
+
+/** TAR-02 · Tarjetas principales de una cuenta: las únicas que pueden ser titulares de una extensión */
+export async function getTarjetasPrincipalesCuenta(idCuenta: number) {
   const page = await getValidado(TARJETAS_ENDPOINTS.tarjetas, pageSchema(tarjetaResumenSchema), {
     idCuenta: String(idCuenta),
+    esExtension: 'false',
     pageSize: '100',
   })
   return page.items

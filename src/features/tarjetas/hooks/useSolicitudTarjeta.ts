@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   buscarClientePorIdentificacion,
   getCuentasCliente,
-  getTarjetasCuenta,
+  getDireccionesCliente,
+  getTarjetasPrincipalesCuenta,
   solicitarTarjeta,
 } from '@/features/tarjetas/api/tarjetas.api'
 
@@ -29,11 +30,19 @@ export const useCuentasCliente = (idCliente: number | undefined) =>
   })
 
 /** Solo hace falta para elegir la titular de una extensión */
-export const useTarjetasCuenta = (idCuenta: number | undefined, habilitado: boolean) =>
+export const useTarjetasPrincipales = (idCuenta: number | undefined, habilitado: boolean) =>
   useQuery({
     queryKey: ['tarjetas', 'por-cuenta', idCuenta],
-    queryFn: () => getTarjetasCuenta(idCuenta as number),
+    queryFn: () => getTarjetasPrincipalesCuenta(idCuenta as number),
     enabled: habilitado && !!idCuenta,
+  })
+
+/** Solo hace falta si la tarjeta se envía a domicilio */
+export const useDireccionesCliente = (idCliente: number | undefined, habilitado: boolean) =>
+  useQuery({
+    queryKey: ['tarjetas', 'direcciones', idCliente],
+    queryFn: () => getDireccionesCliente(idCliente as number),
+    enabled: habilitado && !!idCliente,
   })
 
 export function useSolicitarTarjeta() {

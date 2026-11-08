@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CircleAlert, CreditCard, Info, LoaderCircle, Wallet } from 'lucide-react'
+import { CircleAlert, CreditCard, Info, LoaderCircle, MapPin, PenLine, Star, Wallet } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
 import { Badge, Button, Checkbox, Input, Label } from '@/shared/ui'
@@ -14,16 +14,20 @@ import { VistaPreviaTarjeta } from '@/features/tarjetas/components/VistaPreviaTa
 import {
   useClientePorIdentificacion,
   useCuentasCliente,
+  useDireccionesCliente,
   useSolicitarTarjeta,
-  useTarjetasCuenta,
+  useTarjetasPrincipales,
 } from '@/features/tarjetas/hooks/useSolicitudTarjeta'
 import { a11y, nombreCliente, opcionClassName } from '@/features/tarjetas/lib/formulario'
 import {
   aSolicitud,
+  DIRECCION_NUEVA,
   NOMBRE_TARJETA_MAX,
   nombreImpreso,
   SOLICITUD_VACIA,
   solicitudTarjetaSchema,
+  textoDireccion,
+  type DireccionEnvio,
   type SolicitudTarjetaData,
   type SolicitudTarjetaInput,
 } from '@/features/tarjetas/schemas/solicitud-tarjeta.schema'
@@ -57,22 +61,44 @@ export function SolicitudTarjetaForm() {
   const cliente: Cliente | null = consultaCliente.data ?? null
   const solicitar = useSolicitarTarjeta()
 
-  const [idCuenta, tipoTarjeta, idSubProducto, nombreTarjeta, esExtension, requiereEnvio, provinciaEnvio] =
-    useWatch({
-      control,
-      name: ['idCuenta', 'tipoTarjeta', 'idSubProducto', 'nombreTarjeta', 'esExtension', 'requiereEnvio', 'provinciaEnvio'],
-    })
+  const [
+    idCuenta,
+    tipoTarjeta,
+    idSubProducto,
+    nombreTarjeta,
+    esExtension,
+    requiereEnvio,
+    origenDireccion,
+    provinciaEnvio,
+  ] = useWatch({
+    control,
+    name: [
+      'idCuenta',
+      'tipoTarjeta',
+      'idSubProducto',
+      'nombreTarjeta',
+      'esExtension',
+      'requiereEnvio',
+      'origenDireccion',
+      'provinciaEnvio',
+    ],
+  })
 
   const { data: cuentas, isFetching: cargandoCuentas } = useCuentasCliente(cliente?.idCliente)
   const { data: productos, isLoading: cargandoProductos } = useProductos('Tarjeta', tipoTarjeta)
-  const { data: tarjetasCuenta } = useTarjetasCuenta(idCuenta ? Number(idCuenta) : undefined, esExtension)
+  const { data: tarjetasCuenta } = useTarjetasPrincipales(idCuenta ? Number(idCuenta) : undefined, esExtension)
+  const { data: direcciones, isFetching: cargandoDirecciones } = useDireccionesCliente(
+    cliente?.idCliente,
+    requiereEnvio,
+  )
   const { data: ciudades } = useCiudades(requiereEnvio ? PAIS_ENVIO : undefined)
+  const nombreCiudad = (idCiudad: number) => ciudades.find((ciudad) => ciudad.idCiudad === idCiudad)?.nombre
 
   const subproductos = productos.flatMap((producto) =>
     producto.subproductos.map((sub) => ({ ...sub, idProducto: producto.idProducto })),
   )
   const subproducto = subproductos.find((sub) => String(sub.idSubProducto) === idSubProducto)
-  // La titular debe ser una tarjeta principal vigente de la misma cuenta
+  // La titular debe ser una tarjeta principal (ya filtrada por TAR-02) y vigente de la misma cuenta
   const titulares = (tarjetasCuenta ?? []).filter(
     (tarjeta) => !(ESTADOS_TERMINALES as readonly string[]).includes(tarjeta.estadoActual),
   )
@@ -99,9 +125,20 @@ export function SolicitudTarjetaForm() {
     setValue('idSubProducto', '')
   }
 
+  /** Dirección elegida del cliente o la escrita a mano; null si no hay envío */
+  const resolverEnvio = (valor: SolicitudTarjetaData): DireccionEnvio | null | undefined => {
+    if (!valor.requiereEnvio) return null
+    if (valor.origenDireccion === DIRECCION_NUEVA) {
+      return { texto: valor.direccionEnvio, idCiudad: Number(valor.idCiudadEnvio) }
+    }
+    const direccion = direcciones?.find((d) => String(d.idDireccion) === valor.origenDireccion)
+    return direccion && { texto: textoDireccion(direccion), idCiudad: direccion.idCiudad }
+  }
+
   const enviar = (valor: SolicitudTarjetaData) => {
-    if (!subproducto) return
-    solicitar.mutate(aSolicitud(valor, subproducto.idProducto), { onSuccess: setRegistrada })
+    const envio = resolverEnvio(valor)
+    if (!subproducto || envio === undefined) return
+    solicitar.mutate(aSolicitud(valor, subproducto.idProducto, envio), { onSuccess: setRegistrada })
   }
 
   const nuevaSolicitud = () => {
@@ -300,10 +337,68 @@ export function SolicitudTarjetaForm() {
                   />
 
                   {requiereEnvio && (
+                    <div className="flex flex-col gap-2.5">
+                      <span className="text-[15px] font-semibold text-heading">Dirección de envío</span>
+                      {cargandoDirecciones && <Cargando texto="Cargando direcciones del cliente…" />}
+                      <div
+                        role="radiogroup"
+                        aria-label="Dirección de envío"
+                        className="flex flex-col gap-2"
+                        {...a11y('origenDireccion', errors.origenDireccion?.message)}
+                      >
+                        {(direcciones ?? []).map((direccion) => (
+                          <label key={direccion.idDireccion} className={cn(opcionClassName, 'items-start')}>
+                            <input
+                              type="radio"
+                              value={String(direccion.idDireccion)}
+                              className="peer sr-only"
+                              {...register('origenDireccion')}
+                            />
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground peer-checked:bg-primary peer-checked:text-primary-foreground">
+                              <MapPin className="size-[18px]" />
+                            </span>
+                            <span className="flex min-w-0 flex-1 flex-col">
+                              <span className="flex items-center gap-2 font-medium text-heading">
+                                {direccion.tipoDireccion}
+                                {direccion.esPrincipal && (
+                                  <Badge className="h-5 gap-1 px-2">
+                                    <Star className="fill-current" />
+                                    Principal
+                                  </Badge>
+                                )}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                {textoDireccion(direccion)}
+                                {nombreCiudad(direccion.idCiudad) && ` · ${nombreCiudad(direccion.idCiudad)}`}
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                        <label className={opcionClassName}>
+                          <input
+                            type="radio"
+                            value={DIRECCION_NUEVA}
+                            className="peer sr-only"
+                            {...register('origenDireccion')}
+                          />
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground peer-checked:bg-primary peer-checked:text-primary-foreground">
+                            <PenLine className="size-[18px]" />
+                          </span>
+                          <span className="flex flex-col">
+                            <span className="font-medium text-heading">Otra dirección</span>
+                            <span className="text-sm text-muted-foreground">Escríbela a mano solo para este envío</span>
+                          </span>
+                        </label>
+                      </div>
+                      <FieldError id="origenDireccion" error={errors.origenDireccion?.message} />
+                    </div>
+                  )}
+
+                  {requiereEnvio && origenDireccion === DIRECCION_NUEVA && (
                     <div className="grid gap-6 sm:grid-cols-2">
                       <Field
                         id="direccionEnvio"
-                        label="Dirección de envío"
+                        label="Dirección"
                         error={errors.direccionEnvio?.message}
                         className="sm:col-span-2"
                       >
