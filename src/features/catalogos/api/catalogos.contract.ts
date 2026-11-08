@@ -79,6 +79,13 @@ export const agenciaSchema = z.object({
 export const tipoProductoSchema = z.enum(['Cuenta', 'Tarjeta', 'Credito'])
 
 /** CAT-07 · Solo activos. Los campos que no aplican al tipo de producto llegan en `null` */
+/** Variante que el asesor puede ofrecer del producto (p. ej. Débito o Crédito Mastercard) */
+export const subProductoSchema = z.object({
+  idSubProducto: z.number(),
+  codigoSubProducto: z.string(),
+  nombreSubProducto: z.string(),
+})
+
 export const productoSchema = z.object({
   idProducto: z.number(),
   codigoProducto: z.string(),
@@ -93,6 +100,8 @@ export const productoSchema = z.object({
   /** Solo Cuenta */
   tipoCuenta: z.string().nullable(),
   permiteOperacionesPresenciales: z.boolean(),
+  /** Subproductos activos; TAR-01 pide `idSubProducto` (define el BIN de la tarjeta) */
+  subproductos: z.array(subProductoSchema),
 })
 
 /** CAT-08 · Solo activos. Los `requiere*` los valida el backend; la SPA solo los muestra */
@@ -131,6 +140,7 @@ export type Denominacion = z.infer<typeof denominacionSchema>
 export type Agencia = z.infer<typeof agenciaSchema>
 export type TipoProducto = z.infer<typeof tipoProductoSchema>
 export type Producto = z.infer<typeof productoSchema>
+export type SubProducto = z.infer<typeof subProductoSchema>
 export type Canal = z.infer<typeof canalSchema>
 export type TipoCredito = z.infer<typeof tipoCreditoSchema>
 export type TipoMovimientoCaja = z.infer<typeof tipoMovimientoCajaSchema>
