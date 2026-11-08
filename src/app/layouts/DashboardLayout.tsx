@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
-import { Bell, CircleHelp, House, LogOut, Moon, PanelLeft, Sun, UserPlus, type LucideIcon } from 'lucide-react'
+import {
+  Bell,
+  CircleHelp,
+  CreditCard,
+  House,
+  LogOut,
+  Moon,
+  PanelLeft,
+  Sun,
+  UserPlus,
+  type LucideIcon,
+} from 'lucide-react'
 
 import { canAccess, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
@@ -31,6 +42,12 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Clientes',
     items: [{ to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente }],
+  },
+  {
+    title: 'Tarjetas',
+    items: [
+      { to: '/solicitar-tarjeta', label: 'Solicitar tarjeta', Icon: CreditCard, profiles: ROUTE_ACCESS.solicitarTarjeta },
+    ],
   },
 ]
 

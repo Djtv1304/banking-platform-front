@@ -7,4 +7,6 @@ import type { AccessProfile } from '@/features/auth'
  */
 export const ROUTE_ACCESS = {
   registrarCliente: ['staff'],
+  // TAR-01: ASESOR y ADMIN
+  solicitarTarjeta: ['staff'],
 } as const satisfies Record<string, readonly AccessProfile[]>
