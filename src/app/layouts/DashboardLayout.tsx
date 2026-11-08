@@ -10,6 +10,7 @@ import {
   PanelLeft,
   Sun,
   UserPlus,
+  UserSearch,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -41,7 +42,10 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   { items: [{ to: '/', label: 'Inicio', Icon: House, end: true }] },
   {
     title: 'Clientes',
-    items: [{ to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente }],
+    items: [
+      { to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente },
+      { to: '/clientes', label: 'Consultar clientes', Icon: UserSearch, profiles: ROUTE_ACCESS.consultarClientes },
+    ],
   },
   {
     title: 'Tarjetas',
