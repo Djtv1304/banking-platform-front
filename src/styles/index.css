@@ -181,14 +181,21 @@
     --animate-slide-progress: slide-progress 7s linear forwards;
 
     @keyframes slide-progress {
-        from { width: 0%; }
+        from { width: 0; }
         to { width: 100%; }
     }
 }
 
+/* Color de los puntos de bg-dots: valor por defecto; cada panel lo cambia con [--dots-color:…] */
+@property --dots-color {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgb(255 255 255 / 0.06);
+}
+
 /* Patrón de puntos de los paneles del slider; el color se ajusta con --dots-color */
 @utility bg-dots {
-    background-image: radial-gradient(var(--dots-color, rgb(255 255 255 / 0.06)) 1px, transparent 1px);
+    background-image: radial-gradient(var(--dots-color) 1px, transparent 1px);
     background-size: 18px 18px;
 }
 
@@ -200,8 +207,8 @@
 @utility rueda-item {
   @supports (animation-timeline: view()) {
     animation: rueda-item linear both;
+    /* Sin animation-range: el valor por defecto (normal) en una línea de tiempo view() ya es "cover" */
     animation-timeline: view();
-    animation-range: cover;
   }
 }
 
