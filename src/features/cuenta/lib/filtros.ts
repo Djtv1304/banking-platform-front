@@ -54,6 +54,10 @@ export function armarParametros(
 
 export const totalPaginas = (total: number, pageSize = PAGE_SIZE) => Math.ceil(total / pageSize)
 
+/** «Página 2 de 3 · 45 resultados» */
+export const resumenPaginacion = (page: number, total: number, pageSize = PAGE_SIZE) =>
+  `Página ${page} de ${totalPaginas(total, pageSize)} · ${total} ${total === 1 ? 'resultado' : 'resultados'}`
+
 /** `idCuenta` de la URL: entero positivo que cabe en la columna INT, o `null` si no es válido */
 export function leerIdCuenta(valor: string | undefined) {
   if (!valor || !/^\d+$/.test(valor)) return null
