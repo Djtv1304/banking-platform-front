@@ -1,66 +1,71 @@
-import type { ActividadEconomica, Ciudad, Pais } from '@/features/catalogos/api/catalogos.contract'
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query'
+
+import {
+  getActividadesEconomicas,
+  getAgencias,
+  getCanales,
+  getCiudades,
+  getDenominaciones,
+  getPaises,
+  getProductos,
+  getTiposAntecedente,
+  getTiposCredito,
+  getTiposMovimientoCaja,
+} from '@/features/catalogos/api/catalogos.api'
+import type { TipoProducto } from '@/features/catalogos/api/catalogos.contract'
 
 /*
- * TODO(API): reemplazar los datos de ejemplo por los endpoints de catálogos (Paises, Ciudad,
- * ActividadEconomica). Datos de ejemplo mientras no existe la API de catálogos. Los hooks devuelven la misma forma que
- * `useQuery` ({ data, isLoading }) para que, al consumir la API, solo cambie este archivo:
- *   useQuery({ queryKey: ['catalogos', 'ciudades', codigoPais], queryFn: …, enabled: !!codigoPais })
+ * Catálogos con caché por sesión (F-09).
+ *
+ * Los catálogos casi no cambian (se mantienen por semilla, F-07): cada uno se pide una sola vez y
+ * se reutiliza en todos los formularios. La caché vive en memoria y dura lo que dura la sesión:
+ * el login y el logout terminan en una carga completa de la página (redirecciones de WorkOS),
+ * que la vacía.
+ *
+ * Mientras cargan, o si fallan, `data` es `[]`: los formularios pueden usar `data.map(...)` sin
+ * comprobar `undefined`. `isLoading` e `isError` siguen disponibles para mostrar el estado.
  */
 
-const PAISES: Pais[] = [
-  { codigoPais: 'ECU', codigoNumerico: '218', nombrePais: 'Ecuador' },
-  { codigoPais: 'COL', codigoNumerico: '170', nombrePais: 'Colombia' },
-  { codigoPais: 'PER', codigoNumerico: '604', nombrePais: 'Perú' },
-  { codigoPais: 'VEN', codigoNumerico: '862', nombrePais: 'Venezuela' },
-  { codigoPais: 'USA', codigoNumerico: '840', nombrePais: 'Estados Unidos' },
-  { codigoPais: 'ESP', codigoNumerico: '724', nombrePais: 'España' },
-]
+const POR_SESION = { staleTime: Infinity, gcTime: Infinity } as const
 
-const CIUDADES: Ciudad[] = [
-  { idCiudad: 1, codigoPais: 'ECU', nombre: 'Quito', provincia: 'Pichincha' },
-  { idCiudad: 2, codigoPais: 'ECU', nombre: 'Sangolquí', provincia: 'Pichincha' },
-  { idCiudad: 3, codigoPais: 'ECU', nombre: 'Cayambe', provincia: 'Pichincha' },
-  { idCiudad: 4, codigoPais: 'ECU', nombre: 'Guayaquil', provincia: 'Guayas' },
-  { idCiudad: 5, codigoPais: 'ECU', nombre: 'Durán', provincia: 'Guayas' },
-  { idCiudad: 6, codigoPais: 'ECU', nombre: 'Cuenca', provincia: 'Azuay' },
-  { idCiudad: 7, codigoPais: 'ECU', nombre: 'Ambato', provincia: 'Tungurahua' },
-  { idCiudad: 8, codigoPais: 'ECU', nombre: 'Loja', provincia: 'Loja' },
-  { idCiudad: 9, codigoPais: 'ECU', nombre: 'Manta', provincia: 'Manabí' },
-  { idCiudad: 10, codigoPais: 'ECU', nombre: 'Portoviejo', provincia: 'Manabí' },
-  { idCiudad: 11, codigoPais: 'COL', nombre: 'Bogotá', provincia: 'Cundinamarca' },
-  { idCiudad: 12, codigoPais: 'COL', nombre: 'Pasto', provincia: 'Nariño' },
-  { idCiudad: 13, codigoPais: 'PER', nombre: 'Lima', provincia: 'Lima' },
-  { idCiudad: 14, codigoPais: 'PER', nombre: 'Piura', provincia: 'Piura' },
-]
+const VACIO: never[] = []
 
-const ACTIVIDADES: ActividadEconomica[] = [
-  { idActividadEconomica: 1, descripcion: 'Cultivo de banano', areaActividad: 'Agricultura', estado: 'A' },
-  { idActividadEconomica: 2, descripcion: 'Cultivo de cacao', areaActividad: 'Agricultura', estado: 'A' },
-  { idActividadEconomica: 3, descripcion: 'Cría de ganado bovino', areaActividad: 'Agricultura', estado: 'A' },
-  { idActividadEconomica: 4, descripcion: 'Venta al por menor en tiendas de abarrotes', areaActividad: 'Comercio', estado: 'A' },
-  { idActividadEconomica: 5, descripcion: 'Venta al por mayor de productos textiles', areaActividad: 'Comercio', estado: 'A' },
-  { idActividadEconomica: 6, descripcion: 'Venta de repuestos automotrices', areaActividad: 'Comercio', estado: 'A' },
-  { idActividadEconomica: 7, descripcion: 'Elaboración de productos de panadería', areaActividad: 'Manufactura', estado: 'A' },
-  { idActividadEconomica: 8, descripcion: 'Confección de prendas de vestir', areaActividad: 'Manufactura', estado: 'A' },
-  { idActividadEconomica: 9, descripcion: 'Transporte de carga por carretera', areaActividad: 'Servicios', estado: 'A' },
-  { idActividadEconomica: 10, descripcion: 'Restaurantes y servicio de comidas', areaActividad: 'Servicios', estado: 'A' },
-  { idActividadEconomica: 11, descripcion: 'Actividades profesionales independientes', areaActividad: 'Servicios', estado: 'A' },
-  { idActividadEconomica: 12, descripcion: 'Empleado en relación de dependencia', areaActividad: 'Dependiente', estado: 'A' },
-  { idActividadEconomica: 13, descripcion: 'Jubilado o pensionista', areaActividad: 'Dependiente', estado: 'A' },
-  { idActividadEconomica: 14, descripcion: 'Estudiante', areaActividad: 'Dependiente', estado: 'A' },
-  { idActividadEconomica: 15, descripcion: 'Pesca artesanal', areaActividad: 'Agricultura', estado: 'I' },
-]
+function useCatalogo<T>(options: UseQueryOptions<T[]>) {
+  const query = useQuery({ ...POR_SESION, ...options })
+  return { ...query, data: query.data ?? (VACIO as T[]) }
+}
 
-export const usePaises = () => ({ data: PAISES, isLoading: false })
+export const usePaises = () => useCatalogo({ queryKey: ['catalogos', 'paises'], queryFn: getPaises })
 
 /** Ciudades de un país (vacío hasta elegir el país) */
-export const useCiudades = (codigoPais: string | undefined) => ({
-  data: codigoPais ? CIUDADES.filter((ciudad) => ciudad.codigoPais === codigoPais) : [],
-  isLoading: false,
-})
+export const useCiudades = (codigoPais: string | undefined) =>
+  useCatalogo({
+    queryKey: ['catalogos', 'ciudades', codigoPais],
+    queryFn: () => getCiudades(codigoPais as string),
+    enabled: !!codigoPais,
+  })
 
-/** Solo actividades activas */
-export const useActividadesEconomicas = () => ({
-  data: ACTIVIDADES.filter((actividad) => actividad.estado === 'A'),
-  isLoading: false,
-})
+/** Solo activas (las filtra el backend) */
+export const useActividadesEconomicas = () =>
+  useCatalogo({ queryKey: ['catalogos', 'actividades-economicas'], queryFn: getActividadesEconomicas })
+
+export const useTiposAntecedente = () =>
+  useCatalogo({ queryKey: ['catalogos', 'tipos-antecedente'], queryFn: getTiposAntecedente })
+
+export const useDenominaciones = () =>
+  useCatalogo({ queryKey: ['catalogos', 'denominaciones'], queryFn: getDenominaciones })
+
+/** Todas las agencias con su estado: para crear operaciones, ofrecer solo las de `estado === 'A'` */
+export const useAgencias = () => useCatalogo({ queryKey: ['catalogos', 'agencias'], queryFn: getAgencias })
+
+/** Sin `tipo`, todos los productos activos; con `tipo`, solo los de ese tipo */
+export const useProductos = (tipo?: TipoProducto) =>
+  useCatalogo({ queryKey: ['catalogos', 'productos', tipo ?? 'todos'], queryFn: () => getProductos(tipo) })
+
+export const useCanales = () => useCatalogo({ queryKey: ['catalogos', 'canales'], queryFn: getCanales })
+
+export const useTiposCredito = () =>
+  useCatalogo({ queryKey: ['catalogos', 'tipos-credito'], queryFn: getTiposCredito })
+
+export const useTiposMovimientoCaja = () =>
+  useCatalogo({ queryKey: ['catalogos', 'tipos-movimiento-caja'], queryFn: getTiposMovimientoCaja })
