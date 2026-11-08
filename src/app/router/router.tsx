@@ -39,8 +39,8 @@ export const router = createBrowserRouter([
           {
             element: <RequireProfile allowed={ROUTE_ACCESS.consultarClientes} />,
             children: [
-              { path: '/clientes', element: <BuscarClientesPage /> },
-              { path: '/clientes/:idCliente', element: <FichaClientePage /> },
+              { path: '/clientes-busqueda', element: <BuscarClientesPage /> },
+              { path: '/clientes-busqueda/:idCliente', element: <FichaClientePage /> },
             ],
           },
         ],

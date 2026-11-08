@@ -45,7 +45,7 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     title: 'Clientes',
     items: [
       { to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente },
-      { to: '/clientes', label: 'Consultar clientes', Icon: UserSearch, profiles: ROUTE_ACCESS.consultarClientes },
+      { to: '/clientes-busqueda', label: 'Consultar clientes', Icon: UserSearch, profiles: ROUTE_ACCESS.consultarClientes },
     ],
   },
   {

@@ -29,7 +29,7 @@ export function FichaClientePage() {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <Button asChild variant="outline" className="h-10 rounded-xl px-4">
-        <Link to="/clientes">
+        <Link to="/clientes-busqueda">
           <ArrowLeft />
           Volver a la búsqueda
         </Link>
@@ -72,7 +72,7 @@ function ClienteNoEncontrado() {
     >
       <UserRoundX className="size-8 text-muted-foreground" />
       <p className="font-semibold text-heading">No existe un cliente con ese ID</p>
-      <Link to="/clientes" className="text-sm font-semibold text-link underline-offset-4 hover:underline">
+      <Link to="/clientes-busqueda" className="text-sm font-semibold text-link underline-offset-4 hover:underline">
         Buscar otro cliente
       </Link>
     </div>

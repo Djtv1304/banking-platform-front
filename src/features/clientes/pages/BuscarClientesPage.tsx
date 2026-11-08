@@ -216,7 +216,7 @@ function Resultados({ pagina, cambiando, onCambiarPagina }: ResultadosProps) {
                   <td className="px-5 py-4">
                     {/* El enlace cubre toda la fila (after:inset-0) */}
                     <Link
-                      to={`/clientes/${cliente.idCliente}`}
+                      to={`/clientes-busqueda/${cliente.idCliente}`}
                       className="font-semibold text-heading outline-none after:absolute after:inset-0 after:rounded-sm focus-visible:after:ring-3 focus-visible:after:ring-ring/50"
                     >
                       {nombreVisible(cliente)}
