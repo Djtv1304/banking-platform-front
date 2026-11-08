@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
-import { Bell, CircleHelp, House, LogOut, Moon, PanelLeft, Sun, UserPlus, type LucideIcon } from 'lucide-react'
+import { Bell, CircleHelp, House, IdCard, LogOut, Moon, PanelLeft, Sun, UserPlus, Users, type LucideIcon } from 'lucide-react'
 
 import { canAccess, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
@@ -24,12 +24,19 @@ interface NavItem {
   end?: boolean
   /** Perfiles que ven la opción. Sin valor = todos. El admin ve todas. */
   profiles?: readonly AccessProfile[]
+  /** Misma ruta con otro texto e ícono según el perfil (la página muestra otra vista) */
+  variants?: Partial<Record<AccessProfile, { label: string; Icon: LucideIcon }>>
 }
 
 const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
-  { items: [{ to: '/', label: 'Inicio', Icon: House, end: true }] },
   {
-    title: 'Clientes',
+    items: [
+      { to: '/', label: 'Inicio', Icon: House, end: true },
+      { to: '/clientes', label: 'Clientes', Icon: Users, variants: { cliente: { label: 'Mi información', Icon: IdCard } } },
+    ],
+  },
+  {
+    title: 'Operaciones',
     items: [{ to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente }],
   },
 ]
@@ -39,7 +46,9 @@ function getVisibleSections(profile: AccessProfile | null) {
   if (!profile) return []
   return NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => canAccess(profile, item.profiles)),
+    items: section.items
+      .filter((item) => canAccess(profile, item.profiles))
+      .map((item) => ({ ...item, ...item.variants?.[profile] })),
   })).filter((section) => section.items.length > 0)
 }
 

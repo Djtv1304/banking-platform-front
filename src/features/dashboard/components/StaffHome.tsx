@@ -41,7 +41,7 @@ const STATUS = {
 
 const QUICK_ACTIONS: { label: string; Icon: LucideIcon; to?: string }[] = [
   { label: 'Registrar cliente', Icon: UserPlus, to: '/registrar-cliente' },
-  { label: 'Buscar cliente', Icon: Search },
+  { label: 'Buscar cliente', Icon: Search, to: '/clientes' },
   { label: 'Apertura de cuenta', Icon: WalletCards },
   { label: 'Reportes', Icon: BarChart3 },
 ]

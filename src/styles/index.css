@@ -192,6 +192,49 @@
     background-size: 18px 18px;
 }
 
+/*
+ * Rueda tipo selector de iOS: cada elemento se encoge, se inclina y se esconde detrás del central
+ * según su posición en el scroll. Lo calcula el navegador (scroll-driven animations), sin JS por
+ * cuadro. Sin soporte (p. ej. Firefox y Safari) queda una lista con scroll snap normal.
+ */
+@utility rueda-item {
+  @supports (animation-timeline: view()) {
+    animation: rueda-item linear both;
+    animation-timeline: view();
+    animation-range: cover;
+  }
+}
+
+@keyframes rueda-item {
+  0% {
+    transform: translateY(-62%) scale(0.78) rotateX(-28deg);
+    opacity: 0.35;
+    z-index: 0;
+  }
+  50% {
+    transform: none;
+    opacity: 1;
+    z-index: 10;
+  }
+  100% {
+    transform: translateY(62%) scale(0.78) rotateX(28deg);
+    opacity: 0.35;
+    z-index: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes rueda-item {
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
