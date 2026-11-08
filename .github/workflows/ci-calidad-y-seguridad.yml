@@ -139,7 +139,7 @@ jobs:
           sudo mv gitleaks /usr/local/bin/
 
       - name: Gitleaks · historial git
-        run: gitleaks git --config .gitleaks.toml --redact --verbose --exit-code 1 .
+        run: gitleaks git --config .github/.gitleaks.toml --redact --verbose --exit-code 1 .
 
       - name: Descargar build
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -149,7 +149,7 @@ jobs:
 
       # Las variables VITE_* se incrustan en el JS público: aquí nunca debe aparecer un secreto
       - name: Gitleaks · bundle (dist/)
-        run: gitleaks dir --config .gitleaks.toml --redact --verbose --exit-code 1 dist
+        run: gitleaks dir --config .github/.gitleaks.toml --redact --verbose --exit-code 1 dist
 
   # ---------------------------------------------------------------------------
   # SAST: análisis estático de seguridad del código (OWASP, React, XSS…)
