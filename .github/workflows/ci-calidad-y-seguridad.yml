@@ -1,4 +1,5 @@
-# CI único del proyecto: calidad (lint · tipos · build) + seguridad (dependencias · secretos · SAST).
+# CI único del proyecto: calidad (lint · tipos · pruebas · build) + seguridad (dependencias · secretos · SAST)
+# + contrato con el backend + un resumen para revisión y QA en cada PR.
 # Corre en cada PR hacia develop/master y en cada push a develop/master.
 # El despliegue y las previews NO se hacen aquí: los gestiona Cloudflare Workers Builds.
 # SonarQube Cloud tampoco: está conectado desde su web (análisis automático) y aporta su propio check.
@@ -55,6 +56,11 @@ jobs:
 
       - name: TypeScript (chequeo de tipos)
         run: npm run typecheck
+
+      # Lógica pura: validaciones, normalizadores, acceso por rol, errores del backend.
+      # El nombre del job no cambia: «Calidad (lint · tipos · build)» es un check obligatorio de master
+      - name: Pruebas (Vitest)
+        run: npm test
 
       - name: Build de producción
         run: npm run build
@@ -177,3 +183,69 @@ jobs:
           --metrics=off
           --exclude node_modules
           --exclude dist
+
+  # ---------------------------------------------------------------------------
+  # Contrato: cada ruta de src/features/*/api/*.contract.ts existe en el OpenAPI del backend
+  # desplegado (el mismo al que apunta el Worker en producción y en los previews, ver wrangler.jsonc).
+  # No es obligatorio: avisa cuando el front llama a algo que el backend todavía no publicó.
+  # ---------------------------------------------------------------------------
+  contrato:
+    name: Contrato (backend desplegado)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BACKEND_OPENAPI_URL: ${{ vars.BACKEND_OPENAPI_URL || 'https://backend-bcgxcrfbg7dpdebp.mexicocentral-01.azurewebsites.net/api/openapi.json' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Verificar integridad del lockfile
+        run: node .github/scripts/verify-lockfile.mjs
+
+      - name: Instalar dependencias
+        run: npm ci --ignore-scripts
+
+      # También despierta al App Service si estaba dormido
+      - name: ¿Responde el backend?
+        run: |
+          if ! curl -sSf --max-time 90 -o /dev/null "$BACKEND_OPENAPI_URL"; then
+            echo "::warning::El backend no respondió en $BACKEND_OPENAPI_URL: se omite la comparación del contrato."
+          fi
+
+      - name: Rutas del front contra el OpenAPI
+        run: npm run contrato
+
+  # ---------------------------------------------------------------------------
+  # Resumen para revisión y QA: un comentario único en el PR (historia y criterios como lista de QA,
+  # preview, gates, archivos compartidos y solapes con otros PRs). Nunca falla el workflow.
+  # ---------------------------------------------------------------------------
+  resumen:
+    name: Resumen para QA
+    if: always() && github.event_name == 'pull_request'
+    needs: [calidad, dependencias, secretos, sast, contrato]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write # sólo para crear o actualizar su comentario
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Comentario de resumen
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RESULTADOS: ${{ toJSON(needs) }}
+        run: node .github/scripts/pr-resumen.mjs
