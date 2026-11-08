@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
-import { ArrowLeft, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Gauge, RefreshCw } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
@@ -9,6 +9,7 @@ import type { Cuenta } from '@/features/cuenta/api/cuentas.contract'
 import { Aviso, Cargando } from '@/features/cuenta/components/Aviso'
 import { EstadoCuentaBadge } from '@/features/cuenta/components/EstadoCuentaBadge'
 import { useCuenta, useNombresCuenta, useSaldoCuenta } from '@/features/cuenta/hooks/useCuentas'
+import { usePermisosCupos } from '@/features/cuenta/hooks/useCupos'
 import { leerIdCuenta } from '@/features/cuenta/lib/filtros'
 import { formatearFechaConsulta, formatearMonto } from '@/features/cuenta/lib/formato'
 
@@ -71,6 +72,7 @@ function SinDetalle({ children }: { children: ReactNode }) {
 
 function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
   const nombres = useNombresCuenta()
+  const cupos = usePermisosCupos()
 
   return (
     <>
@@ -82,6 +84,14 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
           </h1>
           <EstadoCuentaBadge estado={cuenta.estado} />
         </div>
+        {cupos.ver && (
+          <Button asChild variant="outline" size="lg" className="rounded-lg px-3">
+            <Link to={`/cuentas/${cuenta.idCuenta}/cupos`}>
+              <Gauge />
+              Cupos por canal
+            </Link>
+          </Button>
+        )}
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">

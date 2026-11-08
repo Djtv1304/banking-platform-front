@@ -1,8 +1,10 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { ApiError } from '@/shared/api'
+import { useAuthStore } from '@/features/auth'
 import { actualizarCupo, getCupos, getHistorialCupo } from '@/features/cuenta/api/cupos.api'
 import type { CupoUpdate } from '@/features/cuenta/api/cupos.contract'
+import { permisosCupos } from '@/features/cuenta/lib/cupos'
 
 /* Cupos por canal (A-06). El consumo cambia con cada operación: no se guardan por sesión */
 
@@ -40,4 +42,11 @@ export function useActualizarCupo(idCuenta: number) {
     retry: false,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: claveCupos(idCuenta) }),
   })
+}
+
+/** Acciones visibles según los roles reales de /auth/me */
+export function usePermisosCupos() {
+  // Se elige el arreglo (referencia estable) y no un objeto nuevo en cada render
+  const roles = useAuthStore((state) => state.user?.roles)
+  return permisosCupos(roles ?? [])
 }

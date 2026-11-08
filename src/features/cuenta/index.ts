@@ -3,3 +3,4 @@
 
 export { BuscarCuentasPage } from '@/features/cuenta/pages/BuscarCuentasPage'
 export { DetalleCuentaPage } from '@/features/cuenta/pages/DetalleCuentaPage'
+export { CuposCuentaPage } from '@/features/cuenta/pages/CuposCuentaPage'
