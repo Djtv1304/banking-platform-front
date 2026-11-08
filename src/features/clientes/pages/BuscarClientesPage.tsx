@@ -16,6 +16,7 @@ import {
   Q_MAX,
   TIPO_CLIENTE_LABEL,
   totalPaginas,
+  varianteEstado,
   type FiltrosClientes,
 } from '@/features/clientes/lib/consulta'
 
@@ -30,13 +31,6 @@ const selectClassName = cn(
   fieldClassName,
   'w-full border text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:scheme-dark',
 )
-
-const VARIANTE_ESTADO: Record<string, 'default' | 'destructive'> = {
-  Activo: 'default',
-  Bloqueado: 'destructive',
-  Suspendido: 'destructive',
-  Eliminado: 'destructive',
-}
 
 export function BuscarClientesPage() {
   const [busqueda, setBusqueda] = useState({ filtros: FILTROS_INICIALES, page: 1 })
@@ -231,7 +225,7 @@ function Resultados({ pagina, cambiando, onCambiarPagina }: ResultadosProps) {
                   <td className="px-5 py-4 text-muted-foreground tabular-nums">{cliente.identificacion}</td>
                   <td className="px-5 py-4 text-muted-foreground">{TIPO_CLIENTE_LABEL[cliente.tipoCliente]}</td>
                   <td className="px-5 py-4">
-                    <Badge variant={VARIANTE_ESTADO[cliente.estado] ?? 'secondary'}>{cliente.estado}</Badge>
+                    <Badge variant={varianteEstado(cliente.estado)}>{cliente.estado}</Badge>
                   </td>
                   <td className="px-5 py-4 text-right">
                     <ChevronRight aria-hidden className="ml-auto size-4 text-muted-foreground" />

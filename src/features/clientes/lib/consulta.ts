@@ -50,6 +50,16 @@ export const TIPO_DOCUMENTO_LABEL: Record<Cliente['tipoDocumento'], string> = {
   P: 'Pasaporte',
 }
 
+const VARIANTE_ESTADO: Partial<Record<string, 'default' | 'destructive'>> = {
+  Activo: 'default',
+  Bloqueado: 'destructive',
+  Suspendido: 'destructive',
+  Eliminado: 'destructive',
+}
+
+/** Variante del Badge del estado: Activo resalta, los que impiden operar en rojo, el resto neutro */
+export const varianteEstado = (estado: string) => VARIANTE_ESTADO[estado] ?? 'secondary'
+
 /** Parámetros de CLI-03 sin los filtros vacíos: el texto va recortado y con 100 caracteres como máximo */
 export function armarParametros(filtros: FiltrosClientes, page: number): ParametrosBusqueda {
   const params: ParametrosBusqueda = {
