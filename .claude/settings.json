@@ -1,5 +1,6 @@
 {
   "enabledPlugins": {
-    "workos@claude-plugins-official": true
+    "workos@claude-plugins-official": true,
+    "frontend-design@anthropic-plugin-directory": true
   }
 }
