@@ -56,6 +56,9 @@ jobs:
       - name: TypeScript (chequeo de tipos)
         run: npm run typecheck
 
+      - name: Pruebas unitarias (Vitest)
+        run: npm test
+
       - name: Build de producción
         run: npm run build
 

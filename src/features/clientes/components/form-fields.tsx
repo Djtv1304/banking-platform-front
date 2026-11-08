@@ -48,12 +48,14 @@ interface SelectFieldProps {
   placeholder: string
   error?: string
   disabled?: boolean
+  descriptionId?: string
 }
 
-export function SelectField({ id, value, onChange, onBlur, options, placeholder, error, disabled }: SelectFieldProps) {
+export function SelectField({ id, value, onChange, onBlur, options, placeholder, error, disabled, descriptionId }: SelectFieldProps) {
+  const describedBy = [error ? `${id}-error` : undefined, descriptionId].filter(Boolean).join(' ') || undefined
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger id={id} onBlur={onBlur} className={selectClassName} {...a11y(id, error)}>
+      <SelectTrigger id={id} onBlur={onBlur} className={selectClassName} {...a11y(id, error)} aria-describedby={describedBy}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

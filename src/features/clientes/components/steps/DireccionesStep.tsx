@@ -5,6 +5,7 @@ import { cn } from '@/shared/lib'
 import { Badge, Button, Input } from '@/shared/ui'
 import { useCiudades, usePaises } from '@/features/catalogos'
 import { a11y } from '@/features/clientes/lib/a11y'
+import { EstadoCatalogo } from '@/features/clientes/components/EstadoCatalogo'
 import {
   Field,
   fieldClassName,
@@ -117,8 +118,11 @@ function DireccionCard({ form, indice, puedeQuitar, onQuitar, onMarcarPrincipal 
     name: [`${ruta}.esPrincipal`, `${ruta}.codigoPais`, `${ruta}.provincia`],
   })
 
-  const { data: paises } = usePaises()
-  const { data: ciudades } = useCiudades(codigoPais)
+  const consultaPaises = usePaises()
+  const { data: paises } = consultaPaises
+  const paisDisponible = paises.some((pais) => pais.codigoPais === codigoPais)
+  const consultaCiudades = useCiudades(paisDisponible ? codigoPais : undefined)
+  const { data: ciudades } = consultaCiudades
   const provincias = [...new Set(ciudades.map((ciudad) => ciudad.provincia))].sort((a, b) => a.localeCompare(b, 'es'))
   const ciudadesDeProvincia = ciudades.filter((ciudad) => ciudad.provincia === provincia)
 
@@ -191,7 +195,7 @@ function DireccionCard({ form, indice, puedeQuitar, onQuitar, onMarcarPrincipal 
             <Field id={id('pais')} label="País" error={fieldState.error?.message}>
               <SelectField
                 id={id('pais')}
-                value={field.value}
+                value={paisDisponible ? field.value : ''}
                 onChange={(valor) => {
                   field.onChange(valor)
                   setValue(`${ruta}.provincia`, '')
@@ -199,9 +203,12 @@ function DireccionCard({ form, indice, puedeQuitar, onQuitar, onMarcarPrincipal 
                 }}
                 onBlur={field.onBlur}
                 options={paises.map((pais) => ({ value: pais.codigoPais, label: pais.nombrePais }))}
-                placeholder="Selecciona el país"
+                placeholder={consultaPaises.isPending ? 'Cargando países…' : 'Selecciona el país'}
+                disabled={!paises.length}
+                descriptionId={id('estado-paises')}
                 error={fieldState.error?.message}
               />
+              <EstadoCatalogo id={id('estado-paises')} nombre="países" consulta={consultaPaises} />
             </Field>
           )}
         />
@@ -220,10 +227,14 @@ function DireccionCard({ form, indice, puedeQuitar, onQuitar, onMarcarPrincipal 
                 }}
                 onBlur={field.onBlur}
                 options={provincias.map((nombre) => ({ value: nombre, label: nombre }))}
-                placeholder={codigoPais ? 'Selecciona la provincia' : 'Primero elige el país'}
-                disabled={!codigoPais}
+                placeholder={paisDisponible ? 'Selecciona la provincia' : 'Primero elige el país'}
+                disabled={!provincias.length}
+                descriptionId={paisDisponible ? id('estado-ciudades') : undefined}
                 error={fieldState.error?.message}
               />
+              {paisDisponible && (
+                <EstadoCatalogo id={id('estado-ciudades')} nombre="ciudades" consulta={consultaCiudades} />
+              )}
             </Field>
           )}
         />
@@ -240,7 +251,8 @@ function DireccionCard({ form, indice, puedeQuitar, onQuitar, onMarcarPrincipal 
                 onBlur={field.onBlur}
                 options={ciudadesDeProvincia.map((ciudad) => ({ value: String(ciudad.idCiudad), label: ciudad.nombre }))}
                 placeholder={provincia ? 'Selecciona la ciudad' : 'Primero elige la provincia'}
-                disabled={!provincia}
+                disabled={!ciudadesDeProvincia.length}
+                descriptionId={paisDisponible ? id('estado-ciudades') : undefined}
                 error={fieldState.error?.message}
               />
             </Field>

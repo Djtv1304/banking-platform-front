@@ -6,15 +6,15 @@
 
 export const CELULAR_PREFIJO = '+593'
 
-/** Normaliza lo que escribe el usuario: solo dígitos, sin 593 ni el 0 inicial, máximo 9 dígitos. */
+/** Quita formato, 593 y el 0 inicial; conserva dígitos de más para que la validación los rechace. */
 export function normalizarCelular(valor: string) {
   let digitos = valor.replace(/\D/g, '')
   if (digitos.startsWith('593')) digitos = digitos.slice(3)
   if (digitos.startsWith('0')) digitos = digitos.slice(1)
-  return digitos.slice(0, 9)
+  return digitos
 }
 
 /** 987654321 → "98 765 4321" */
 export function formatearCelular(digitos: string) {
-  return [digitos.slice(0, 2), digitos.slice(2, 5), digitos.slice(5, 9)].filter(Boolean).join(' ')
+  return [digitos.slice(0, 2), digitos.slice(2, 5), digitos.slice(5)].filter(Boolean).join(' ')
 }
