@@ -78,12 +78,16 @@ export const agenciaSchema = z.object({
 
 export const tipoProductoSchema = z.enum(['Cuenta', 'Tarjeta', 'Credito'])
 
+export const tipoTarjetaSchema = z.enum(['Debito', 'Credito'])
+
 /** CAT-07 · Solo activos. Los campos que no aplican al tipo de producto llegan en `null` */
 /** Variante que el asesor puede ofrecer del producto (p. ej. Débito o Crédito Mastercard) */
 export const subProductoSchema = z.object({
   idSubProducto: z.number(),
   codigoSubProducto: z.string(),
   nombreSubProducto: z.string(),
+  /** Solo en subproductos de tarjeta */
+  tipoTarjeta: tipoTarjetaSchema.nullable(),
 })
 
 export const productoSchema = z.object({
@@ -139,6 +143,7 @@ export type TipoAntecedente = z.infer<typeof tipoAntecedenteSchema>
 export type Denominacion = z.infer<typeof denominacionSchema>
 export type Agencia = z.infer<typeof agenciaSchema>
 export type TipoProducto = z.infer<typeof tipoProductoSchema>
+export type TipoTarjeta = z.infer<typeof tipoTarjetaSchema>
 export type Producto = z.infer<typeof productoSchema>
 export type SubProducto = z.infer<typeof subProductoSchema>
 export type Canal = z.infer<typeof canalSchema>

@@ -14,6 +14,7 @@ export type {
   TipoCredito,
   TipoMovimientoCaja,
   TipoProducto,
+  TipoTarjeta,
 } from '@/features/catalogos/api/catalogos.contract'
 export {
   useActividadesEconomicas,

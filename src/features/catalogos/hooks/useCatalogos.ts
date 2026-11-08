@@ -12,7 +12,7 @@ import {
   getTiposCredito,
   getTiposMovimientoCaja,
 } from '@/features/catalogos/api/catalogos.api'
-import type { TipoProducto } from '@/features/catalogos/api/catalogos.contract'
+import type { TipoProducto, TipoTarjeta } from '@/features/catalogos/api/catalogos.contract'
 
 /*
  * Catálogos con caché por sesión (F-09).
@@ -58,9 +58,16 @@ export const useDenominaciones = () =>
 /** Todas las agencias con su estado: para crear operaciones, ofrecer solo las de `estado === 'A'` */
 export const useAgencias = () => useCatalogo({ queryKey: ['catalogos', 'agencias'], queryFn: getAgencias })
 
-/** Sin `tipo`, todos los productos activos; con `tipo`, solo los de ese tipo */
-export const useProductos = (tipo?: TipoProducto) =>
-  useCatalogo({ queryKey: ['catalogos', 'productos', tipo ?? 'todos'], queryFn: () => getProductos(tipo) })
+/**
+ * Sin `tipo`, todos los productos activos; con `tipo`, solo los de ese tipo. Con `tipoTarjeta`, solo
+ * los subproductos de tarjeta de ese tipo: al cambiarlo en el formulario de emisión cambia la clave
+ * y se cargan (una vez por sesión) las opciones congruentes.
+ */
+export const useProductos = (tipo?: TipoProducto, tipoTarjeta?: TipoTarjeta) =>
+  useCatalogo({
+    queryKey: ['catalogos', 'productos', tipo ?? 'todos', tipoTarjeta ?? 'todas'],
+    queryFn: () => getProductos(tipo, tipoTarjeta),
+  })
 
 export const useCanales = () => useCatalogo({ queryKey: ['catalogos', 'canales'], queryFn: getCanales })
 
