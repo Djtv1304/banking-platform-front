@@ -3,7 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router'
 import { DashboardLayout } from '@/app/layouts/DashboardLayout'
 import { LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
-import { RegistrarClientePage } from '@/features/clientes'
+import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, DetalleCuentaPage } from '@/features/cuenta'
 import { GuestOnly, RequireAuth, RequireProfile } from '@/app/router/guards'
@@ -34,6 +34,13 @@ export const router = createBrowserRouter([
             children: [
               { path: '/cuentas', element: <BuscarCuentasPage /> },
               { path: '/cuentas/:idCuenta', element: <DetalleCuentaPage /> },
+            ],
+          },
+          {
+            element: <RequireProfile allowed={ROUTE_ACCESS.consultarClientes} />,
+            children: [
+              { path: '/clientes-busqueda', element: <BuscarClientesPage /> },
+              { path: '/clientes-busqueda/:idCliente', element: <FichaClientePage /> },
             ],
           },
         ],

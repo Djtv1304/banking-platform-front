@@ -11,4 +11,6 @@ export const ROUTE_ACCESS = {
   solicitarTarjeta: ['staff'],
   // CTA-02/03/04: ASESOR, CAJERO, SUPERVISOR y ADMIN
   consultarCuentas: ['staff'],
+  // CLI-03/04: ASESOR, CAJERO, SUPERVISOR y ADMIN
+  consultarClientes: ['staff'],
 } as const satisfies Record<string, readonly AccessProfile[]>
