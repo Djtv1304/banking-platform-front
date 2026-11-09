@@ -59,6 +59,10 @@ export async function getTarjetasPrincipalesCuenta(idCuenta: number) {
   return page.items
 }
 
+/** TAR-02 · `params` ya viene sin filtros vacíos (ver `armarParametros`): el backend rechaza lo que no conoce */
+export const buscarTarjetas = (params: Record<string, string>) =>
+  getValidado(TARJETAS_ENDPOINTS.tarjetas, pageSchema(tarjetaResumenSchema), params)
+
 /** TAR-01 · Registra la solicitud; la tarjeta nace Solicitada y sin PIN */
 export async function solicitarTarjeta(body: TarjetaCreate) {
   const { data, status } = await apiClient.post<unknown>(TARJETAS_ENDPOINTS.tarjetas, body)

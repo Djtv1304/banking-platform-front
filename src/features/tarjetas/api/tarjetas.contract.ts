@@ -8,8 +8,11 @@ import { z } from 'zod'
  * - CLI-09 GET /clientes/{id}/direcciones   → direcciones para el envío de la tarjeta
  * - TAR-02 GET /tarjetas?idCuenta=…&esExtension=false → principales (titular de una extensión)
  * - TAR-01 POST /tarjetas                   → registra la solicitud (estado Solicitada, sin PIN)
+ * - TAR-02 GET /tarjetas                    → búsqueda por cliente, cuenta y estado (A-04)
  *
- * Los esquemas solo describen los campos que usa el formulario; zod descarta el resto.
+ * Los esquemas solo describen los campos que usa el front; zod descarta el resto.
+ * ⚠️ TAR-01 y TAR-03 devuelven `tokenTarjeta`: no se declara en ningún esquema para que zod lo
+ * descarte y nunca llegue a un estado, una caché ni la pantalla. Tampoco existe el PAN completo.
  */
 
 const BASE = '/api/v1'
@@ -73,7 +76,24 @@ export const tarjetaResumenSchema = z.object({
   idTarjetaTitular: z.number().nullable(),
 })
 
-/** TAR-01 · Respuesta 201 */
+/**
+ * Estados de CK_Tarjeta_Estado en develop (para el filtro). `estadoActual` sigue siendo texto libre
+ * porque main tiene otros estados: uno desconocido se muestra tal cual.
+ */
+export const ESTADOS_TARJETA = [
+  'Solicitada',
+  'Aprobada',
+  'Generada',
+  'Activa',
+  'Inactiva',
+  'Bloqueada',
+  'Cancelada',
+  'Anulada',
+  'Vencida',
+  'Cerrada',
+] as const
+
+/** TAR-01 · Respuesta 201, sin `tokenTarjeta` */
 export const tarjetaSchema = tarjetaResumenSchema.extend({
   idCliente: z.number(),
   idProducto: z.number(),
@@ -103,6 +123,7 @@ export type Direccion = z.infer<typeof direccionSchema>
 export type TipoTarjeta = z.infer<typeof tipoTarjetaSchema>
 export type TarjetaResumen = z.infer<typeof tarjetaResumenSchema>
 export type Tarjeta = z.infer<typeof tarjetaSchema>
+export type EstadoTarjeta = (typeof ESTADOS_TARJETA)[number]
 
 /** Estados en los que una tarjeta ya no sirve como titular de una extensión */
 export const ESTADOS_TERMINALES = ['Cancelada', 'Anulada', 'Vencida', 'Cerrada'] as const
