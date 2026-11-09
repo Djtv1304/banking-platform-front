@@ -7,6 +7,7 @@ import { Input } from '@/shared/ui'
 import { usePaises } from '@/features/catalogos'
 import { CELULAR_PREFIJO, formatearCelular, normalizarCelular } from '@/features/clientes/lib/celular'
 import { a11y } from '@/features/clientes/lib/a11y'
+import { EstadoCatalogo } from '@/features/clientes/components/EstadoCatalogo'
 import {
   Field,
   fieldClassName,
@@ -45,6 +46,7 @@ export function DatosClienteStep({ form, onNext }: DatosClienteStepProps) {
     control,
     handleSubmit,
     clearErrors,
+    setError,
     formState: { errors },
   } = form
   /** register para campos solo numéricos: descarta lo que no sea dígito antes de guardarlo */
@@ -61,11 +63,20 @@ export function DatosClienteStep({ form, onNext }: DatosClienteStepProps) {
   const tipoCliente = useWatch({ control, name: 'tipoCliente' })
   const natural = tipoCliente === 'NATURAL'
   const identificacion = IDENTIFICACION_POR_TIPO[tipoCliente]
-  const { data: paises } = usePaises()
+  const consultaPaises = usePaises()
+  const { data: paises } = consultaPaises
   const opcionesPais = paises.map((pais) => ({ value: pais.codigoPais, label: pais.nombrePais }))
 
+  const continuar = handleSubmit((datos) => {
+    if (datos.tipoCliente === 'NATURAL' && !paises.some((pais) => pais.codigoPais === datos.codigoPaisNacionalidad)) {
+      setError('codigoPaisNacionalidad', { type: 'validate', message: 'Selecciona una nacionalidad del catálogo disponible' })
+      return
+    }
+    onNext()
+  })
+
   return (
-    <form onSubmit={handleSubmit(onNext)} noValidate className="flex flex-col gap-10">
+    <form onSubmit={continuar} noValidate className="flex flex-col gap-10">
       <FormSection title="Tipo de cliente" description="Define el documento con el que se identificará al cliente.">
         <div role="radiogroup" aria-label="Tipo de cliente" className="grid gap-3 sm:grid-cols-2">
           {TIPOS_CLIENTE.map(({ value, label, documento }) => {
@@ -127,13 +138,19 @@ export function DatosClienteStep({ form, onNext }: DatosClienteStepProps) {
                   <Field id="codigoPaisNacionalidad" label="Nacionalidad" error={fieldState.error?.message}>
                     <SelectField
                       id="codigoPaisNacionalidad"
-                      value={field.value}
-                      onChange={field.onChange}
+                      value={paises.some((pais) => pais.codigoPais === field.value) ? field.value : ''}
+                      onChange={(valor) => {
+                        field.onChange(valor)
+                        clearErrors('codigoPaisNacionalidad')
+                      }}
                       onBlur={field.onBlur}
                       options={opcionesPais}
-                      placeholder="Selecciona el país"
+                      placeholder={consultaPaises.isFetching && !paises.length ? 'Cargando países…' : 'Selecciona el país'}
+                      disabled={!paises.length}
+                      descriptionId="nacionalidad-estado-paises"
                       error={fieldState.error?.message}
                     />
+                    <EstadoCatalogo id="nacionalidad-estado-paises" nombre="países" consulta={consultaPaises} />
                   </Field>
                 )}
               />
@@ -247,7 +264,7 @@ export function DatosClienteStep({ form, onNext }: DatosClienteStepProps) {
             control={control}
             name="telefonoCelular"
             render={({ field, fieldState }) => (
-              <Field id="telefonoCelular" label="Teléfono celular" error={fieldState.error?.message}>
+              <Field id="telefonoCelular" label="Teléfono celular (Ecuador)" error={fieldState.error?.message}>
                 <div className="relative">
                   <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center border-r border-border pr-3 pl-4 text-base font-medium text-muted-foreground">
                     {CELULAR_PREFIJO}
@@ -265,8 +282,12 @@ export function DatosClienteStep({ form, onNext }: DatosClienteStepProps) {
                     onChange={(event) => field.onChange(normalizarCelular(event.target.value))}
                     className={cn(fieldClassName, 'pl-[88px]')}
                     {...a11y('telefonoCelular', fieldState.error?.message)}
+                    aria-describedby={['telefonoCelular-ayuda', fieldState.error ? 'telefonoCelular-error' : undefined].filter(Boolean).join(' ')}
                   />
                 </div>
+                <p id="telefonoCelular-ayuda" className="text-sm text-muted-foreground">
+                  Obligatorio. Usa un celular ecuatoriano, por ejemplo 099 123 4567. La nacionalidad no cambia el prefijo +593.
+                </p>
               </Field>
             )}
           />

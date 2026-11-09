@@ -6,6 +6,7 @@ import {
   ChevronRight,
   CircleAlert,
   Clock,
+  CreditCard,
   FileText,
   Megaphone,
   Search,
@@ -41,6 +42,7 @@ const STATUS = {
 
 const QUICK_ACTIONS: { label: string; Icon: LucideIcon; to?: string }[] = [
   { label: 'Registrar cliente', Icon: UserPlus, to: '/registrar-cliente' },
+  { label: 'Solicitar tarjeta', Icon: CreditCard, to: '/solicitar-tarjeta' },
   { label: 'Buscar cliente', Icon: Search },
   { label: 'Apertura de cuenta', Icon: WalletCards },
   { label: 'Reportes', Icon: BarChart3 },

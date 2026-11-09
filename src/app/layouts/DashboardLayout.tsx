@@ -1,6 +1,19 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
-import { Bell, CircleHelp, House, LogOut, Moon, PanelLeft, Sun, UserPlus, type LucideIcon } from 'lucide-react'
+import {
+  Bell,
+  CircleHelp,
+  CreditCard,
+  House,
+  Landmark,
+  LogOut,
+  Moon,
+  PanelLeft,
+  Sun,
+  UserPlus,
+  UserSearch,
+  type LucideIcon,
+} from 'lucide-react'
 
 import { canAccess, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
@@ -30,7 +43,21 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   { items: [{ to: '/', label: 'Inicio', Icon: House, end: true }] },
   {
     title: 'Clientes',
-    items: [{ to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente }],
+    items: [
+      { to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente },
+      { to: '/clientes-busqueda', label: 'Consultar clientes', Icon: UserSearch, profiles: ROUTE_ACCESS.consultarClientes },
+    ],
+  },
+  {
+    title: 'Tarjetas',
+    items: [
+      { to: '/solicitar-tarjeta', label: 'Solicitar tarjeta', Icon: CreditCard, profiles: ROUTE_ACCESS.solicitarTarjeta },
+      { to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas },
+    ],
+  },
+  {
+    title: 'Cuentas',
+    items: [{ to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas }],
   },
 ]
 
