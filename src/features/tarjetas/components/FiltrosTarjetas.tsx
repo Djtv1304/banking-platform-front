@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { LoaderCircle, Search } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
-import { Button, Input, Label } from '@/shared/ui'
+import { Button, Input } from '@/shared/ui'
 import { ESTADOS_TARJETA } from '@/features/tarjetas/api/tarjetas.contract'
+import { Field, fieldClassName } from '@/features/tarjetas/components/form-fields'
 import {
   FILTROS_VACIOS,
   filtrosTarjetasSchema,
@@ -14,29 +14,10 @@ import {
 } from '@/features/tarjetas/lib/consulta'
 
 /* Mismo estilo de campo que los demás formularios; el select es nativo */
-const campoClassName =
-  'h-[52px] rounded-xl border-border bg-field px-4 text-base md:text-base placeholder:text-muted-foreground/80 dark:bg-field'
-
 const selectClassName = cn(
-  campoClassName,
+  fieldClassName,
   'w-full border text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:scheme-dark',
 )
-
-function Campo({ id, label, error, children }: { id: string; label: string; error?: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-2.5">
-      <Label htmlFor={id} className="text-[15px] font-semibold text-heading">
-        {label}
-      </Label>
-      {children}
-      {error && (
-        <p id={`${id}-error`} className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
-  )
-}
 
 interface FiltrosTarjetasProps {
   buscando: boolean
@@ -57,18 +38,18 @@ export function FiltrosTarjetas({ buscando, onBuscar }: FiltrosTarjetasProps) {
   const campoId = (name: 'idCliente' | 'idCuenta', label: string) => {
     const error = errors[name]?.message
     return (
-      <Campo id={name} label={label} error={error}>
+      <Field id={name} label={label} error={error}>
         <Input
           id={name}
           inputMode="numeric"
           autoComplete="off"
           placeholder="Ej. 125"
-          className={campoClassName}
+          className={fieldClassName}
           aria-invalid={!!error}
           aria-describedby={error ? `${name}-error` : undefined}
           {...register(name)}
         />
-      </Campo>
+      </Field>
     )
   }
 
@@ -77,7 +58,7 @@ export function FiltrosTarjetas({ buscando, onBuscar }: FiltrosTarjetasProps) {
       <div className="grid gap-5 sm:grid-cols-3">
         {campoId('idCliente', 'ID del cliente')}
         {campoId('idCuenta', 'ID de la cuenta')}
-        <Campo id="estado" label="Estado">
+        <Field id="estado" label="Estado">
           <select id="estado" className={selectClassName} {...register('estado')}>
             <option value="">Todos</option>
             {ESTADOS_TARJETA.map((estado) => (
@@ -86,7 +67,7 @@ export function FiltrosTarjetas({ buscando, onBuscar }: FiltrosTarjetasProps) {
               </option>
             ))}
           </select>
-        </Campo>
+        </Field>
       </div>
 
       <div className="flex justify-end">
