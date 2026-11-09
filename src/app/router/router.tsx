@@ -5,7 +5,7 @@ import { LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { SolicitarTarjetaPage } from '@/features/tarjetas'
-import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage } from '@/features/cuenta'
+import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
 import { GuestOnly, RequireAuth, RequireProfile } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 
@@ -46,6 +46,10 @@ export const router = createBrowserRouter([
               { path: '/clientes-busqueda', element: <BuscarClientesPage /> },
               { path: '/clientes-busqueda/:idCliente', element: <FichaClientePage /> },
             ],
+          },
+          {
+            element: <RequireProfile allowed={ROUTE_ACCESS.consultarMovimientos} />,
+            children: [{ path: '/cuentas/:idCuenta/movimientos', element: <MovimientosCuentaPage /> }],
           },
         ],
       },

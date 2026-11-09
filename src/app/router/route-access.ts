@@ -15,4 +15,6 @@ export const ROUTE_ACCESS = {
   consultarCupos: ['staff'],
   // CLI-03/04: ASESOR, CAJERO, SUPERVISOR y ADMIN
   consultarClientes: ['staff'],
+  // CTA-06: ASESOR, CAJERO, SUPERVISOR y ADMIN
+  consultarMovimientos: ['staff'],
 } as const satisfies Record<string, readonly AccessProfile[]>
