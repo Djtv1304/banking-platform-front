@@ -4,7 +4,7 @@ import { DashboardLayout } from '@/app/layouts/DashboardLayout'
 import { LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
-import { BuscarTarjetasPage, SolicitarTarjetaPage } from '@/features/tarjetas'
+import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
 import { GuestOnly, RequireAuth, RequireProfile } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
@@ -55,6 +55,7 @@ export const router = createBrowserRouter([
             element: <RequireProfile allowed={ROUTE_ACCESS.consultarTarjetas} />,
             children: [
               { path: '/tarjetas', element: <BuscarTarjetasPage /> },
+              { path: '/tarjetas/:idTarjeta', element: <DetalleTarjetaPage /> },
             ],
           },
         ],

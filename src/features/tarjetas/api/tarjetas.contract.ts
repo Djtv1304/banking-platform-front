@@ -9,6 +9,7 @@ import { z } from 'zod'
  * - TAR-02 GET /tarjetas?idCuenta=…&esExtension=false → principales (titular de una extensión)
  * - TAR-01 POST /tarjetas                   → registra la solicitud (estado Solicitada, sin PIN)
  * - TAR-02 GET /tarjetas                    → búsqueda por cliente, cuenta y estado (A-04)
+ * - TAR-03 GET /tarjetas/{idTarjeta}        → detalle (A-04)
  *
  * Los esquemas solo describen los campos que usa el front; zod descarta el resto.
  * ⚠️ TAR-01 y TAR-03 devuelven `tokenTarjeta`: no se declara en ningún esquema para que zod lo
@@ -22,6 +23,7 @@ export const TARJETAS_ENDPOINTS = {
   direcciones: (idCliente: number) => `${BASE}/clientes/${idCliente}/direcciones`,
   cuentas: `${BASE}/cuentas`,
   tarjetas: `${BASE}/tarjetas`,
+  tarjeta: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}`,
 } as const
 
 export const pageSchema = <T extends z.ZodType>(item: T) =>
@@ -93,7 +95,7 @@ export const ESTADOS_TARJETA = [
   'Cerrada',
 ] as const
 
-/** TAR-01 · Respuesta 201, sin `tokenTarjeta` */
+/** TAR-01 y TAR-03 · Respuesta completa, sin `tokenTarjeta` */
 export const tarjetaSchema = tarjetaResumenSchema.extend({
   idCliente: z.number(),
   idProducto: z.number(),

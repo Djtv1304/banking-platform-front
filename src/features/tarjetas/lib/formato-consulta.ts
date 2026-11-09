@@ -1,5 +1,5 @@
 import type { ApiError } from '@/shared/api'
-import type { TipoTarjeta } from '@/features/tarjetas/api/tarjetas.contract'
+import type { Tarjeta, TipoTarjeta } from '@/features/tarjetas/api/tarjetas.contract'
 
 /* Cómo se muestran los datos de una tarjeta (sin UI, para poder probarlo aparte) */
 
@@ -36,7 +36,16 @@ const TONOS: Record<string, TonoEstado> = {
 /** Main y develop tienen estados distintos: uno que no conocemos se muestra con su texto y sin énfasis */
 export const tonoEstado = (estado: string): TonoEstado => TONOS[estado] ?? 'desconocido'
 
+/** «No», «Sí, de la tarjeta 12» o «Sí» (si el backend no informa la titular) */
+export function descripcionExtension({ esExtension, idTarjetaTitular }: Pick<Tarjeta, 'esExtension' | 'idTarjetaTitular'>) {
+  if (!esExtension) return 'No'
+  return idTarjetaTitular === null ? 'Sí' : `Sí, de la tarjeta ${idTarjetaTitular}`
+}
+
+export const TARJETA_INEXISTENTE = 'No existe una tarjeta con ese ID.'
+
 const MENSAJES: Record<string, string> = {
+  TARJETA_NO_ENCONTRADA: TARJETA_INEXISTENTE,
   DATOS_INVALIDOS: 'Revisa los filtros: hay valores que no son válidos.',
 }
 

@@ -3,4 +3,5 @@
 
 export { SolicitarTarjetaPage } from '@/features/tarjetas/pages/SolicitarTarjetaPage'
 export { BuscarTarjetasPage } from '@/features/tarjetas/pages/BuscarTarjetasPage'
+export { DetalleTarjetaPage } from '@/features/tarjetas/pages/DetalleTarjetaPage'
 export type { Tarjeta, TarjetaCreate } from '@/features/tarjetas/api/tarjetas.contract'

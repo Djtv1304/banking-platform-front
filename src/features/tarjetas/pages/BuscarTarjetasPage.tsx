@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Cargando, Paginacion } from '@/shared/ui'
@@ -84,8 +85,16 @@ function TablaTarjetas({ tarjetas }: { tarjetas: TarjetaResumen[] }) {
         </thead>
         <tbody>
           {tarjetas.map((tarjeta) => (
-            <tr key={tarjeta.idTarjeta} className="border-b border-border">
-              <td className="px-3 py-3 font-semibold text-heading tabular-nums">{tarjeta.numeroEnmascarado}</td>
+            // Toda la fila abre el detalle: el enlace del número la cubre con su ::after
+            <tr key={tarjeta.idTarjeta} className="relative border-b border-border transition-colors hover:bg-muted/60">
+              <td className="px-3 py-3">
+                <Link
+                  to={`/tarjetas/${tarjeta.idTarjeta}`}
+                  className="font-semibold text-link tabular-nums outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+                >
+                  {tarjeta.numeroEnmascarado}
+                </Link>
+              </td>
               <td className="px-3 py-3 text-heading">{tarjeta.nombreTarjeta}</td>
               <td className="px-3 py-3 text-heading">{etiquetaTipo(tarjeta.tipoTarjeta)}</td>
               <td className="px-3 py-3">

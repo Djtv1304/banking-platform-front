@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { ApiError } from '@/shared/api'
 import {
+  descripcionExtension,
   etiquetaTipo,
   formatearDia,
   mensajeErrorTarjetas,
@@ -46,6 +47,14 @@ describe('tonoEstado', () => {
   })
 })
 
+describe('descripcionExtension', () => {
+  it('distingue principal, extensión con titular y extensión sin titular informada', () => {
+    expect(descripcionExtension({ esExtension: false, idTarjetaTitular: null })).toBe('No')
+    expect(descripcionExtension({ esExtension: true, idTarjetaTitular: 12 })).toBe('Sí, de la tarjeta 12')
+    expect(descripcionExtension({ esExtension: true, idTarjetaTitular: null })).toBe('Sí')
+  })
+})
+
 describe('mensajeErrorTarjetas', () => {
   it('403 es falta de permiso, sea cual sea el código', () => {
     expect(mensajeErrorTarjetas(new ApiError('Forbidden', 403, 'http_403'))).toBe(
@@ -54,6 +63,7 @@ describe('mensajeErrorTarjetas', () => {
   })
 
   it('traduce los códigos conocidos', () => {
+    expect(mensajeErrorTarjetas(new ApiError('x', 404, 'TARJETA_NO_ENCONTRADA'))).toBe('No existe una tarjeta con ese ID.')
     expect(mensajeErrorTarjetas(new ApiError('x', 400, 'DATOS_INVALIDOS'))).toBe(
       'Revisa los filtros: hay valores que no son válidos.',
     )
