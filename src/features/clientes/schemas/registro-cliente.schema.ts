@@ -52,11 +52,15 @@ const NOMBRE_REGEX = /^[\p{L}' -]+$/u
 const EDAD_MAXIMA = 120
 
 function esFechaNacimientoValida(valor: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return false
+  const [anio, mes, dia] = valor.split('-').map(Number)
   const fecha = new Date(`${valor}T00:00:00`)
-  if (Number.isNaN(fecha.getTime())) return false
-  const limite = new Date()
+  if (Number.isNaN(fecha.getTime()) || fecha.getFullYear() !== anio || fecha.getMonth() + 1 !== mes || fecha.getDate() !== dia) return false
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  const limite = new Date(hoy)
   limite.setFullYear(limite.getFullYear() - EDAD_MAXIMA)
-  return fecha <= new Date() && fecha >= limite
+  return fecha <= hoy && fecha >= limite
 }
 
 /** '' → null, para columnas opcionales */
@@ -81,7 +85,7 @@ export const datosClienteSchema = z
     razonSocial: texto(250, 'La razón social no puede superar 250 caracteres'),
     nombreComercial: texto(250, 'El nombre comercial no puede superar 250 caracteres'),
     // Contacto
-    telefonoCelular: z.string().regex(/^9\d{8}$/, 'Ingresa un celular válido: 09 seguido de 8 dígitos'),
+    telefonoCelular: z.string().regex(/^9\d{8}$/, 'Ingresa un celular ecuatoriano válido, por ejemplo 099 123 4567'),
     telefonoConvencional: z
       .string()
       .regex(/^(0[2-7]\d{7})?$/, 'Ingresa un teléfono válido: 0, código de provincia y 7 dígitos'),

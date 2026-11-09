@@ -15,6 +15,7 @@ import {
   datosClienteSchema,
   DIRECCIONES_VACIAS,
   direccionesSchema,
+  TIPOS_DIRECCION,
   type ActividadData,
   type ActividadInput,
   type DatosClienteData,
@@ -68,7 +69,7 @@ export function RegistroClienteWizard() {
       cliente: { ...datosClienteSchema.parse(datosForm.getValues()), ...actividad },
       direcciones: direccionesSchema.parse(direccionesForm.getValues()).direcciones,
     }
-    // TODO(API): enviar `solicitud` al endpoint de registro de clientes cuando exista su contrato API First
+    // Pendiente de integración CLI-02: F-09 solo consulta catálogos; esta vista no guarda clientes.
     setRegistro(solicitud)
     irA(PASOS.length)
   }
@@ -103,7 +104,6 @@ function RegistroCompletado({ registro, onNuevo }: { registro: RegistroClienteDa
   const resumen = [
     { label: cliente.tipoDocumento === 'RUC' ? 'RUC' : 'Cédula', valor: cliente.identificacion },
     { label: 'Tipo de cliente', valor: cliente.tipoCliente === 'NATURAL' ? 'Persona natural' : 'Persona jurídica' },
-    { label: 'Direcciones', valor: `${direcciones.length} (1 principal)` },
     { label: 'Correo', valor: cliente.email },
   ]
 
@@ -115,18 +115,36 @@ function RegistroCompletado({ registro, onNuevo }: { registro: RegistroClienteDa
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-bold text-heading">Datos validados</h2>
         <p className="max-w-md text-muted-foreground">
-          La información de <span className="font-semibold text-heading">{nombre}</span> está completa. El registro se
-          enviará cuando el servicio de registro de clientes esté disponible.
+          La información de <span className="font-semibold text-heading">{nombre}</span> pasó las validaciones del formulario.
+          Esta vista previa no envía ni guarda el registro.
         </p>
       </div>
 
       <dl className="grid w-full max-w-lg gap-px overflow-hidden rounded-2xl border border-border bg-border text-left sm:grid-cols-2">
         {resumen.map(({ label, valor }) => (
-          <div key={label} className="flex flex-col gap-0.5 bg-field px-4 py-3">
+          <div key={label} className={`flex flex-col gap-0.5 bg-field px-4 py-3 ${label === 'Correo' ? 'sm:col-span-2' : ''}`}>
             <dt className="text-xs text-muted-foreground">{label}</dt>
             <dd className="truncate font-medium text-heading">{valor}</dd>
           </div>
         ))}
+        <div className="flex flex-col gap-2 bg-field px-4 py-3 sm:col-span-2">
+          <dt className="text-xs text-muted-foreground">Direcciones</dt>
+          <dd className="flex flex-col gap-2 text-heading">
+            <span className="font-medium">{direcciones.length} {direcciones.length === 1 ? 'dirección' : 'direcciones'}</span>
+            <ul className="flex flex-col gap-2 text-sm">
+              {direcciones.map((direccion, indice) => (
+                <li key={indice} className="wrap-break-word">
+                  <span className="font-medium">
+                    {TIPOS_DIRECCION.find((tipo) => tipo.value === direccion.tipoDireccion)?.label ?? direccion.tipoDireccion}
+                  </span>
+                  {direccion.esPrincipal && <span className="font-medium"> (principal)</span>}
+                  {' · '}{direccion.calleDireccion}
+                  {direccion.sector && <span className="text-muted-foreground"> · {direccion.sector}</span>}
+                </li>
+              ))}
+            </ul>
+          </dd>
+        </div>
       </dl>
 
       <Button onClick={onNuevo} className="h-[52px] rounded-xl px-8 text-base font-semibold hover:bg-primary/90">
