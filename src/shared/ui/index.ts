@@ -27,5 +27,6 @@ export {
 } from '@/shared/ui/dropdown-menu';
 export { Input } from '@/shared/ui/input';
 export { Label } from '@/shared/ui/label';
+export { Paginacion } from '@/shared/ui/paginacion';
 export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 export { ThemeToggle } from '@/shared/ui/theme-toggle';

@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
-import { Aviso, Button, Cargando } from '@/shared/ui'
+import { Aviso, Cargando, Paginacion } from '@/shared/ui'
 import type { TarjetaResumen } from '@/features/tarjetas/api/tarjetas.contract'
 import { EstadoTarjetaBadge } from '@/features/tarjetas/components/EstadoTarjetaBadge'
 import { FiltrosTarjetas } from '@/features/tarjetas/components/FiltrosTarjetas'
@@ -37,33 +36,13 @@ export function BuscarTarjetasPage() {
     return (
       <div className="flex flex-col gap-4">
         <TablaTarjetas tarjetas={items} />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            {resumenPaginacion(page, total)}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="lg"
-              disabled={page <= 1 || tarjetas.isFetching}
-              onClick={() => setPage((actual) => actual - 1)}
-              className="rounded-lg px-4"
-            >
-              <ChevronLeft />
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              disabled={page >= totalPaginas(total) || tarjetas.isFetching}
-              onClick={() => setPage((actual) => actual + 1)}
-              className="rounded-lg px-4"
-            >
-              Siguiente
-              <ChevronRight />
-            </Button>
-          </div>
-        </div>
+        <Paginacion
+          resumen={resumenPaginacion(page, total)}
+          page={page}
+          totalPaginas={totalPaginas(total)}
+          ocupado={tarjetas.isFetching}
+          onCambiar={setPage}
+        />
       </div>
     )
   })()

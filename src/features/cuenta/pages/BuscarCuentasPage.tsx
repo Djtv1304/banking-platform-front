@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
-import { Button } from '@/shared/ui'
+import { Paginacion } from '@/shared/ui'
 import type { Cuenta } from '@/features/cuenta/api/cuentas.contract'
 import { Aviso, Cargando } from '@/features/cuenta/components/Aviso'
 import { EstadoCuentaBadge } from '@/features/cuenta/components/EstadoCuentaBadge'
@@ -46,33 +45,13 @@ export function BuscarCuentasPage() {
     return (
       <div className="flex flex-col gap-4">
         <TablaCuentas cuentas={items} />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            {resumenPaginacion(page, total)}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="lg"
-              disabled={page <= 1 || cuentas.isFetching}
-              onClick={() => setPage((actual) => actual - 1)}
-              className="rounded-lg px-4"
-            >
-              <ChevronLeft />
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              disabled={page >= totalPaginas(total) || cuentas.isFetching}
-              onClick={() => setPage((actual) => actual + 1)}
-              className="rounded-lg px-4"
-            >
-              Siguiente
-              <ChevronRight />
-            </Button>
-          </div>
-        </div>
+        <Paginacion
+          resumen={resumenPaginacion(page, total)}
+          page={page}
+          totalPaginas={totalPaginas(total)}
+          ocupado={cuentas.isFetching}
+          onCambiar={setPage}
+        />
       </div>
     )
   })()
