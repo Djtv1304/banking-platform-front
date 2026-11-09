@@ -3,7 +3,7 @@ import { CircleAlert, Info, LoaderCircle } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
 
-/** Estados vacío y de error de las consultas de tarjetas */
+/** Estados vacío y de error de una consulta */
 export function Aviso({ tono = 'info', children }: { tono?: 'info' | 'error'; children: ReactNode }) {
   const Icono = tono === 'error' ? CircleAlert : Info
   return (
