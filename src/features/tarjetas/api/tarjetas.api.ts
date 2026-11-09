@@ -63,6 +63,9 @@ export async function getTarjetasPrincipalesCuenta(idCuenta: number) {
 export const buscarTarjetas = (params: Record<string, string>) =>
   getValidado(TARJETAS_ENDPOINTS.tarjetas, pageSchema(tarjetaResumenSchema), params)
 
+/** TAR-03 · Tarjeta inexistente → 404 TARJETA_NO_ENCONTRADA */
+export const getTarjeta = (idTarjeta: number) => getValidado(TARJETAS_ENDPOINTS.tarjeta(idTarjeta), tarjetaSchema, {})
+
 /** TAR-01 · Registra la solicitud; la tarjeta nace Solicitada y sin PIN */
 export async function solicitarTarjeta(body: TarjetaCreate) {
   const { data, status } = await apiClient.post<unknown>(TARJETAS_ENDPOINTS.tarjetas, body)

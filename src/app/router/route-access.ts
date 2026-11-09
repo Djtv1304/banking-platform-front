@@ -17,6 +17,6 @@ export const ROUTE_ACCESS = {
   consultarClientes: ['staff'],
   // CTA-06: ASESOR, CAJERO, SUPERVISOR y ADMIN
   consultarMovimientos: ['staff'],
-  // TAR-02: ASESOR, SUPERVISOR y ADMIN (el CAJERO es 'staff' en la UI: su 403 muestra «No tienes permiso»)
+  // TAR-02/03: ASESOR, SUPERVISOR y ADMIN (el CAJERO es 'staff' en la UI: su 403 muestra «No tienes permiso»)
   consultarTarjetas: ['staff'],
 } as const satisfies Record<string, readonly AccessProfile[]>
