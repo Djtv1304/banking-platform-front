@@ -52,6 +52,7 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     title: 'Tarjetas',
     items: [
       { to: '/solicitar-tarjeta', label: 'Solicitar tarjeta', Icon: CreditCard, profiles: ROUTE_ACCESS.solicitarTarjeta },
+      { to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas },
     ],
   },
   {
