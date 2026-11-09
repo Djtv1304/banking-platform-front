@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
-import { ArrowLeft, Gauge, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Gauge, ListOrdered, RefreshCw } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
@@ -84,14 +84,23 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
           </h1>
           <EstadoCuentaBadge estado={cuenta.estado} />
         </div>
-        {cupos.ver && (
+        <div className="flex flex-wrap gap-3">
+          {/* CTA-06 tiene los mismos roles que esta pantalla: siempre se muestra */}
           <Button asChild variant="outline" size="lg" className="rounded-lg px-3">
-            <Link to={`/cuentas/${cuenta.idCuenta}/cupos`}>
-              <Gauge />
-              Cupos por canal
+            <Link to={`/cuentas/${cuenta.idCuenta}/movimientos`}>
+              <ListOrdered />
+              Movimientos
             </Link>
           </Button>
-        )}
+          {cupos.ver && (
+            <Button asChild variant="outline" size="lg" className="rounded-lg px-3">
+              <Link to={`/cuentas/${cuenta.idCuenta}/cupos`}>
+                <Gauge />
+                Cupos por canal
+              </Link>
+            </Button>
+          )}
+        </div>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
