@@ -4,6 +4,10 @@ import { ArrowLeft, CircleAlert, LoaderCircle, MapPin, UserRoundX } from 'lucide
 
 import { ApiError } from '@/shared/api'
 import { Badge, Button } from '@/shared/ui'
+import { useAuthStore } from '@/features/auth'
+import { GestionCliente } from '@/features/clientes/components/GestionCliente'
+import { HistorialCliente } from '@/features/clientes/components/HistorialCliente'
+import { accesoGestionClientes } from '@/features/clientes/lib/gestion-clientes'
 import type { Cliente } from '@/features/clientes/api/clientes.contract'
 import { useCliente } from '@/features/clientes/hooks/useConsultaClientes'
 import {
@@ -16,12 +20,14 @@ import {
   varianteEstado,
 } from '@/features/clientes/lib/consulta'
 
-/* C-03 · Ficha del cliente (CLI-04): solo lectura. Editarlo o cambiar su estado es C-04. */
+/* Conserva la ficha de C-03 y compone las acciones de C-04 según los roles del servidor. */
 
 export function FichaClientePage() {
   const { idCliente } = useParams()
   const id = parsearIdCliente(idCliente)
-  const consulta = useCliente(id)
+  const roles = useAuthStore((estado) => estado.user?.roles)
+  const acceso = accesoGestionClientes(roles ?? [])
+  const consulta = useCliente(acceso.consulta ? id : undefined)
 
   const noExiste =
     id === undefined || (consulta.error instanceof ApiError && consulta.error.code === 'CLIENTE_NO_ENCONTRADO')
@@ -29,15 +35,17 @@ export function FichaClientePage() {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <Button asChild variant="outline" className="h-10 rounded-xl px-4">
-        <Link to="/clientes-busqueda">
+        <Link to={acceso.consulta ? '/clientes-busqueda' : '/'}>
           <ArrowLeft />
-          Volver a la búsqueda
+          {acceso.consulta ? 'Volver a la búsqueda' : 'Volver al inicio'}
         </Link>
       </Button>
 
       <div className="mt-6">
         {noExiste ? (
           <ClienteNoEncontrado />
+        ) : !acceso.consulta ? (
+          acceso.historial ? <><h1 className="mb-6 text-3xl font-bold text-heading">Historial del cliente #{id}</h1><HistorialCliente key={id} id={id!} /></> : <p role="alert">No tienes permiso para consultar este cliente.</p>
         ) : consulta.isError ? (
           <div
             role="alert"
@@ -89,6 +97,8 @@ function Ficha({ cliente }: { cliente: Cliente }) {
         <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">{nombreVisible(cliente)}</h1>
         <Badge variant={varianteEstado(cliente.estado)}>{cliente.estado}</Badge>
       </header>
+
+      <GestionCliente key={cliente.idCliente} cliente={cliente} />
 
       <Seccion titulo="Datos del cliente">
         <dl className="grid gap-5 sm:grid-cols-2">

@@ -75,6 +75,9 @@ export const clienteSchema = clienteResumenSchema.extend({
   email: z.string(),
   telefonoCelular: z.string(),
   telefonoConvencional: z.string().nullish(),
+  nombreComercial: z.string().nullable(),
+  estadoCivil: z.string().nullable(),
+  idActividadEconomica: z.number().nullable(),
   /** `YYYY-MM-DD` */
   fechaNacimiento: z.string(),
   fechaRegistro: z.string(),
