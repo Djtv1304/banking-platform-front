@@ -15,7 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-import { useAuthStore } from '@/features/auth'
+import { formatRol, useAuthStore } from '@/features/auth'
 import { cn } from '@/shared/lib'
 import { Badge } from '@/shared/ui'
 
@@ -71,13 +71,13 @@ export function StaffHome() {
         <div className="mr-auto">
           <h1 className="text-2xl font-bold tracking-tight text-heading">Hola, {firstName}</h1>
           <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">
-            {today} · Agencia {user.idAgencia ?? 'Matriz'}
+            {today}
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {user.roles.map((role) => (
-            <Badge key={role} className="h-6 bg-info/30 px-2.5 text-foreground capitalize">
-              {role}
+            <Badge key={role} className="h-6 bg-info/30 px-2.5 text-foreground">
+              {formatRol(role)}
             </Badge>
           ))}
         </div>
