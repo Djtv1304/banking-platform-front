@@ -15,10 +15,12 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-import { canAccess, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
+import { canAccess, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
+import { useAgencias } from '@/features/catalogos'
+import { INSTITUCION } from '@/shared/config'
 import {
   Badge,
   Button,
@@ -88,9 +90,9 @@ export function DashboardLayout() {
   const [collapsed, toggleCollapsed] = useSidebarCollapsed()
   const { pathname } = useLocation()
   const sections = getVisibleSections(useAccessProfile())
-  const currentPage = sections.flatMap((section) => section.items).find(({ to, end }) =>
-    end ? pathname === to : pathname.startsWith(to),
-  )
+  const currentPage = sections
+    .flatMap((section) => section.items.map((item) => ({ ...item, sectionTitle: section.title })))
+    .find(({ to, end }) => (end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)))
 
   return (
     <div className="flex h-svh bg-panel">
@@ -161,11 +163,17 @@ export function DashboardLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4 sm:px-6">
-          <p className="flex min-w-0 items-center gap-2 text-sm">
-            <span className="hidden font-semibold text-heading sm:inline">Banca Virtual</span>
-            <span className="hidden text-muted-foreground sm:inline">/</span>
-            <span className="truncate text-muted-foreground">{currentPage?.label}</span>
-          </p>
+          {currentPage && (
+            <p className="flex min-w-0 items-center gap-2 text-sm">
+              {currentPage.sectionTitle && (
+                <>
+                  <span className="hidden font-semibold text-heading sm:inline">{currentPage.sectionTitle}</span>
+                  <span className="hidden text-muted-foreground sm:inline">/</span>
+                </>
+              )}
+              <span className="truncate text-muted-foreground">{currentPage.label}</span>
+            </p>
+          )}
 
           <div className="ml-auto flex items-center gap-1">
             <Button
@@ -182,11 +190,11 @@ export function DashboardLayout() {
               size="icon"
               aria-label="Notificaciones"
               title="Notificaciones"
-              className="relative size-9 rounded-lg text-muted-foreground"
+              className="size-9 rounded-lg text-muted-foreground"
             >
               <Bell className="size-[18px]" />
-              <span className="absolute top-2 right-2 size-2 rounded-full bg-brand-amber ring-2 ring-card" />
             </Button>
+            <HeaderUser />
             <UserMenu />
           </div>
         </header>
@@ -199,8 +207,34 @@ export function DashboardLayout() {
   )
 }
 
+/** Agencia del usuario: «Agencia <nombre>» (o el id mientras el catálogo no responda) o «Sin agencia asignada» */
+function useAgenciaLabel() {
+  const idAgencia = useAuthStore((state) => state.user?.idAgencia ?? null)
+  const { data: agencias } = useAgencias()
+  if (!idAgencia) return 'Sin agencia asignada'
+  const agencia = agencias?.find((item) => item.idAgencia === idAgencia)
+  return `Agencia ${agencia?.nombre ?? idAgencia}`
+}
+
+/** Usuario, rol, agencia e institución en el encabezado (desde `md`; en móvil se ven en el menú de usuario) */
+function HeaderUser() {
+  const user = useAuthStore((state) => state.user)
+  const agencia = useAgenciaLabel()
+  if (!user) return null
+
+  return (
+    <div className="ml-2 hidden max-w-72 min-w-0 flex-col items-end md:flex">
+      <span className="max-w-full truncate text-sm font-semibold text-heading">{user.nombre || user.email}</span>
+      <span className="max-w-full truncate text-xs text-muted-foreground">
+        {formatRoles(user.roles)} · {agencia} · {INSTITUCION.nombre}
+      </span>
+    </div>
+  )
+}
+
 function UserMenu() {
   const user = useAuthStore((state) => state.user)
+  const agencia = useAgenciaLabel()
   const theme = useThemeStore((state) => state.theme)
   const toggleTheme = useThemeStore((state) => state.toggleTheme)
   const [signingOut, setSigningOut] = useState(false)
@@ -219,14 +253,19 @@ function UserMenu() {
         <DropdownMenuLabel className="flex flex-col gap-0.5 px-2.5 py-2 font-normal">
           <span className="truncate text-sm font-semibold text-heading">{displayName}</span>
           <span className="truncate text-sm text-muted-foreground">{user?.email}</span>
-          {user && user.roles.length > 0 && (
+          <span className="truncate text-xs text-muted-foreground">
+            {agencia} · {INSTITUCION.nombre}
+          </span>
+          {user && user.roles.length > 0 ? (
             <span className="mt-1.5 flex flex-wrap gap-1">
               {user.roles.map((role) => (
-                <Badge key={role} className="h-5 bg-info/30 px-2 text-xs text-foreground capitalize">
-                  {role}
+                <Badge key={role} className="h-5 bg-info/30 px-2 text-xs text-foreground">
+                  {formatRol(role)}
                 </Badge>
               ))}
             </span>
+          ) : (
+            <span className="mt-1.5 text-xs text-muted-foreground">Sin rol asignado</span>
           )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
