@@ -30,3 +30,4 @@ export { Label } from '@/shared/ui/label';
 export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 export { ThemeToggle } from '@/shared/ui/theme-toggle';
 export { Paginacion } from '@/shared/ui/paginacion';
+export { ModuloEnPreparacion } from '@/shared/ui/modulo-en-preparacion';

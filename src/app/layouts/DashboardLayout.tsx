@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
   Bell,
+  Calculator,
   CircleHelp,
   CreditCard,
+  HandCoins,
   House,
   Landmark,
   LogOut,
   Moon,
   PanelLeft,
+  ShieldCheck,
+  SlidersHorizontal,
   Sun,
   UserPlus,
   UserSearch,
@@ -39,6 +43,8 @@ interface NavItem {
   end?: boolean
   /** Perfiles que ven la opción. Sin valor = todos. El admin ve todas. */
   profiles?: readonly AccessProfile[]
+  /** Módulo sin pantallas todavía: abre «Módulo en preparación» y muestra la etiqueta «Pronto» */
+  enPreparacion?: boolean
 }
 
 const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
@@ -51,15 +57,60 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: 'Tarjetas',
+    title: 'Cuentas',
+    items: [{ to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas }],
+  },
+  {
+    title: 'Créditos',
     items: [
-      { to: '/solicitar-tarjeta', label: 'Solicitar tarjeta', Icon: CreditCard, profiles: ROUTE_ACCESS.solicitarTarjeta },
-      { to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas },
+      {
+        to: '/creditos',
+        label: 'Solicitudes de crédito',
+        Icon: HandCoins,
+        profiles: ROUTE_ACCESS.creditos,
+        enPreparacion: true,
+      },
     ],
   },
   {
-    title: 'Cuentas',
-    items: [{ to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas }],
+    title: 'Tarjetas',
+    items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas }],
+  },
+  {
+    title: 'Parámetros generales',
+    items: [
+      {
+        to: '/parametros',
+        label: 'Productos y BIN',
+        Icon: SlidersHorizontal,
+        profiles: ROUTE_ACCESS.parametrosGenerales,
+        enPreparacion: true,
+      },
+    ],
+  },
+  {
+    title: 'Cuentas contables',
+    items: [
+      {
+        to: '/contabilidad',
+        label: 'Plan de cuentas',
+        Icon: Calculator,
+        profiles: ROUTE_ACCESS.cuentasContables,
+        enPreparacion: true,
+      },
+    ],
+  },
+  {
+    title: 'Accesos y roles',
+    items: [
+      {
+        to: '/accesos',
+        label: 'Usuarios del sistema',
+        Icon: ShieldCheck,
+        profiles: ROUTE_ACCESS.accesosRoles,
+        enPreparacion: true,
+      },
+    ],
   },
 ]
 
@@ -132,12 +183,12 @@ export function DashboardLayout() {
                 ) : (
                   <p className="mt-5 mb-1 px-2.5 text-xs font-medium text-muted-foreground">{section.title}</p>
                 ))}
-              {section.items.map(({ to, label, Icon, end }) => (
+              {section.items.map(({ to, label, Icon, end, enPreparacion }) => (
                 <NavLink
                   key={to}
                   to={to}
                   end={end}
-                  title={collapsed ? label : undefined}
+                  title={collapsed ? (enPreparacion ? `${label} (en preparación)` : label) : undefined}
                   className={({ isActive }) =>
                     cn(
                       'flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
@@ -152,6 +203,11 @@ export function DashboardLayout() {
                     <>
                       <Icon className={cn('size-[18px] shrink-0', isActive && 'text-link')} />
                       {!collapsed && <span className="truncate">{label}</span>}
+                      {!collapsed && enPreparacion && (
+                        <span className="ml-auto shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                          Pronto
+                        </span>
+                      )}
                     </>
                   )}
                 </NavLink>

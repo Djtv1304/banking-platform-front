@@ -19,4 +19,9 @@ export const ROUTE_ACCESS = {
   consultarMovimientos: ['staff'],
   // TAR-02/03: ASESOR, SUPERVISOR y ADMIN (el CAJERO es 'staff' en la UI: su 403 muestra «No tienes permiso»)
   consultarTarjetas: ['staff'],
+  // F-05: módulos del menú todavía en preparación (parámetros y accesos son de administración)
+  creditos: ['staff'],
+  parametrosGenerales: ['admin'],
+  cuentasContables: ['staff'],
+  accesosRoles: ['admin'],
 } as const satisfies Record<string, readonly AccessProfile[]>
