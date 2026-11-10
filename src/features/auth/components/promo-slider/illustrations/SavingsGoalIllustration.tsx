@@ -4,8 +4,8 @@ import { Badge } from '@/shared/ui'
 import { IllustrationCard } from '@/features/auth/components/promo-slider/illustrations/IllustrationCard'
 
 const STATS = [
-  { label: 'Aporte mensual', value: '$150,00' },
-  { label: 'Próximo aporte', value: '5 de nov.' },
+  { label: 'Meta mensual', value: '25' },
+  { label: 'Llevas', value: '16' },
 ]
 
 export function SavingsGoalIllustration() {
@@ -13,13 +13,13 @@ export function SavingsGoalIllustration() {
     <div className="relative pb-12">
       <IllustrationCard>
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[13px] text-brand-slate">Meta de ahorro</p>
+          <p className="text-[13px] text-brand-slate">Avance del mes</p>
           <Badge className="h-6 bg-brand-sky/30 px-2.5 text-brand-ink">64 %</Badge>
         </div>
-        <p className="mt-2 text-lg font-semibold">Fondo de estudios</p>
+        <p className="mt-2 text-lg font-semibold">Aperturas del mes</p>
         <p className="mt-3 flex items-baseline gap-1.5">
-          <span className="text-[28px] leading-tight font-bold tracking-tight">$3.200,00</span>
-          <span className="text-[13px] text-brand-slate">de $5.000,00</span>
+          <span className="text-[28px] leading-tight font-bold tracking-tight">16</span>
+          <span className="text-[13px] text-brand-slate">de 25</span>
         </p>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-brand-mist">
           <div className="h-full w-[64%] rounded-full bg-brand-amber" />
@@ -39,8 +39,8 @@ export function SavingsGoalIllustration() {
           <TrendingUp className="size-4 text-brand-sky" />
         </span>
         <span>
-          <span className="block text-sm font-semibold">Simulador de plazo fijo</span>
-          <span className="block text-xs text-white/70">$2.000 · 180 días</span>
+          <span className="block text-sm font-semibold">Simulador de crédito</span>
+          <span className="block text-xs text-white/70">$2.000 · 12 cuotas</span>
         </span>
       </div>
     </div>

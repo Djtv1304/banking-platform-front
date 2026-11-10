@@ -49,11 +49,11 @@ const LIGHT_SLIDE = {
 export const SLIDES: Slide[] = [
   {
     id: 'balance',
-    title: 'Tu dinero, siempre a la vista',
+    title: 'La ficha del cliente, completa',
     bullets: [
-      'Consulta saldos y movimientos de todas tus cuentas en un solo lugar.',
-      'Transfiere a otras cooperativas y bancos del país.',
-      'Paga tus servicios básicos sin hacer filas.',
+      'Busca clientes por identificación o por nombre y abre su ficha.',
+      'Consulta saldos, movimientos y cupos de cada cuenta.',
+      'Revisa sus tarjetas y su estado sin cambiar de pantalla.',
     ],
     Illustration: BalanceIllustration,
     theme: {
@@ -64,11 +64,11 @@ export const SLIDES: Slide[] = [
   },
   {
     id: 'savings',
-    title: 'Ahorra con propósito',
+    title: 'Un sistema por módulos',
     bullets: [
-      'Crea metas de ahorro y aporta a tu ritmo.',
-      'Simula tu inversión a plazo fijo antes de contratarla.',
-      'Revisa mes a mes cuánto has ganado en intereses.',
+      'Clientes, cuentas, créditos y tarjetas, cada uno en su módulo.',
+      'Cada funcionario ve sólo las opciones de su rol.',
+      'Los módulos nuevos se suman sin cambiar tu forma de trabajar.',
     ],
     Illustration: SavingsGoalIllustration,
     theme: {
@@ -79,10 +79,10 @@ export const SLIDES: Slide[] = [
   },
   {
     id: 'security-code',
-    title: 'Código de seguridad en tu celular',
+    title: 'Verificación en dos pasos',
     bullets: [
-      'Confirma cada ingreso y transferencia con un código temporal desde la app.',
-      'Si viajas al exterior, deja la hora de tu celular en automático para que el código funcione.',
+      'Además de tu contraseña, el ingreso pide un código temporal de tu app de autenticación.',
+      'Si el código no funciona, revisa que la hora de tu dispositivo esté en automático.',
     ],
     Illustration: SecurityCodeIllustration,
     theme: {
@@ -93,11 +93,11 @@ export const SLIDES: Slide[] = [
   },
   {
     id: 'security',
-    title: 'Tu seguridad es primero',
+    title: 'Tu usuario es personal',
     bullets: [
-      'Nunca te pediremos tu clave por correo, llamada o mensaje de texto.',
-      'Cambia tu contraseña periódicamente desde «Mi perfil».',
-      'Bloquea tus tarjetas al instante si las pierdes.',
+      'Nunca compartas tu usuario ni tu contraseña con otro funcionario.',
+      'Cierra sesión al dejar tu puesto: la sesión vence sola a las 8 horas.',
+      'Cada operación queda registrada con tu usuario.',
     ],
     Illustration: SecuritySettingsIllustration,
     theme: {

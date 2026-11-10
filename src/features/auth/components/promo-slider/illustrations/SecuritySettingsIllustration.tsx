@@ -2,8 +2,8 @@ import { Badge } from '@/shared/ui'
 import { IllustrationCard } from '@/features/auth/components/promo-slider/illustrations/IllustrationCard'
 
 const SETTINGS = [
-  { title: 'Tarjeta de débito ···· 4821', detail: 'Bloqueada temporalmente' },
-  { title: 'Alertas de movimientos', detail: 'Por SMS y correo' },
+  { title: 'Sesión en este equipo', detail: 'Vence sola a las 8 horas' },
+  { title: 'Verificación en dos pasos', detail: 'App de autenticación' },
 ]
 
 // Interruptor solo decorativo: la ilustración no es interactiva
@@ -19,7 +19,7 @@ export function SecuritySettingsIllustration() {
   return (
     <IllustrationCard>
       <p className="text-sm font-semibold">Seguridad</p>
-      <p className="text-xs text-brand-slate">Controla el acceso a tus productos</p>
+      <p className="text-xs text-brand-slate">Controla el acceso a tu puesto</p>
 
       <ul className="mt-3 divide-y divide-brand-border border-t border-brand-border">
         {SETTINGS.map(({ title, detail }) => (

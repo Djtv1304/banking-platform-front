@@ -42,9 +42,9 @@ export function LoginPage() {
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="flex w-full max-w-md flex-col gap-4">
             <section className="rounded-3xl border border-border bg-card p-8 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-11">
-              <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">Banca Virtual</h1>
+              <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">Acceso al sistema</h1>
               <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-                Ingresa de forma segura para gestionar tus productos.
+                Ingresa con tu usuario de funcionario para atender a los clientes de la cooperativa.
               </p>
 
               {errorMessage && (
@@ -61,8 +61,7 @@ export function LoginPage() {
               </div>
 
               <p className="mt-6 flex items-start gap-2.5 text-sm leading-relaxed text-muted-foreground">
-                Te llevaremos a nuestra página segura de acceso. Al terminar, volverás automáticamente a tu Banca
-                Virtual.
+                Te llevaremos a nuestra página segura de acceso. Al terminar, volverás automáticamente al sistema.
               </p>
             </section>
 

@@ -15,10 +15,10 @@ import {
 export function SignupCard() {
   return (
     <div className="rounded-2xl border border-border bg-card px-6 py-5 text-center text-base text-muted-foreground">
-      ¿Aún no eres cliente?{' '}
+      ¿Eres funcionario nuevo?{' '}
       <Dialog>
         <DialogTrigger className="ml-1 rounded-md font-semibold text-link outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50">
-          Solicita tu cuenta en minutos
+          Solicita tu acceso
         </DialogTrigger>
         <DialogContent className="gap-6 rounded-3xl border border-border bg-card p-8 sm:max-w-md">
           <DialogHeader className="items-center text-center">
@@ -26,11 +26,11 @@ export function SignupCard() {
               <Headset className="size-6" />
             </span>
             <DialogTitle className="mt-2 text-2xl font-bold tracking-tight text-heading">
-              Hazte cliente de EnquoCoop
+              Acceso para funcionarios
             </DialogTitle>
             <DialogDescription className="text-base leading-relaxed text-muted-foreground">
-              Para ser cliente de la cooperativa debes comunicarte con uno de nuestros asesores, quien te guiará en
-              el proceso de apertura de tu cuenta.
+              Tu usuario lo crea el administrador del sistema de la cooperativa. Pídele que te envíe la invitación a tu
+              correo: al aceptarla, eliges tu contraseña.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mx-0 mb-0 rounded-none border-0 bg-transparent p-0 sm:justify-center">

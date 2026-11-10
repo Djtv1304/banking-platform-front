@@ -19,7 +19,7 @@ export function PromoSlider() {
   return (
     <section
       aria-roledescription="carrusel"
-      aria-label="Beneficios de la Banca Virtual"
+      aria-label="Novedades del sistema"
       className={cn(
         'group/slider flex flex-1 flex-col overflow-hidden rounded-[28px] bg-dots p-9 transition-colors duration-500',
         theme.panel
@@ -35,7 +35,7 @@ export function PromoSlider() {
             theme.tagline
           )}
         >
-          Banca virtual personas
+          Sistema de gestión
         </span>
       </header>
 
