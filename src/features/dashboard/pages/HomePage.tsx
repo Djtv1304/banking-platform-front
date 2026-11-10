@@ -1,20 +1,9 @@
-import type { ComponentType } from 'react'
-
-import { useAccessProfile, type AccessProfile } from '@/features/auth'
-import { ClientHome } from '@/features/dashboard/components/ClientHome'
 import { StaffHome } from '@/features/dashboard/components/StaffHome'
 
-/** Qué Home ve cada perfil de acceso (ver `getAccessProfile` en features/auth) */
-const HOME_BY_PROFILE: Record<AccessProfile, ComponentType> = {
-  admin: ClientHome,
-  cliente: ClientHome,
-  staff: StaffHome,
-}
-
+/**
+ * Todos los perfiles ven el inicio de funcionario: el sistema lo usa sólo el
+ * personal de la cooperativa, no sus clientes.
+ */
 export function HomePage() {
-  const profile = useAccessProfile()
-  if (!profile) return null
-
-  const Home = HOME_BY_PROFILE[profile]
-  return <Home />
+  return <StaffHome />
 }
