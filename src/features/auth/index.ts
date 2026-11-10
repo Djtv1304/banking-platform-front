@@ -9,3 +9,4 @@ export type { AuthStatus } from '@/features/auth/store/auth.store';
 export { registerAuthHandlers, restoreSession, signOut } from '@/features/auth/session';
 export { sanitizeReturnTo } from '@/features/auth/lib/return-to';
 export type { MeResponse } from '@/features/auth/api/auth.contract';
+export { formatRol, formatRoles } from '@/features/auth/lib/roles';
