@@ -8,6 +8,7 @@ import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
 import { GuestOnly, RequireAuth, RequireProfile } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
+import { ModuloEnPreparacion } from '@/shared/ui'
 
 export const router = createBrowserRouter([
   {
@@ -56,6 +57,62 @@ export const router = createBrowserRouter([
             children: [
               { path: '/tarjetas', element: <BuscarTarjetasPage /> },
               { path: '/tarjetas/:idTarjeta', element: <DetalleTarjetaPage /> },
+            ],
+          },
+          {
+            element: <RequireProfile allowed={ROUTE_ACCESS.creditos} />,
+            children: [
+              {
+                path: '/creditos',
+                element: (
+                  <ModuloEnPreparacion
+                    modulo="Créditos"
+                    descripcion="Aquí se registrarán, evaluarán y aprobarán las solicitudes de crédito."
+                  />
+                ),
+              },
+            ],
+          },
+          {
+            element: <RequireProfile allowed={ROUTE_ACCESS.parametrosGenerales} />,
+            children: [
+              {
+                path: '/parametros',
+                element: (
+                  <ModuloEnPreparacion
+                    modulo="Parámetros generales"
+                    descripcion="Aquí se configurarán los productos, subproductos y BIN que necesita la emisión de tarjetas."
+                  />
+                ),
+              },
+            ],
+          },
+          {
+            element: <RequireProfile allowed={ROUTE_ACCESS.cuentasContables} />,
+            children: [
+              {
+                path: '/contabilidad',
+                element: (
+                  <ModuloEnPreparacion
+                    modulo="Cuentas contables"
+                    descripcion="Aquí se administrará el plan de cuentas contables de la cooperativa."
+                  />
+                ),
+              },
+            ],
+          },
+          {
+            element: <RequireProfile allowed={ROUTE_ACCESS.accesosRoles} />,
+            children: [
+              {
+                path: '/accesos',
+                element: (
+                  <ModuloEnPreparacion
+                    modulo="Accesos y roles"
+                    descripcion="Aquí se registrarán los funcionarios del sistema y se asignarán sus roles."
+                  />
+                ),
+              },
             ],
           },
         ],
