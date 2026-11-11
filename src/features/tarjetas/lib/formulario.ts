@@ -18,3 +18,9 @@ export const opcionClassName = cn(
   'has-focus-visible:ring-3 has-focus-visible:ring-ring/50',
   'has-disabled:cursor-not-allowed has-disabled:opacity-60 has-disabled:hover:border-border',
 )
+
+/**
+ * CTA-02 devuelve el estado de la cuenta en mayúsculas (`ACTIVA`); se compara sin distinguir
+ * mayúsculas para no depender de cómo lo escriba cada versión del backend.
+ */
+export const cuentaAdmiteTarjeta = (estado: string) => estado.trim().toUpperCase() === 'ACTIVA'

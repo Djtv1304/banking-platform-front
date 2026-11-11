@@ -18,7 +18,7 @@ import {
   useSolicitarTarjeta,
   useTarjetasPrincipales,
 } from '@/features/tarjetas/hooks/useSolicitudTarjeta'
-import { a11y, nombreCliente, opcionClassName } from '@/features/tarjetas/lib/formulario'
+import { a11y, cuentaAdmiteTarjeta, nombreCliente, opcionClassName } from '@/features/tarjetas/lib/formulario'
 import {
   aSolicitud,
   DIRECCION_NUEVA,
@@ -183,7 +183,7 @@ export function SolicitudTarjetaForm() {
               {cuentas && cuentas.length > 0 && (
                 <div role="radiogroup" aria-label="Cuenta" className="flex flex-col gap-2" {...a11y('idCuenta', errors.idCuenta?.message)}>
                   {cuentas.map((cuenta) => {
-                    const activa = cuenta.estado === 'Activa'
+                    const activa = cuentaAdmiteTarjeta(cuenta.estado)
                     return (
                       <label key={cuenta.idCuenta} className={opcionClassName}>
                         <input
