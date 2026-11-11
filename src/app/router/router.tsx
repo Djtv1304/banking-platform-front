@@ -6,6 +6,7 @@ import { HomePage } from '@/features/dashboard'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
+import { AbrirCuentaPage } from '@/features/cuenta'
 import { GuestOnly, RequireAuth, RequireProfile } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { ModuloEnPreparacion } from '@/shared/ui'
@@ -114,6 +115,11 @@ export const router = createBrowserRouter([
                 ),
               },
             ],
+          },
+          {
+            // Estática: React Router la prefiere a /cuentas/:idCuenta aunque se declare después
+            element: <RequireProfile allowed={ROUTE_ACCESS.abrirCuenta} />,
+            children: [{ path: '/cuentas/abrir', element: <AbrirCuentaPage /> }],
           },
         ],
       },

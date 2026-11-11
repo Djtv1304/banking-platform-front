@@ -24,4 +24,6 @@ export const ROUTE_ACCESS = {
   parametrosGenerales: ['admin'],
   cuentasContables: ['staff'],
   accesosRoles: ['admin'],
+  // CTA-01: ASESOR y ADMIN
+  abrirCuenta: ['staff'],
 } as const satisfies Record<string, readonly AccessProfile[]>

@@ -17,10 +17,19 @@ interface BuscarClienteProps {
   buscando: boolean
   error: Error | null
   onBuscar: (identificacion: string) => void
+  /** Qué no se puede hacer con un cliente que no está activo (cambia según la pantalla que lo use) */
+  avisoInactivo?: string
 }
 
 /** Búsqueda del cliente por su identificación exacta (CLI-03); la consulta vive en el formulario */
-export function BuscarCliente({ buscada, cliente, buscando, error, onBuscar }: BuscarClienteProps) {
+export function BuscarCliente({
+  buscada,
+  cliente,
+  buscando,
+  error,
+  onBuscar,
+  avisoInactivo = 'El cliente no está activo. Revisa su situación antes de solicitar una tarjeta.',
+}: BuscarClienteProps) {
   const [texto, setTexto] = useState('')
   const [errorTexto, setErrorTexto] = useState<string>()
 
@@ -96,7 +105,7 @@ export function BuscarCliente({ buscada, cliente, buscando, error, onBuscar }: B
       {cliente && cliente.estado !== 'Activo' && (
         <p role="alert" className="flex items-center gap-2 text-sm text-destructive">
           <CircleAlert className="size-4" />
-          El cliente no está activo. Revisa su situación antes de solicitar una tarjeta.
+          {avisoInactivo}
         </p>
       )}
     </div>
