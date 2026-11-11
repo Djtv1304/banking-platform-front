@@ -17,7 +17,7 @@
   },
   "previews": {
     "vars": {
-      "BACKEND_URL": "https://backend-bcgxcrfbg7dpdebp.mexicocentral-01.azurewebsites.net"
+      "BACKEND_URL": "https://backend-dev-fcd8and9b0afeuf5.mexicocentral-01.azurewebsites.net"
     }
   }
 }
