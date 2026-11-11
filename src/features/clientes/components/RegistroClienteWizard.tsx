@@ -1,9 +1,13 @@
 import { useRef, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CircleCheck, UserPlus } from 'lucide-react'
 
-import { Button } from '@/shared/ui'
+import { Aviso, Button } from '@/shared/ui'
+import { registrarCliente, errorRegistro } from '@/features/clientes/api/registro-cliente'
+import type { Cliente } from '@/features/clientes/api/clientes.contract'
 import { RegistroStepper, type Paso } from '@/features/clientes/components/RegistroStepper'
 import { DatosClienteStep } from '@/features/clientes/components/steps/DatosClienteStep'
 import { DireccionesStep } from '@/features/clientes/components/steps/DireccionesStep'
@@ -15,7 +19,6 @@ import {
   datosClienteSchema,
   DIRECCIONES_VACIAS,
   direccionesSchema,
-  TIPOS_DIRECCION,
   type ActividadData,
   type ActividadInput,
   type DatosClienteData,
@@ -38,7 +41,16 @@ const PASOS = [
 export function RegistroClienteWizard() {
   const [paso, setPaso] = useState(0)
   const [alcanzado, setAlcanzado] = useState(0)
-  const [registro, setRegistro] = useState<RegistroClienteData | null>(null)
+  const [registro, setRegistro] = useState<Cliente | null>(null)
+  const cache = useQueryClient()
+  const guardado = useMutation({
+    mutationFn: registrarCliente,
+    retry: false,
+    onSuccess: async (cliente) => {
+      cache.setQueryData(['clientes', 'detalle', cliente.idCliente], cliente)
+      await cache.invalidateQueries({ queryKey: ['clientes', 'busqueda'] })
+    },
+  })
   const inicioRef = useRef<HTMLDivElement>(null)
 
   const datosForm = useForm<DatosClienteInput, unknown, DatosClienteData>({
@@ -61,6 +73,7 @@ export function RegistroClienteWizard() {
   }
 
   const registrar = async (actividad: ActividadData) => {
+    if (guardado.isPending) return
     // Si se editó un paso anterior desde el indicador, se vuelve a validar antes de enviar
     if (!(await datosForm.trigger())) return irA(0)
     if (!(await direccionesForm.trigger())) return irA(1)
@@ -69,9 +82,13 @@ export function RegistroClienteWizard() {
       cliente: { ...datosClienteSchema.parse(datosForm.getValues()), ...actividad },
       direcciones: direccionesSchema.parse(direccionesForm.getValues()).direcciones,
     }
-    // Pendiente de integración CLI-02: F-09 solo consulta catálogos; esta vista no guarda clientes.
-    setRegistro(solicitud)
-    irA(PASOS.length)
+    try {
+      const cliente = await guardado.mutateAsync(solicitud)
+      setRegistro(cliente)
+      irA(PASOS.length)
+    } catch {
+      // La mutación presenta el error sin limpiar los tres formularios.
+    }
   }
 
   const nuevoRegistro = () => {
@@ -79,31 +96,37 @@ export function RegistroClienteWizard() {
     direccionesForm.reset(DIRECCIONES_VACIAS)
     actividadForm.reset(ACTIVIDAD_VACIA)
     setRegistro(null)
+    guardado.reset()
     setAlcanzado(0)
     irA(0)
   }
 
   return (
     <div ref={inicioRef} className="flex scroll-mt-6 flex-col gap-8">
+      <fieldset disabled={guardado.isPending} className="flex min-w-0 flex-col gap-8" aria-busy={guardado.isPending}>
       <RegistroStepper pasos={PASOS} actual={paso} alcanzado={alcanzado} onSelect={irA} />
 
       <section className="rounded-3xl border border-border bg-card p-6 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-10">
         {paso === 0 && <DatosClienteStep form={datosForm} onNext={() => irA(1)} />}
         {paso === 1 && <DireccionesStep form={direccionesForm} onBack={() => irA(0)} onNext={() => irA(2)} />}
         {paso === 2 && <ActividadEconomicaStep form={actividadForm} onBack={() => irA(1)} onSubmit={registrar} />}
+        {guardado.isPending && <p role="status" className="mt-4 text-sm text-muted-foreground">Guardando cliente…</p>}
+        {guardado.isError && !registro && <div className="mt-6"><Aviso tono="error">{errorRegistro(guardado.error)}<Link to="/clientes-busqueda" className="font-semibold underline">Consultar clientes</Link></Aviso></div>}
         {registro && <RegistroCompletado registro={registro} onNuevo={nuevoRegistro} />}
       </section>
+      </fieldset>
     </div>
   )
 }
 
-function RegistroCompletado({ registro, onNuevo }: { registro: RegistroClienteData; onNuevo: () => void }) {
-  const { cliente, direcciones } = registro
-  const nombre = cliente.razonSocial ?? `${cliente.nombres} ${cliente.apellidos}`
+function RegistroCompletado({ registro: cliente, onNuevo }: { registro: Cliente; onNuevo: () => void }) {
+  const { direcciones } = cliente
+  const nombre = cliente.razonSocial ?? `${cliente.nombres} ${cliente.apellidos ?? ''}`
 
   const resumen = [
-    { label: cliente.tipoDocumento === 'RUC' ? 'RUC' : 'Cédula', valor: cliente.identificacion },
-    { label: 'Tipo de cliente', valor: cliente.tipoCliente === 'NATURAL' ? 'Persona natural' : 'Persona jurídica' },
+    { label: cliente.tipoDocumento === 'P' ? 'Pasaporte' : cliente.tipoDocumento === 'R' ? 'RUC' : 'Cédula', valor: cliente.identificacion },
+    { label: 'Tipo de cliente', valor: cliente.tipoCliente === 'Natural' ? 'Persona natural' : 'Persona jurídica' },
+    { label: 'Estado', valor: cliente.estado },
     { label: 'Correo', valor: cliente.email },
   ]
 
@@ -113,10 +136,10 @@ function RegistroCompletado({ registro, onNuevo }: { registro: RegistroClienteDa
         <CircleCheck className="size-8" />
       </span>
       <div className="flex flex-col gap-2">
-        <h2 className="text-2xl font-bold text-heading">Datos validados</h2>
+        <h2 className="text-2xl font-bold text-heading">Cliente registrado</h2>
         <p className="max-w-md text-muted-foreground">
-          La información de <span className="font-semibold text-heading">{nombre}</span> pasó las validaciones del formulario.
-          Esta vista previa no envía ni guarda el registro.
+          El backend confirmó el registro de <span className="font-semibold text-heading">{nombre}</span>.
+          {cliente.estado === 'Pendiente' && ' El cliente queda pendiente de su evaluación de riesgo; todavía no está activo.'}
         </p>
       </div>
 
@@ -132,10 +155,10 @@ function RegistroCompletado({ registro, onNuevo }: { registro: RegistroClienteDa
           <dd className="flex flex-col gap-2 text-heading">
             <span className="font-medium">{direcciones.length} {direcciones.length === 1 ? 'dirección' : 'direcciones'}</span>
             <ul className="flex flex-col gap-2 text-sm">
-              {direcciones.map((direccion, indice) => (
-                <li key={indice} className="wrap-break-word">
+              {direcciones.map((direccion) => (
+                <li key={direccion.idDireccion} className="wrap-break-word">
                   <span className="font-medium">
-                    {TIPOS_DIRECCION.find((tipo) => tipo.value === direccion.tipoDireccion)?.label ?? direccion.tipoDireccion}
+                    {direccion.tipoDireccion}
                   </span>
                   {direccion.esPrincipal && <span className="font-medium"> (principal)</span>}
                   {' · '}{direccion.calleDireccion}
@@ -147,7 +170,8 @@ function RegistroCompletado({ registro, onNuevo }: { registro: RegistroClienteDa
         </div>
       </dl>
 
-      <Button onClick={onNuevo} className="h-[52px] rounded-xl px-8 text-base font-semibold hover:bg-primary/90">
+      <Button asChild className="h-[52px] rounded-xl px-8 text-base"><Link to={`/clientes-busqueda/${cliente.idCliente}`}>Ver cliente registrado</Link></Button>
+      <Button variant="outline" onClick={onNuevo} className="h-[52px] rounded-xl px-8 text-base font-semibold">
         <UserPlus />
         Registrar otro cliente
       </Button>
