@@ -16,6 +16,7 @@ import {
   Sun,
   UserPlus,
   UserSearch,
+  WalletCards,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -58,7 +59,10 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   },
   {
     title: 'Cuentas',
-    items: [{ to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas }],
+    items: [
+      { to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas },
+      { to: '/cuentas/abrir', label: 'Abrir cuenta', Icon: WalletCards, profiles: ROUTE_ACCESS.abrirCuenta },
+    ],
   },
   {
     title: 'Créditos',
