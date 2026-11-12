@@ -7,6 +7,7 @@ import { Badge, Button } from '@/shared/ui'
 import { useAuthStore } from '@/features/auth'
 import { GestionCliente } from '@/features/clientes/components/GestionCliente'
 import { HistorialCliente } from '@/features/clientes/components/HistorialCliente'
+import { GestionRiesgo } from '@/features/clientes/components/GestionRiesgo'
 import { accesoGestionClientes } from '@/features/clientes/lib/gestion-clientes'
 import type { Cliente } from '@/features/clientes/api/clientes.contract'
 import { useCliente } from '@/features/clientes/hooks/useConsultaClientes'
@@ -45,7 +46,7 @@ export function FichaClientePage() {
         {noExiste ? (
           <ClienteNoEncontrado />
         ) : !acceso.consulta ? (
-          acceso.historial ? <><h1 className="mb-6 text-3xl font-bold text-heading">Historial del cliente #{id}</h1><HistorialCliente key={id} id={id!} /></> : <p role="alert">No tienes permiso para consultar este cliente.</p>
+          acceso.historial ? <div className="flex flex-col gap-6"><h1 className="text-3xl font-bold text-heading">Historial del cliente #{id}</h1><HistorialCliente key={id} id={id!} /><GestionRiesgo key={`riesgo-${id}`} id={id!} nombre={`cliente #${id}`} /></div> : <p role="alert">No tienes permiso para consultar este cliente.</p>
         ) : consulta.isError ? (
           <div
             role="alert"
@@ -99,6 +100,8 @@ function Ficha({ cliente }: { cliente: Cliente }) {
       </header>
 
       <GestionCliente key={cliente.idCliente} cliente={cliente} />
+
+      <GestionRiesgo key={`riesgo-${cliente.idCliente}`} id={cliente.idCliente} nombre={nombreVisible(cliente)} estado={cliente.estado} />
 
       <Seccion titulo="Datos del cliente">
         <dl className="grid gap-5 sm:grid-cols-2">
