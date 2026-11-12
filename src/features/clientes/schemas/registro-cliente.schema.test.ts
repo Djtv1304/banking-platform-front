@@ -11,6 +11,18 @@ const cliente = {
 
 afterEach(() => vi.useRealTimers())
 
+describe('selección de documento para persona natural', () => {
+  it('conserva las letras del pasaporte y la nacionalidad predeterminada', () => {
+    expect(datosClienteSchema.parse({ ...cliente, tipoDocumento: 'PASAPORTE', identificacion: 'AB1234567' })).toMatchObject({ tipoDocumento: 'PASAPORTE', identificacion: 'AB1234567', codigoPaisNacionalidad: 'ECU' })
+  })
+  it('no aplica el formato de pasaporte a una cédula', () => {
+    expect(datosClienteSchema.safeParse({ ...cliente, tipoDocumento: 'CEDULA', identificacion: 'AB1234567' }).success).toBe(false)
+  })
+  it.each(['AB-12345', 'A123', 'AB 123456'])('rechaza pasaporte %j', (identificacion) => {
+    expect(datosClienteSchema.safeParse({ ...cliente, tipoDocumento: 'PASAPORTE', identificacion }).success).toBe(false)
+  })
+})
+
 describe('validación del celular del cliente', () => {
   it.each(['', '99123', normalizarCelular('099123456789')])('rechaza el valor inválido %j sin convertirlo en otro teléfono', (telefonoCelular) => {
     const resultado = datosClienteSchema.safeParse({ ...cliente, telefonoCelular })
@@ -38,10 +50,10 @@ describe('fecha de nacimiento del cliente', () => {
   it.each([0, 12, 23])('compara fechas sin que la hora %i cambie los límites de edad', (hora) => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 10, 8, hora, 30))
-    for (const fechaNacimiento of ['2026-11-08', '1906-11-08']) {
+    for (const fechaNacimiento of ['2026-11-07', '1906-11-08']) {
       expect(datosClienteSchema.safeParse({ ...cliente, fechaNacimiento }).success).toBe(true)
     }
-    for (const fechaNacimiento of ['2026-11-09', '1906-11-07']) {
+    for (const fechaNacimiento of ['2026-11-08', '2026-11-09', '1906-11-07']) {
       expect(datosClienteSchema.safeParse({ ...cliente, fechaNacimiento }).success).toBe(false)
     }
   })

@@ -20,7 +20,7 @@ import {
   type DireccionesInput,
 } from '@/features/clientes/schemas/registro-cliente.schema'
 
-const MAX_DIRECCIONES = 4
+const MAX_DIRECCIONES = 1
 
 type DireccionesForm = UseFormReturn<DireccionesInput, unknown, DireccionesData>
 
@@ -55,7 +55,7 @@ export function DireccionesStep({ form, onBack, onNext }: DireccionesStepProps) 
     <form onSubmit={handleSubmit(onNext)} noValidate className="flex flex-col gap-10">
       <FormSection
         title="Direcciones del cliente"
-        description="Registra al menos la dirección principal. Puedes agregar otras, como la del trabajo o el negocio."
+        description="Registra la dirección principal. Las direcciones adicionales se gestionan desde la ficha del cliente después del alta."
       >
         <ul className="flex flex-col gap-5">
           {fields.map((field, indice) => (

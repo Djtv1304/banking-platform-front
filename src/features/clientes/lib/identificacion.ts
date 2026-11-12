@@ -16,6 +16,11 @@ export function esCedulaValida(cedula: string) {
   return verificador === Number(cedula[9])
 }
 
+/** Formato de CLI-01/CLI-02: no comprueba autenticidad ni vigencia del documento. */
+export function esPasaporteValido(pasaporte: string) {
+  return /^[A-Za-z0-9]{5,13}$/.test(pasaporte)
+}
+
 /**
  * RUC: 13 dígitos y establecimiento distinto de 000. Para personas naturales (tercer dígito < 6)
  * los 10 primeros dígitos deben ser una cédula válida. Para sociedades (6 y 9) solo se valida
