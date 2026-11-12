@@ -1,12 +1,29 @@
+import { useState } from 'react'
+import { Pencil } from 'lucide-react'
+
 import { toApiError } from '@/shared/api'
-import { Aviso, Cargando } from '@/shared/ui'
+import { Aviso, Button, Cargando } from '@/shared/ui'
+import { EntidadForm } from '@/features/organizacion/components/EntidadForm'
 import { TarjetaEntidad } from '@/features/organizacion/components/TarjetaEntidad'
-import { useEntidad } from '@/features/organizacion/hooks/useEntidad'
+import { useEntidad, usePuedeEditarEntidad } from '@/features/organizacion/hooks/useEntidad'
 import { entidadNoRegistrada, mensajeErrorEntidad } from '@/features/organizacion/lib/entidad-texto'
 
-/** Datos de la cooperativa (solo ADMIN) */
+/** Datos de la cooperativa: lectura y edición parcial (solo ADMIN) */
 export function EntidadPage() {
   const entidad = useEntidad()
+  const puedeEditar = usePuedeEditarEntidad()
+  const [editando, setEditando] = useState(false)
+  const [guardado, setGuardado] = useState(false)
+
+  const editar = () => {
+    setGuardado(false)
+    setEditando(true)
+  }
+
+  const alGuardar = () => {
+    setEditando(false)
+    setGuardado(true)
+  }
 
   const contenido = (() => {
     if (entidad.isError) {
@@ -15,7 +32,18 @@ export function EntidadPage() {
       return <Aviso tono="error">{mensajeErrorEntidad(error, 'ver')}</Aviso>
     }
     if (entidad.isPending) return <Cargando texto="Consultando los datos de la entidad…" />
-    return <TarjetaEntidad entidad={entidad.data} />
+    if (editando) return <EntidadForm entidad={entidad.data} onCancelar={() => setEditando(false)} onGuardado={alGuardar} />
+
+    return (
+      <TarjetaEntidad entidad={entidad.data}>
+        {puedeEditar && (
+          <Button variant="outline" size="lg" onClick={editar} className="rounded-lg px-3">
+            <Pencil />
+            Editar
+          </Button>
+        )}
+      </TarjetaEntidad>
+    )
   })()
 
   return (
@@ -27,6 +55,7 @@ export function EntidadPage() {
         </p>
       </header>
 
+      {guardado && <Aviso>Guardamos los datos de la entidad.</Aviso>}
       {contenido}
     </div>
   )

@@ -1,8 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { ApiError } from '@/shared/api'
 import { useAuthStore } from '@/features/auth'
-import { getEntidad } from '@/features/organizacion/api/entidad.api'
+import { actualizarEntidad, getEntidad } from '@/features/organizacion/api/entidad.api'
+import type { EntidadUpdate } from '@/features/organizacion/api/entidad.contract'
 import { puedeEditarEntidad } from '@/features/organizacion/lib/entidad-texto'
 
 /** Un 4xx (sin registro, sin permiso) no se arregla reintentando */
@@ -18,6 +19,16 @@ export const useEntidad = () =>
     queryFn: getEntidad,
     retry: reintentar,
   })
+
+/** PATCH · Sin reintento; la respuesta trae la entidad completa y reemplaza lo que había en la consulta */
+export function useActualizarEntidad() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: EntidadUpdate) => actualizarEntidad(body),
+    retry: false,
+    onSuccess: (entidad) => queryClient.setQueryData(claveEntidad, entidad),
+  })
+}
 
 /** El botón «Editar» solo se muestra con los roles reales de /auth/me que el PATCH permite */
 export function usePuedeEditarEntidad() {
