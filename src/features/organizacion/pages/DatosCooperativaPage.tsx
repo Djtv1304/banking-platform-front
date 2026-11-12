@@ -93,7 +93,7 @@ export function DatosCooperativaPage() {
           </h2>
           <p className="text-sm text-muted-foreground">
             {sinEntidad
-              ? 'Todavía no se ha cargado el registro institucional. Su configuración inicial se realiza al preparar el sistema.'
+              ? 'Todavía no se ha cargado el registro institucional. La forma de realizar la carga inicial está pendiente de confirmación con Danny.'
               : mensajeErrorEntidad(consulta.error)}
           </p>
           <Button

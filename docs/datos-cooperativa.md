@@ -49,4 +49,7 @@ La demo local usa el router y servicio del PR #323 con persistencia en memoria y
 una sesión ficticia; bloquea SQL y no llama a WorkOS. No sustituye la validación
 de integración con el backend desplegado. Para probar los endpoints reales se
 necesita que conserve las rutas y permisos anteriores y exista la fila inicial
-`Organizacion.Entidad.IdEntidad = 1`, cargada durante el aprovisionamiento.
+`Organizacion.Entidad.IdEntidad = 1`. La forma de realizar esa carga inicial y
+los datos que deben utilizarse están pendientes de confirmación con Danny.
+Este PR no crea el registro ni presupone que deba cargarse durante el
+aprovisionamiento: mantiene únicamente la consulta y edición acordadas.
