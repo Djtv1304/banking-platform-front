@@ -12,3 +12,9 @@ export function accionEstado(estado: EstadoAgencia): AccionEstado | null {
   if (estado === 'I') return 'activar'
   return null
 }
+
+/** Atributos de accesibilidad del control según tenga error o ayuda */
+export const a11yCampo = (id: string, error?: string, ayuda?: string) => ({
+  'aria-invalid': !!error,
+  'aria-describedby': error ? `${id}-error` : ayuda ? `${id}-ayuda` : undefined,
+})
