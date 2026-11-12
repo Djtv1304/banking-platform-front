@@ -24,4 +24,6 @@ export const ROUTE_ACCESS = {
   parametrosGenerales: ['admin'],
   cuentasContables: ['staff'],
   accesosRoles: ['admin'],
+  // ORG-01/02: solo ADMIN
+  agencias: ['admin'],
 } as const satisfies Record<string, readonly AccessProfile[]>

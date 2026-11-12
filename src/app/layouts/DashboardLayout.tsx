@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
   Bell,
+  Building2,
   Calculator,
   CircleHelp,
   CreditCard,
@@ -75,6 +76,10 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Tarjetas',
     items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas }],
+  },
+  {
+    title: 'Organización',
+    items: [{ to: '/organizacion/agencias', label: 'Agencias', Icon: Building2, profiles: ROUTE_ACCESS.agencias }],
   },
   {
     title: 'Parámetros generales',
