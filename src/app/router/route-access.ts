@@ -24,4 +24,6 @@ export const ROUTE_ACCESS = {
   parametrosGenerales: ['admin'],
   cuentasContables: ['staff'],
   accesosRoles: ['admin'],
+  // ENT: GET ASESOR y ADMIN, PATCH ADMIN; la pantalla es solo de administración
+  entidad: ['admin'],
 } as const satisfies Record<string, readonly AccessProfile[]>
