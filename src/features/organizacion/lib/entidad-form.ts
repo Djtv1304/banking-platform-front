@@ -9,7 +9,7 @@ export const entidadFormSchema = z.object({
   segmento: z.enum(['', '1', '2', '3', '4', '5']), numeroResolucionSeps: opcional(60),
   fechaConstitucion: z.iso.date('Ingresa una fecha válida.'),
   representanteLegal: obligatorio(250),
-  identificacionRepresentante: z.string().trim().regex(/^[0-9A-Z]{5,13}$/, 'Usa entre 5 y 13 letras mayúsculas o dígitos.'),
+  identificacionRepresentante: z.string().trim().toUpperCase().regex(/^[0-9A-Z]{5,13}$/, 'Usa entre 5 y 13 letras o dígitos.'),
   telefono: opcional(15).refine((v) => !v || (/^[0-9+() -]+$/.test(v) && /[0-9]/.test(v)), 'Ingresa un teléfono con dígitos y signos de formato.'),
   email: opcional(150).refine((v) => !v || z.email().safeParse(v).success, 'Ingresa un correo válido.'),
   sitioWeb: opcional(150).refine((v) => !v || z.url({ protocol: /^https?$/ }).safeParse(v).success, 'Ingresa una dirección completa con https:// o http://.'),

@@ -7,6 +7,12 @@ Organización → Datos de la cooperativa. Conserva el layout, los tokens y los
 componentes compartidos. No incluye alta, eliminación, cambio de estado ni
 administración de agencias o usuarios.
 
+La ficha identifica la cooperativa con razón social, RUC y estado en su encabezado.
+Los hooks del módulo separan consulta y edición, conservan la cancelación de
+consultas y evitan refrescar el borrador mientras se edita. La identificación del
+representante se convierte a mayúsculas al escribir y antes de construir el PATCH;
+su nombre mantiene la capitalización ingresada.
+
 ## Contrato
 
 Referencia: PR backend #323. `GET /api/v1/organizacion/entidad` permite ADMIN y

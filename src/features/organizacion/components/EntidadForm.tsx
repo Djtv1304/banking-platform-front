@@ -44,11 +44,15 @@ export function EntidadForm({ entidad, pendiente, error, guardar, cancelar }: Pr
           <h3 className="border-b border-border pb-3 text-lg font-semibold text-heading">{grupo.titulo}</h3>
           <div className="grid gap-5 sm:grid-cols-2">{grupo.campos.map(({ key, label, max, type, opcional }) => {
             const id = `entidad-${key}`
+            const campo = register(key)
             return <div key={key} className="flex flex-col gap-2.5">
               <Label htmlFor={id} className="text-[15px] font-semibold text-heading">{label}{opcional && <span className="font-normal text-muted-foreground"> (opcional)</span>}</Label>
-              {key === 'segmento' ? <select id={id} className={clase} {...register(key)} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `${id}-error` : undefined}>
+              {key === 'segmento' ? <select id={id} className={clase} {...campo} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `${id}-error` : undefined}>
                 <option value="">Sin especificar</option>{[1, 2, 3, 4, 5].map((n) => <option key={n} value={String(n)}>Segmento {n}</option>)}
-              </select> : <Input id={id} type={type ?? 'text'} maxLength={max} className={clase} {...register(key)} aria-required={!opcional} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `${id}-error` : undefined} />}
+              </select> : <Input id={id} type={type ?? 'text'} maxLength={max} className={clase} {...campo} onChange={(event) => {
+                if (key === 'identificacionRepresentante') event.target.value = event.target.value.toUpperCase()
+                void campo.onChange(event)
+              }} aria-required={!opcional} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `${id}-error` : undefined} />}
               {errors[key] && <p id={`${id}-error`} className="text-sm text-destructive">{errors[key]?.message}</p>}
             </div>
           })}</div>

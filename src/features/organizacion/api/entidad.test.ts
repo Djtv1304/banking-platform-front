@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AxiosHeaders } from 'axios'
+import { QueryClient } from '@tanstack/react-query'
 import { ApiError, apiClient } from '@/shared/api'
-import { accesoEntidad, editarEntidad, entidadPatchSchema, entidadSchema, mensajeErrorEntidad, obtenerEntidad } from '@/features/organizacion/api/entidad'
+import { accesoEntidad, editarEntidad, ENTIDAD_KEY, entidadPatchSchema, entidadSchema, mensajeErrorEntidad, obtenerEntidad } from '@/features/organizacion/api/entidad'
 import { cambiosEntidad, entidadFormSchema, fechaEntidad, valoresEntidad } from '@/features/organizacion/lib/entidad-form'
+import { confirmarEntidadEnCache } from '@/features/organizacion/hooks/useEntidad'
 
 const entidad = {
   idEntidad: 1 as const, ruc: '1790000000001', razonSocial: 'Cooperativa Ficticia Enquo', nombreComercial: 'Enquo Demo',
@@ -89,8 +91,41 @@ describe('Entidad · formulario y cambios parciales', () => {
   it('permite borrar todos los contactos opcionales', () => {
     expect(entidadFormSchema.safeParse({ ...valoresEntidad(entidad), telefono: '', email: '', sitioWeb: '' }).success).toBe(true)
   })
+  it('normaliza la identificación del representante antes de validarla y construir el PATCH', () => {
+    const formulario = { ...valoresEntidad(entidad), identificacionRepresentante: ' ab12345 ' }
+    expect(entidadFormSchema.parse(formulario).identificacionRepresentante).toBe('AB12345')
+    expect(cambiosEntidad(entidad, formulario)).toEqual({ identificacionRepresentante: 'AB12345' })
+  })
+  it('no cambia la capitalización del nombre del representante ni reenvía un identificador equivalente', () => {
+    const formulario = { ...valoresEntidad(entidad), identificacionRepresentante: 'demo12345', representanteLegal: 'Ana de la Cruz' }
+    expect(cambiosEntidad(entidad, formulario)).toEqual({ representanteLegal: 'Ana de la Cruz' })
+  })
   it('explica que un error de guardado conserva el borrador', () => {
     expect(mensajeErrorEntidad(new ApiError('Fallo', 503, 'ERROR'), true)).toContain('borrador se conserva')
     expect(mensajeErrorEntidad(new ApiError('Fallo', 403, 'SIN_PERMISO'), true)).toContain('No tienes permiso')
+  })
+})
+
+describe('Entidad · caché después de editar', () => {
+  it('la respuesta persistida reemplaza la ficha conservando las demás consultas', async () => {
+    const cache = new QueryClient()
+    cache.setQueryData(ENTIDAD_KEY, entidad)
+    cache.setQueryData(['catalogos', 'agencias'], ['Matriz'])
+    const actualizada = { ...entidad, nombreComercial: 'Nombre confirmado' }
+    await confirmarEntidadEnCache(cache, actualizada)
+    expect(cache.getQueryData(ENTIDAD_KEY)).toEqual(actualizada)
+    expect(cache.getQueryData(['catalogos', 'agencias'])).toEqual(['Matriz'])
+    cache.clear()
+  })
+  it('una lectura anterior que llega tarde no sobrescribe el guardado confirmado', async () => {
+    const cache = new QueryClient()
+    let resolver!: (value: typeof entidad) => void
+    const pendiente = cache.fetchQuery({ queryKey: ENTIDAD_KEY, queryFn: () => new Promise<typeof entidad>((resolve) => { resolver = resolve }) }).catch(() => undefined)
+    const actualizada = { ...entidad, nombreComercial: 'Dato recién guardado' }
+    await confirmarEntidadEnCache(cache, actualizada)
+    resolver(entidad)
+    await pendiente
+    expect(cache.getQueryData(ENTIDAD_KEY)).toEqual(actualizada)
+    cache.clear()
   })
 })

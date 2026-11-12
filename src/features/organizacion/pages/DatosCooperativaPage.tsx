@@ -1,11 +1,13 @@
 import { useState, type ReactNode } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { Building2, CircleAlert, LoaderCircle, Pencil } from 'lucide-react'
 import { useAuthStore } from '@/features/auth'
 import { ApiError } from '@/shared/api'
-import { Badge, Button } from '@/shared/ui'
-import { accesoEntidad, editarEntidad, ENTIDAD_KEY, mensajeErrorEntidad, obtenerEntidad, type Entidad, type EntidadPatch } from '@/features/organizacion/api/entidad'
+import { Button } from '@/shared/ui'
+import { accesoEntidad, ENTIDAD_KEY, mensajeErrorEntidad, type Entidad, type EntidadPatch } from '@/features/organizacion/api/entidad'
+import { EncabezadoEntidad } from '@/features/organizacion/components/EncabezadoEntidad'
 import { EntidadForm } from '@/features/organizacion/components/EntidadForm'
+import { useActualizarEntidad, useEntidad } from '@/features/organizacion/hooks/useEntidad'
 import { fechaEntidad } from '@/features/organizacion/lib/entidad-form'
 
 export function DatosCooperativaPage() {
@@ -15,13 +17,15 @@ export function DatosCooperativaPage() {
   const [baseEdicion, setBaseEdicion] = useState<Entidad | null>(null)
   const editando = baseEdicion !== null
   const [aviso, setAviso] = useState('')
-  const consulta = useQuery({ queryKey: ENTIDAD_KEY, queryFn: ({ signal }) => obtenerEntidad(signal), enabled: acceso.consulta, retry: false, refetchOnWindowFocus: !editando })
-  const edicion = useMutation({ mutationFn: editarEntidad, retry: false, onSuccess: async (datos) => { await cache.cancelQueries({ queryKey: ENTIDAD_KEY }); cache.setQueryData(ENTIDAD_KEY, datos); setBaseEdicion(null); setAviso('Los datos de la cooperativa se guardaron correctamente.') } })
+  const consulta = useEntidad(acceso.consulta, editando)
+  const edicion = useActualizarEntidad()
   const sinEntidad = consulta.error instanceof ApiError && consulta.error.status === 404 && consulta.error.code === 'ENTIDAD_NO_ENCONTRADA'
 
   async function guardar(cambios: EntidadPatch) {
     if (!Object.keys(cambios).length) { setBaseEdicion(null); setAviso('No había cambios para guardar.'); return }
     await edicion.mutateAsync(cambios)
+    setBaseEdicion(null)
+    setAviso('Los datos de la cooperativa se guardaron correctamente.')
   }
 
   return <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
@@ -53,11 +57,12 @@ function Dato({ label, valor }: { label: string; valor?: string | number | null 
 }
 function FichaEntidad({ entidad: e }: { entidad: Entidad }) {
   return <>
+    <EncabezadoEntidad entidad={e} />
     {e.estado === 'I' && <p role="status" className="flex items-center gap-2 rounded-xl border border-border bg-muted p-4 text-sm"><CircleAlert className="size-5 shrink-0" />La cooperativa figura como inactiva en el registro institucional.</p>}
     <Bloque titulo="Identificación institucional"><Dato label="RUC" valor={e.ruc} /><Dato label="Razón social" valor={e.razonSocial} /><Dato label="Nombre comercial" valor={e.nombreComercial} /><Dato label="Tipo de organización" valor={e.tipoOrganizacion} /></Bloque>
     <Bloque titulo="Información institucional"><Dato label="Segmento" valor={e.segmento} /><Dato label="Número de resolución SEPS" valor={e.numeroResolucionSeps} /><Dato label="Fecha de constitución" valor={fechaEntidad(e.fechaConstitucion)} /></Bloque>
     <Bloque titulo="Representación legal"><Dato label="Representante legal" valor={e.representanteLegal} /><Dato label="Identificación del representante" valor={e.identificacionRepresentante} /></Bloque>
     <Bloque titulo="Contacto"><Dato label="Teléfono" valor={e.telefono} /><Dato label="Correo electrónico" valor={e.email} /><Dato label="Sitio web" valor={e.sitioWeb} /></Bloque>
-    <section aria-label="Información del registro" className="rounded-2xl border border-border bg-card p-5 sm:p-6"><h2 className="mb-5 text-lg font-semibold text-heading">Información del registro</h2><dl className="grid gap-5 sm:grid-cols-2"><div><dt className="text-sm text-muted-foreground">Estado</dt><dd className="mt-1"><Badge variant={e.estado === 'A' ? 'default' : 'outline'}>{e.estado === 'A' ? 'Activa' : 'Inactiva'}</Badge></dd></div><Dato label="Fecha de registro" valor={fechaEntidad(e.fechaRegistro)} /><Dato label="Último modificador" valor={`Usuario interno #${e.modificadoPor}`} /></dl></section>
+    <section aria-label="Información del registro" className="rounded-2xl border border-border bg-card p-5 sm:p-6"><h2 className="mb-5 text-lg font-semibold text-heading">Información del registro</h2><dl className="grid gap-5 sm:grid-cols-2"><Dato label="Fecha de registro" valor={fechaEntidad(e.fechaRegistro)} /><Dato label="Último modificador" valor={`Usuario interno #${e.modificadoPor}`} /></dl></section>
   </>
 }
