@@ -22,16 +22,15 @@ import {
   SelectValue,
 } from '@/shared/ui'
 import { useCiudades, type Agencia, type Ciudad } from '@/features/catalogos'
+import type { AgenciaDetalle } from '@/features/organizacion/api/agencias.contract'
 import { CampoAgencia, inputClassName, selectClassName } from '@/features/organizacion/components/CampoAgencia'
-import { useActualizarAgencia, useCrearAgencia } from '@/features/organizacion/hooks/useAgenciasAdmin'
+import { useActualizarAgencia, useAgenciaDetalle, useCrearAgencia } from '@/features/organizacion/hooks/useAgenciasAdmin'
 import {
   campoDelError,
-  crearAgenciaFormSchema,
-  editarAgenciaFormSchema,
+  agenciaFormSchema,
   mensajeErrorAgencia,
   payloadCrear,
   payloadEdicion,
-  resolverIdCiudad,
   valoresEdicion,
   VALORES_NUEVA,
   type AgenciaFormData,
@@ -55,15 +54,19 @@ interface AgenciaFormDialogProps {
 export function AgenciaFormDialog({ modo, onCerrar, onGuardado }: AgenciaFormDialogProps) {
   const ciudades = useCiudades('ECU')
   const editando = modo?.tipo === 'editar'
+  const detalle = useAgenciaDetalle(modo?.tipo === 'editar' ? modo.agencia.idAgencia : null)
 
   const contenido = (() => {
     if (!modo) return null
     if (ciudades.isError) return <Aviso tono="error">{toApiError(ciudades.error).message}</Aviso>
+    if (editando && detalle.isError) return <Aviso tono="error">{mensajeErrorAgencia(toApiError(detalle.error))}</Aviso>
     if (ciudades.isPending) return <Cargando texto="Cargando ciudades…" />
+    if (editando && detalle.isPending) return <Cargando texto="Cargando la agencia…" />
     return (
       <FormularioAgencia
         key={modo.tipo === 'editar' ? modo.agencia.idAgencia : 'nueva'}
         modo={modo}
+        detalle={detalle.data ?? null}
         ciudades={ciudades.data}
         onCancelar={onCerrar}
         onGuardado={onGuardado}
@@ -92,17 +95,17 @@ export function AgenciaFormDialog({ modo, onCerrar, onGuardado }: AgenciaFormDia
 
 interface FormularioAgenciaProps {
   modo: ModoAgencia
+  /** Solo al editar: lo que devolvió GET /agencias/{id} */
+  detalle: AgenciaDetalle | null
   ciudades: Ciudad[]
   onCancelar: () => void
   onGuardado: (mensaje: string) => void
 }
 
-function FormularioAgencia({ modo, ciudades, onCancelar, onGuardado }: FormularioAgenciaProps) {
+function FormularioAgencia({ modo, detalle, ciudades, onCancelar, onGuardado }: FormularioAgenciaProps) {
   const editando = modo.tipo === 'editar'
   // Se calcula una vez al abrir: es la base para saber qué cambió
-  const [inicial] = useState(() =>
-    modo.tipo === 'editar' ? valoresEdicion(modo.agencia, resolverIdCiudad(modo.agencia, ciudades)) : VALORES_NUEVA,
-  )
+  const [inicial] = useState(() => (detalle ? valoresEdicion(detalle) : VALORES_NUEVA))
   const [sinCambios, setSinCambios] = useState(false)
   const crear = useCrearAgencia()
   const actualizar = useActualizarAgencia()
@@ -115,7 +118,7 @@ function FormularioAgencia({ modo, ciudades, onCancelar, onGuardado }: Formulari
     setError,
     formState: { errors },
   } = useForm<AgenciaFormInput, unknown, AgenciaFormData>({
-    resolver: zodResolver(editando ? editarAgenciaFormSchema : crearAgenciaFormSchema),
+    resolver: zodResolver(agenciaFormSchema),
     defaultValues: inicial,
   })
 
@@ -148,9 +151,7 @@ function FormularioAgencia({ modo, ciudades, onCancelar, onGuardado }: Formulari
     )
   }
 
-  const opcional = editando ? 'Déjalo vacío para no cambiarlo.' : 'Opcional.'
-  const ayudaCiudad =
-    editando && !inicial.idCiudad ? 'No pudimos identificar la ciudad actual: elige una solo si quieres cambiarla.' : undefined
+  const opcional = editando ? 'Opcional. Si lo vacías, se borra.' : 'Opcional.'
 
   return (
     <form onSubmit={handleSubmit(guardar)} noValidate className="flex flex-col gap-5">
@@ -194,7 +195,7 @@ function FormularioAgencia({ modo, ciudades, onCancelar, onGuardado }: Formulari
             )}
           />
         </CampoAgencia>
-        <CampoAgencia id="agencia-ciudad" label="Ciudad" error={errors.idCiudad?.message} ayuda={ayudaCiudad}>
+        <CampoAgencia id="agencia-ciudad" label="Ciudad" error={errors.idCiudad?.message}>
           <Controller
             control={control}
             name="idCiudad"
@@ -204,7 +205,7 @@ function FormularioAgencia({ modo, ciudades, onCancelar, onGuardado }: Formulari
                   id="agencia-ciudad"
                   onBlur={field.onBlur}
                   className={selectClassName}
-                  {...a11yCampo('agencia-ciudad', errors.idCiudad?.message, ayudaCiudad)}
+                  {...a11yCampo('agencia-ciudad', errors.idCiudad?.message)}
                 >
                   <SelectValue placeholder="Elige la ciudad" />
                 </SelectTrigger>

@@ -1,60 +1,41 @@
 import { describe, expect, it } from 'vitest'
 
 import { ApiError } from '@/shared/api'
-import type { Agencia, Ciudad } from '@/features/catalogos'
+import type { AgenciaDetalle } from '@/features/organizacion/api/agencias.contract'
 import {
   campoDelError,
-  crearAgenciaFormSchema,
-  editarAgenciaFormSchema,
+  agenciaFormSchema,
   mensajeErrorAgencia,
   motivoFormSchema,
   payloadCrear,
   payloadEdicion,
-  resolverIdCiudad,
   valoresEdicion,
   VALORES_NUEVA,
 } from '@/features/organizacion/lib/agencia-form'
 import { accionEstado } from '@/features/organizacion/lib/agencias'
 
-const ciudades: Ciudad[] = [
-  { idCiudad: 1, codigoPais: 'ECU', nombre: 'Cuenca', provincia: 'Azuay' },
-  { idCiudad: 17, codigoPais: 'ECU', nombre: 'Quito', provincia: 'Pichincha' },
-  { idCiudad: 30, codigoPais: 'ECU', nombre: 'Santo Domingo', provincia: 'Santo Domingo de los Tsáchilas' },
-]
-
-const agencia: Agencia = {
+const agencia: AgenciaDetalle = {
   idAgencia: '002',
   codigo: 'SUC-NORTE',
-  nombre: 'Sucursal Norte',
   tipoAgencia: 'Sucursal',
-  provincia: 'Pichincha',
-  ciudad: 'Quito',
   estado: 'A',
+  idCiudad: 17,
+  telefono: '022345678',
+  direccion: null,
+  fechaCreacion: '2026-11-01T10:00:00-05:00',
+  vinculadaWorkos: false,
 }
-
-describe('resolverIdCiudad', () => {
-  it('encuentra la ciudad por nombre y provincia, sin distinguir tildes ni mayúsculas', () => {
-    expect(resolverIdCiudad(agencia, ciudades)).toBe(17)
-    expect(resolverIdCiudad({ ciudad: 'SANTO DOMINGO ', provincia: 'Santo Domingo de los Tsachilas' }, ciudades)).toBe(30)
-  })
-
-  it('devuelve null si no hay coincidencia o si hay más de una', () => {
-    expect(resolverIdCiudad({ ciudad: 'Quito', provincia: 'Guayas' }, ciudades)).toBeNull()
-    expect(resolverIdCiudad(agencia, [...ciudades, { ...ciudades[1], idCiudad: 99 }])).toBeNull()
-    expect(resolverIdCiudad(agencia, [])).toBeNull()
-  })
-})
 
 describe('alta (ORG-01)', () => {
   const valores = { ...VALORES_NUEVA, idAgencia: 'a01', codigo: ' suc-sur ', tipoAgencia: 'Sucursal', idCiudad: '1' }
 
   it('pasa a mayúsculas y no envía los opcionales vacíos', () => {
-    const datos = crearAgenciaFormSchema.parse(valores)
+    const datos = agenciaFormSchema.parse(valores)
     expect(payloadCrear(datos)).toEqual({ idAgencia: 'A01', codigo: 'SUC-SUR', tipoAgencia: 'Sucursal', idCiudad: 1 })
   })
 
   it('envía teléfono y dirección cuando se escriben', () => {
-    const datos = crearAgenciaFormSchema.parse({ ...valores, telefono: '(02) 234-5678', direccion: ' Av. Loja ' })
+    const datos = agenciaFormSchema.parse({ ...valores, telefono: '(02) 234-5678', direccion: ' Av. Loja ' })
     expect(payloadCrear(datos)).toMatchObject({ telefono: '(02) 234-5678', direccion: 'Av. Loja' })
   })
 
@@ -69,34 +50,35 @@ describe('alta (ORG-01)', () => {
     ['telefono', '02-ABC-123'],
     ['direccion', 'Línea 1\nLínea 2'],
   ])('rechaza %s = %j', (campo, valor) => {
-    const result = crearAgenciaFormSchema.safeParse({ ...valores, [campo]: valor })
+    const result = agenciaFormSchema.safeParse({ ...valores, [campo]: valor })
     expect(result.success).toBe(false)
     expect(result.error?.issues[0].path).toEqual([campo])
   })
 })
 
 describe('edición (ORG-02)', () => {
-  const inicial = valoresEdicion(agencia, 17)
+  const inicial = valoresEdicion(agencia)
 
-  it('precarga código, tipo y ciudad; teléfono y dirección vacíos', () => {
-    expect(inicial).toEqual({ idAgencia: '002', codigo: 'SUC-NORTE', tipoAgencia: 'Sucursal', idCiudad: '17', telefono: '', direccion: '' })
-    expect(valoresEdicion(agencia, null).idCiudad).toBe('')
+  it('precarga lo que devuelve el detalle; un opcional null queda vacío', () => {
+    expect(inicial).toEqual({ idAgencia: '002', codigo: 'SUC-NORTE', tipoAgencia: 'Sucursal', idCiudad: '17', telefono: '022345678', direccion: '' })
   })
 
   it('sin cambios no hay nada que enviar', () => {
-    expect(payloadEdicion(inicial, editarAgenciaFormSchema.parse(inicial))).toEqual({})
-    expect(payloadEdicion(inicial, editarAgenciaFormSchema.parse({ ...inicial, codigo: 'suc-norte' }))).toEqual({})
+    expect(payloadEdicion(inicial, agenciaFormSchema.parse(inicial))).toEqual({})
+    expect(payloadEdicion(inicial, agenciaFormSchema.parse({ ...inicial, codigo: 'suc-norte', telefono: ' 022345678 ' }))).toEqual({})
   })
 
   it('envía solo los campos que cambiaron', () => {
-    const datos = editarAgenciaFormSchema.parse({ ...inicial, codigo: 'SUC-N1', idCiudad: '1', telefono: '022345678' })
-    expect(payloadEdicion(inicial, datos)).toEqual({ codigo: 'SUC-N1', idCiudad: 1, telefono: '022345678' })
+    const datos = agenciaFormSchema.parse({ ...inicial, codigo: 'SUC-N1', idCiudad: '1', direccion: 'Av. Amazonas N24-03' })
+    expect(payloadEdicion(inicial, datos)).toEqual({ codigo: 'SUC-N1', idCiudad: 1, direccion: 'Av. Amazonas N24-03' })
   })
 
-  it('con la ciudad sin resolver no la envía, salvo que se elija una', () => {
-    const sinCiudad = valoresEdicion(agencia, null)
-    expect(payloadEdicion(sinCiudad, editarAgenciaFormSchema.parse(sinCiudad))).toEqual({})
-    expect(payloadEdicion(sinCiudad, editarAgenciaFormSchema.parse({ ...sinCiudad, idCiudad: '17' }))).toEqual({ idCiudad: 17 })
+  it('un opcional vaciado se envía como null para borrarlo', () => {
+    expect(payloadEdicion(inicial, agenciaFormSchema.parse({ ...inicial, telefono: '  ' }))).toEqual({ telefono: null })
+  })
+
+  it('la ciudad es obligatoria', () => {
+    expect(agenciaFormSchema.safeParse({ ...inicial, idCiudad: '' }).success).toBe(false)
   })
 })
 

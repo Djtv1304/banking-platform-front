@@ -15,6 +15,12 @@ function validar(data: unknown, status: number) {
   return result.data
 }
 
+/** Detalle de una agencia: trae ciudad, teléfono y dirección para precargar la edición */
+export async function obtenerAgencia(idAgencia: string) {
+  const { data, status } = await apiClient.get<unknown>(AGENCIAS_ENDPOINTS.agencia(idAgencia))
+  return validar(data, status)
+}
+
 /** ORG-01 · 201 con la agencia creada en estado `A` */
 export async function crearAgencia(body: AgenciaCreate) {
   const { data, status } = await apiClient.post<unknown>(AGENCIAS_ENDPOINTS.crear, body)
@@ -23,6 +29,6 @@ export async function crearAgencia(body: AgenciaCreate) {
 
 /** ORG-02 · Edición parcial, también para desactivar (`I`) o reactivar (`A`) con motivo */
 export async function actualizarAgencia(idAgencia: string, body: AgenciaUpdate) {
-  const { data, status } = await apiClient.patch<unknown>(AGENCIAS_ENDPOINTS.actualizar(idAgencia), body)
+  const { data, status } = await apiClient.patch<unknown>(AGENCIAS_ENDPOINTS.agencia(idAgencia), body)
   return validar(data, status)
 }

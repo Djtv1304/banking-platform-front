@@ -1,13 +1,12 @@
 import { z } from 'zod'
 
 import type { ApiError } from '@/shared/api'
-import type { Agencia, Ciudad } from '@/features/catalogos'
-import type { AgenciaCreate, AgenciaUpdate, TipoAgencia } from '@/features/organizacion/api/agencias.contract'
+import type { AgenciaCreate, AgenciaDetalle, AgenciaUpdate, TipoAgencia } from '@/features/organizacion/api/agencias.contract'
 
 /*
  * Formulario de alta (ORG-01) y edición (ORG-02) de una agencia. Mismas reglas que `AgenciaCreate`
  * y `AgenciaUpdate` del backend. Los campos son texto; el esquema arma los valores del body y los
- * opcionales vacíos quedan en `undefined` para no enviarlos (el backend no acepta `null` aquí).
+ * opcionales vacíos quedan en `undefined` (en el alta no se envían; en la edición, ver `payloadEdicion`).
  */
 
 /** Sin caracteres de control: el texto termina en reportes y en la auditoría */
@@ -56,12 +55,10 @@ const camposAgencia = z.object({
   ),
 })
 
-/** El alta exige ciudad; en la edición puede quedar vacía si no se pudo resolver la actual */
-export const crearAgenciaFormSchema = camposAgencia.superRefine((valor, ctx) => {
+/** La ciudad es obligatoria en el alta y en la edición (el back no admite quitarla) */
+export const agenciaFormSchema = camposAgencia.superRefine((valor, ctx) => {
   if (valor.idCiudad === undefined) ctx.addIssue({ code: 'custom', path: ['idCiudad'], message: 'Elige la ciudad.' })
 })
-
-export const editarAgenciaFormSchema = camposAgencia
 
 export type AgenciaFormInput = z.input<typeof camposAgencia>
 export type AgenciaFormData = z.output<typeof camposAgencia>
@@ -76,37 +73,21 @@ export const VALORES_NUEVA: AgenciaFormInput = {
   direccion: '',
 }
 
-const normalizar = (texto: string) =>
-  texto.normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase()
-
-/**
- * CAT-06 solo trae el nombre de la ciudad y su provincia: se busca su id en el catálogo de
- * ciudades. Sin coincidencia única devuelve null (el select queda vacío y no se envía).
- */
-export function resolverIdCiudad(agencia: Pick<Agencia, 'ciudad' | 'provincia'>, ciudades: readonly Ciudad[]) {
-  const nombre = normalizar(agencia.ciudad)
-  const provincia = normalizar(agencia.provincia)
-  const coincidencias = ciudades.filter(
-    (ciudad) => normalizar(ciudad.nombre) === nombre && normalizar(ciudad.provincia) === provincia,
-  )
-  return coincidencias.length === 1 ? coincidencias[0].idCiudad : null
-}
-
-/** Teléfono y dirección empiezan vacíos: no hay GET de una agencia y vacío significa «no cambiar» */
-export const valoresEdicion = (agencia: Agencia, idCiudad: number | null): AgenciaFormInput => ({
+/** ORG-02 · Se precarga lo que devuelve GET /agencias/{id}; el ID no se edita */
+export const valoresEdicion = (agencia: AgenciaDetalle): AgenciaFormInput => ({
   idAgencia: agencia.idAgencia,
   codigo: agencia.codigo,
   tipoAgencia: agencia.tipoAgencia,
-  idCiudad: idCiudad === null ? '' : String(idCiudad),
-  telefono: '',
-  direccion: '',
+  idCiudad: String(agencia.idCiudad),
+  telefono: agencia.telefono ?? '',
+  direccion: agencia.direccion ?? '',
 })
 
 /** Quita las claves `undefined` para que el body lleve solo lo que se define */
 const sinVacios = <T extends object>(objeto: T) =>
   Object.fromEntries(Object.entries(objeto).filter(([, valor]) => valor !== undefined)) as T
 
-/** ORG-01 · El esquema de alta ya garantizó la ciudad */
+/** ORG-01 · El esquema ya garantizó la ciudad */
 export function payloadCrear(datos: AgenciaFormData): AgenciaCreate {
   return sinVacios({
     idAgencia: datos.idAgencia,
@@ -118,18 +99,21 @@ export function payloadCrear(datos: AgenciaFormData): AgenciaCreate {
   })
 }
 
+/** Opcional que cambió: el texto nuevo, o `null` si se vació (el back lo borra) */
+const opcionalCambiado = (inicial: string, nuevo: string | undefined) =>
+  (nuevo ?? '') === inicial.trim() ? undefined : (nuevo ?? null)
+
 /**
- * ORG-02 · Solo los campos que cambiaron frente a lo que se precargó. Teléfono y dirección se
- * envían si se escribieron (no se conoce su valor actual). Objeto vacío = no hay nada que enviar.
+ * ORG-02 · Solo los campos que cambiaron frente a lo que se precargó. Objeto vacío = no hay nada
+ * que enviar. Teléfono o dirección vaciados van como `null`; los obligatorios nunca.
  */
 export function payloadEdicion(inicial: AgenciaFormInput, datos: AgenciaFormData): AgenciaUpdate {
-  const idCiudadInicial = inicial.idCiudad ? Number(inicial.idCiudad) : undefined
   return sinVacios({
     codigo: datos.codigo !== inicial.codigo ? datos.codigo : undefined,
     tipoAgencia: datos.tipoAgencia !== inicial.tipoAgencia ? datos.tipoAgencia : undefined,
-    idCiudad: datos.idCiudad !== idCiudadInicial ? datos.idCiudad : undefined,
-    telefono: datos.telefono,
-    direccion: datos.direccion,
+    idCiudad: datos.idCiudad !== Number(inicial.idCiudad) ? datos.idCiudad : undefined,
+    telefono: opcionalCambiado(inicial.telefono, datos.telefono),
+    direccion: opcionalCambiado(inicial.direccion, datos.direccion),
   })
 }
 
