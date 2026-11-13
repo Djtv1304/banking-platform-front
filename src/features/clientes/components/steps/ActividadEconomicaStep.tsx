@@ -109,7 +109,7 @@ export function ActividadEconomicaStep({ form, onBack, onSubmit }: ActividadEcon
             <label
               key={actividad.idActividadEconomica}
               className={cn(
-                'flex cursor-pointer items-center gap-4 rounded-xl border border-transparent px-4 py-3 transition-colors',
+                'relative flex cursor-pointer items-center gap-4 rounded-xl border border-transparent px-4 py-3 transition-colors',
                 'hover:bg-muted has-checked:border-primary has-checked:bg-primary/8',
                 'has-focus-visible:ring-3 has-focus-visible:ring-ring/50',
               )}

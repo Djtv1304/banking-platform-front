@@ -1,5 +1,3 @@
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { Link } from 'react-router'
 import { ChevronLeft, ChevronRight, CircleAlert, LoaderCircle, RotateCcw, Search, SearchX } from 'lucide-react'
 
@@ -8,23 +6,23 @@ import { Badge, Button, Input } from '@/shared/ui'
 import { ESTADOS_CLIENTE, TIPOS_CLIENTE, type PaginaClientes } from '@/features/clientes/api/clientes.contract'
 import { Field, fieldClassName } from '@/features/clientes/components/form-fields'
 import { useBuscarClientes } from '@/features/clientes/hooks/useConsultaClientes'
+import { useFiltrosClientes } from '@/features/clientes/hooks/useFiltrosClientes'
 import {
   armarParametros,
-  FILTROS_INICIALES,
   nombreVisible,
   ORDENES,
   Q_MAX,
   TIPO_CLIENTE_LABEL,
   totalPaginas,
   varianteEstado,
-  type FiltrosClientes,
 } from '@/features/clientes/lib/consulta'
 
 /*
  * C-03 · Búsqueda y listado de clientes (CLI-03).
  *
- * Los filtros viven en el estado del componente, no en la URL: la identificación y los nombres no
- * deben quedar en el historial del navegador ni en los logs.
+ * Los filtros viven en el estado del componente, no en la URL: la identificación y los nombres
+ * no deben quedar en el historial de navegación. La API conserva su contrato GET;
+ * los logs de infraestructura requieren su propia política de protección de datos.
  */
 
 const selectClassName = cn(
@@ -33,16 +31,11 @@ const selectClassName = cn(
 )
 
 export function BuscarClientesPage() {
-  const [busqueda, setBusqueda] = useState({ filtros: FILTROS_INICIALES, page: 1 })
+  const { filtros, busqueda, cambiar, limpiar, buscar, irAPagina, iniciarComposicion, terminarComposicion } = useFiltrosClientes()
   const consulta = useBuscarClientes(armarParametros(busqueda.filtros, busqueda.page))
-  const { register, handleSubmit, reset } = useForm<FiltrosClientes>({ defaultValues: FILTROS_INICIALES })
-
-  const buscar = handleSubmit((filtros) => setBusqueda({ filtros, page: 1 }))
-  const limpiar = () => {
-    reset(FILTROS_INICIALES)
-    setBusqueda({ filtros: FILTROS_INICIALES, page: 1 })
-  }
-  const irAPagina = (page: number) => setBusqueda((actual) => ({ ...actual, page }))
+  const esperandoTexto = filtros.q.trim() !== busqueda.filtros.q.trim()
+    || filtros.identificacion.trim() !== busqueda.filtros.identificacion.trim()
+  const actualizando = esperandoTexto || consulta.isFetching
 
   return (
     <div className="mx-auto w-full max-w-6xl">
@@ -52,7 +45,7 @@ export function BuscarClientesPage() {
       </p>
 
       <form
-        onSubmit={buscar}
+        onSubmit={(event) => { event.preventDefault(); buscar() }}
         noValidate
         role="search"
         aria-label="Filtros de clientes"
@@ -68,7 +61,11 @@ export function BuscarClientesPage() {
               maxLength={Q_MAX}
               placeholder="Un nombre, un apellido, la razón social o parte de la identificación"
               className={cn(fieldClassName, 'pl-12')}
-              {...register('q')}
+              value={filtros.q}
+              onChange={(event) => cambiar('q', event.target.value)}
+              onCompositionStart={iniciarComposicion}
+              onCompositionEnd={(event) => terminarComposicion('q', event.currentTarget.value)}
+              aria-describedby="clientes-busqueda-ayuda"
             />
           </div>
         </Field>
@@ -80,12 +77,16 @@ export function BuscarClientesPage() {
             maxLength={13}
             placeholder="Cédula, RUC o pasaporte"
             className={fieldClassName}
-            {...register('identificacion')}
+            value={filtros.identificacion}
+            onChange={(event) => cambiar('identificacion', event.target.value)}
+            onCompositionStart={iniciarComposicion}
+            onCompositionEnd={(event) => terminarComposicion('identificacion', event.currentTarget.value)}
           />
         </Field>
 
         <Field id="clientes-tipo" label="Tipo de cliente">
-          <select id="clientes-tipo" className={selectClassName} {...register('tipoCliente')}>
+          <select id="clientes-tipo" className={selectClassName} value={filtros.tipoCliente}
+            onChange={(event) => cambiar('tipoCliente', TIPOS_CLIENTE.find((tipo) => tipo === event.target.value) ?? '')}>
             <option value="">Todos</option>
             {TIPOS_CLIENTE.map((tipo) => (
               <option key={tipo} value={tipo}>
@@ -96,7 +97,8 @@ export function BuscarClientesPage() {
         </Field>
 
         <Field id="clientes-estado" label="Estado">
-          <select id="clientes-estado" className={selectClassName} {...register('estado')}>
+          <select id="clientes-estado" className={selectClassName} value={filtros.estado}
+            onChange={(event) => cambiar('estado', ESTADOS_CLIENTE.find((estado) => estado === event.target.value) ?? '')}>
             <option value="">Todos</option>
             {ESTADOS_CLIENTE.map((estado) => (
               <option key={estado} value={estado}>
@@ -107,7 +109,8 @@ export function BuscarClientesPage() {
         </Field>
 
         <Field id="clientes-orden" label="Ordenar por">
-          <select id="clientes-orden" className={selectClassName} {...register('sort')}>
+          <select id="clientes-orden" className={selectClassName} value={filtros.sort}
+            onChange={(event) => cambiar('sort', ORDENES.find((orden) => orden.value === event.target.value)?.value ?? ORDENES[0].value)}>
             {ORDENES.map((orden) => (
               <option key={orden.value} value={orden.value}>
                 {orden.label}
@@ -116,6 +119,9 @@ export function BuscarClientesPage() {
           </select>
         </Field>
 
+        <p id="clientes-busqueda-ayuda" className="text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">
+          La lista se actualiza al dejar de escribir o cambiar un filtro. Buscar o Enter aplica la búsqueda inmediatamente.
+        </p>
         <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row sm:justify-end lg:col-span-3">
           <Button type="button" variant="outline" onClick={limpiar} className="h-[52px] rounded-xl px-6 text-base">
             <RotateCcw />
@@ -128,7 +134,14 @@ export function BuscarClientesPage() {
         </div>
       </form>
 
-      <section aria-label="Resultados" className="mt-8">
+      <section aria-label="Resultados" className="mt-8" aria-busy={actualizando}>
+        <p role="status" aria-atomic="true" className="mb-3 text-sm text-muted-foreground">
+          {actualizando
+            ? 'Actualizando resultados…'
+            : consulta.isSuccess
+              ? `${consulta.data.total.toLocaleString('es-EC')} ${consulta.data.total === 1 ? 'cliente encontrado' : 'clientes encontrados'}`
+              : ''}
+        </p>
         {consulta.isError ? (
           <div
             role="alert"
@@ -150,7 +163,7 @@ export function BuscarClientesPage() {
         ) : (
           <Resultados
             pagina={consulta.data}
-            cambiando={consulta.isPlaceholderData}
+            cambiando={consulta.isPlaceholderData || actualizando}
             onCambiarPagina={irAPagina}
           />
         )}
