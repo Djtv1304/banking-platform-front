@@ -21,4 +21,10 @@ describe('Presentación accesible de una fecha histórica', () => {
     expect(html).toContain('aria-describedby="constitucion-formato constitucion-error"')
     expect(html).toContain('aria-invalid="true"')
   })
+  it('mantiene el autocompletado de cumpleaños en cada parte de la fecha de nacimiento', () => {
+    const html = renderToStaticMarkup(<FechaInput id="nacimiento" label="Fecha de nacimiento" value="2000-02-29" onChange={() => {}} onBlur={() => {}} autoComplete="bday" />)
+    for (const campo of ['bday-day', 'bday-month', 'bday-year']) {
+      expect(html).toContain(`autoComplete="${campo}"`)
+    }
+  })
 })

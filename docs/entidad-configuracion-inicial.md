@@ -85,3 +85,21 @@ no se modificó ese comportamiento ni se inspeccionó la preferencia personal de
 
 La revisión manual del nuevo control de fecha quedó confirmada por Andrés. No se
 presenta como una auditoría completa de accesibilidad ni prueba de todos los dispositivos.
+
+## Consistencia visual y validación de la preview
+
+Las acciones de formulario de Cooperativa, Direcciones y Riesgo usan el mismo tamaño:
+44 px de alto y 208 px de ancho desde pantalla pequeña; en móvil ocupan el ancho
+disponible. Cancelar mantiene estilo secundario y la acción principal su color.
+Los valores predeterminados de otros botones no cambian.
+
+El registro de clientes reutiliza FechaInput para nacimiento: Día/Mes/Año en español,
+autocompletado separado de cumpleaños y valor ISO para el contrato. Conserva las
+validaciones existentes de fecha real, anterior a hoy y límite de edad; los borradores
+incompletos no pasan a backend. Direcciones y Riesgo no solicitan fechas al operador;
+sus fechas de registro siguen siendo del servidor.
+
+Validación actual: 355 pruebas en 28 archivos. Andrés completó login WorkOS real con
+retorno a la preview y ADMIN, consultó ausencia de entidad, abrió Crear cooperativa
+y canceló sin guardar. Crear/editar en SQL compartido sigue pendiente; el alta y
+la persistencia se comprobaron sobre SQL local, como se detalla arriba.

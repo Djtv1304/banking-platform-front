@@ -16,10 +16,11 @@ interface Props {
   errorId?: string
   required?: boolean
   inputClassName?: string
+  autoComplete?: 'bday'
 }
 
 /** Fecha histórica conocida: día, mes y año explícitos, sin depender del locale del navegador. */
-export function FechaInput({ id, label, value, onChange, onBlur, inputRef, invalid, errorId, required, inputClassName }: Props) {
+export function FechaInput({ id, label, value, onChange, onBlur, inputRef, invalid, errorId, required, inputClassName, autoComplete }: Props) {
   const partes = partesDeFecha(value)
   const hintId = `${id}-formato`
   const descripcion = [hintId, errorId].filter(Boolean).join(' ')
@@ -34,6 +35,7 @@ export function FechaInput({ id, label, value, onChange, onBlur, inputRef, inval
           <label htmlFor={id} className="text-sm text-muted-foreground">Día</label>
           <Input
             id={id} ref={inputRef} name={`${id}-dia`} type="text" inputMode="numeric"
+            autoComplete={autoComplete ? 'bday-day' : undefined}
             maxLength={2} placeholder="DD" value={partes.dia} className={campoClase}
             aria-invalid={invalid} aria-required={required} aria-describedby={descripcion}
             onChange={event => cambiar('dia', event.target.value)}
@@ -44,6 +46,7 @@ export function FechaInput({ id, label, value, onChange, onBlur, inputRef, inval
           <label htmlFor={`${id}-mes`} className="text-sm text-muted-foreground">Mes</label>
           <select
             id={`${id}-mes`} name={`${id}-mes`} value={partes.mes}
+            autoComplete={autoComplete ? 'bday-month' : undefined}
             className={cn(campoClase, 'w-full rounded-xl border border-border bg-field px-2 text-base text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:scheme-dark', invalid && 'border-destructive')}
             aria-invalid={invalid} aria-required={required} aria-describedby={descripcion}
             onChange={event => cambiar('mes', event.target.value)} onBlur={onBlur}
@@ -59,6 +62,7 @@ export function FechaInput({ id, label, value, onChange, onBlur, inputRef, inval
           <label htmlFor={`${id}-anio`} className="text-sm text-muted-foreground">Año</label>
           <Input
             id={`${id}-anio`} name={`${id}-anio`} type="text" inputMode="numeric"
+            autoComplete={autoComplete ? 'bday-year' : undefined}
             maxLength={4} placeholder="AAAA" value={partes.anio} className={campoClase}
             aria-invalid={invalid} aria-required={required} aria-describedby={descripcion}
             onChange={event => cambiar('anio', event.target.value)} onBlur={onBlur}

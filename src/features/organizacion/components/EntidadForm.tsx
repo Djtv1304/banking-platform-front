@@ -240,6 +240,7 @@ export function EntidadForm(props: Props) {
           <Button
             type="button"
             variant="outline"
+            size="form"
             disabled={pendiente}
             onClick={() => isDirty ? setDescartar(true) : cancelar()}
           >
@@ -247,8 +248,8 @@ export function EntidadForm(props: Props) {
           </Button>
           <Button
             type="submit"
+            size="form"
             disabled={pendiente || (!creando && !isDirty)}
-            className="min-h-11 rounded-xl px-6"
           >
             {pendiente ? <LoaderCircle className="animate-spin" /> : <Save />}
             {pendiente ? (creando ? 'Creando…' : 'Guardando…') : (creando ? 'Crear cooperativa' : 'Guardar cambios')}
@@ -277,6 +278,7 @@ export function EntidadForm(props: Props) {
           <div className="flex flex-wrap justify-end gap-3">
             <Button
               variant="outline"
+              size="form"
               onClick={() => {
                 setDescartar(false)
                 if (blocker.state === 'blocked') blocker.reset()
@@ -285,6 +287,7 @@ export function EntidadForm(props: Props) {
               Seguir editando
             </Button>
             <Button
+              size="form"
               disabled={pendiente}
               onClick={() => {
                 reset(valoresIniciales)
