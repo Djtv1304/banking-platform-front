@@ -3,3 +3,4 @@
 
 export { apiClient, setUnauthorizedHandler } from '@/shared/api/client';
 export { ApiError, toApiError } from '@/shared/api/errors';
+export type { ApiFieldError } from '@/shared/api/errors';
