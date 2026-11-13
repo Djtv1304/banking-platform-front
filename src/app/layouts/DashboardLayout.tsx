@@ -17,6 +17,7 @@ import {
   Sun,
   UserPlus,
   UserSearch,
+  WalletCards,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -68,7 +69,10 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   },
   {
     title: 'Cuentas',
-    items: [{ to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas }],
+    items: [
+      { to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas },
+      { to: '/cuentas/abrir', label: 'Abrir cuenta', Icon: WalletCards, profiles: ROUTE_ACCESS.abrirCuenta },
+    ],
   },
   {
     title: 'Créditos',
@@ -154,7 +158,12 @@ export function DashboardLayout() {
   const sections = getVisibleSections(useAccessProfile(), roles ?? [])
   const currentPage = sections
     .flatMap((section) => section.items.map((item) => ({ ...item, sectionTitle: section.title })))
-    .find(({ to, end }) => (end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)))
+    .filter(({ to, end }) => (end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)))
+    // La más específica gana: en /cuentas/abrir es «Abrir cuenta», no «Consultar cuentas»
+    .reduce<(NavItem & { sectionTitle?: string }) | undefined>(
+      (best, item) => (!best || item.to.length > best.to.length ? item : best),
+      undefined,
+    )
 
   return (
     <div className="flex h-svh bg-panel">
@@ -204,7 +213,7 @@ export function DashboardLayout() {
                     cn(
                       'flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
                       collapsed && 'justify-center px-0',
-                      isActive
+                      isActive && currentPage?.to === to
                         ? 'bg-sidebar-accent font-semibold text-sidebar-accent-foreground'
                         : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
                     )
@@ -212,7 +221,7 @@ export function DashboardLayout() {
                 >
                   {({ isActive }) => (
                     <>
-                      <Icon className={cn('size-[18px] shrink-0', isActive && 'text-link')} />
+                      <Icon className={cn('size-[18px] shrink-0', isActive && currentPage?.to === to && 'text-link')} />
                       {!collapsed && <span className="truncate">{label}</span>}
                       {!collapsed && enPreparacion && (
                         <span className="ml-auto shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
