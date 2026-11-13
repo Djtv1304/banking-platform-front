@@ -73,13 +73,27 @@ export function EvaluacionRiesgoForm({ nombre, ocupado, error, guardar, cancelar
           </Field>
         </fieldset>
         {error && <div role="alert" className="rounded-xl border border-destructive/40 p-4 text-sm text-destructive"><p>{error.message}</p><p className="mt-2">Los datos se conservaron. Si hubo una interrupción, consulta el historial antes de reenviar.</p></div>}
-        <div className="flex flex-wrap justify-end gap-3"><Button type="button" variant="outline" disabled={ocupado} onClick={cancelar}>Cancelar</Button><Button type="submit" disabled={bloqueado}>{ocupado ? 'Guardando…' : 'Revisar evaluación'}</Button></div>
+        <div className="flex flex-wrap justify-end gap-3">
+          <Button type="button" variant="outline" size="form" disabled={ocupado} onClick={cancelar}>
+            Cancelar
+          </Button>
+          <Button type="submit" size="form" disabled={bloqueado}>
+            {ocupado ? 'Guardando…' : 'Revisar evaluación'}
+          </Button>
+        </div>
       </form>
       <Dialog open={confirmacion !== null} onOpenChange={(abierto) => { if (!abierto && !ocupado) setConfirmacion(null) }}>
         <DialogContent showCloseButton={!ocupado}>
           <DialogHeader><DialogTitle>Confirmar evaluación de riesgo</DialogTitle><DialogDescription>Se registrará para {nombre}. El resultado puede cambiar el estado del cliente.</DialogDescription></DialogHeader>
           {confirmacion && <dl className="grid gap-2 text-sm"><dt className="font-semibold">Resultado</dt><dd>{confirmacion.resultadoEvaluacion}</dd><dt className="font-semibold">Riesgo LAFT</dt><dd>{confirmacion.nivelRiesgoLAFT}</dd><dt className="font-semibold">PEP y antecedentes</dt><dd>PEP {confirmacion.esPEP ? 'Sí' : 'No'} · Antecedentes {confirmacion.tieneAntecedentes ? 'Sí' : 'No'}</dd></dl>}
-          <div className="flex flex-wrap justify-end gap-3"><Button type="button" variant="outline" disabled={ocupado} onClick={() => setConfirmacion(null)}>Volver al formulario</Button><Button type="button" disabled={ocupado} onClick={() => void confirmar()}>{ocupado ? 'Guardando…' : 'Confirmar y registrar'}</Button></div>
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button type="button" variant="outline" size="form" disabled={ocupado} onClick={() => setConfirmacion(null)}>
+              Volver al formulario
+            </Button>
+            <Button type="button" size="form" disabled={ocupado} onClick={() => void confirmar()}>
+              {ocupado ? 'Guardando…' : 'Confirmar y registrar'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>

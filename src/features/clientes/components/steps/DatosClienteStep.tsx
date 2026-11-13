@@ -3,7 +3,7 @@ import { Controller, useWatch, type UseFormReturn } from 'react-hook-form'
 import { Building2, UserRound } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
-import { Input } from '@/shared/ui'
+import { FechaInput, Input } from '@/shared/ui'
 import { CELULAR_PREFIJO, formatearCelular, normalizarCelular } from '@/features/clientes/lib/celular'
 import { a11y } from '@/features/clientes/lib/a11y'
 import {
@@ -29,9 +29,6 @@ const IDENTIFICACION_POR_TIPO = {
   PASAPORTE: { label: 'Pasaporte', maxLength: 13, placeholder: '5 a 13 letras o dígitos' },
   RUC: { label: 'RUC', maxLength: 13, placeholder: '13 dígitos' },
 } as const
-
-// CLI-02 exige fecha anterior a hoy.
-const ayer = () => { const fecha = new Date(); fecha.setDate(fecha.getDate() - 1); return fecha.toLocaleDateString('en-CA') }
 
 const soloDigitos = (valor: string) => valor.replace(/\D/g, '')
 
@@ -168,17 +165,32 @@ export function DatosClienteStep({ form, onNext }: DatosClienteStepProps) {
                 />
               </Field>
 
-              <Field id="fechaNacimiento" label="Fecha de nacimiento" error={errors.fechaNacimiento?.message}>
-                <Input
-                  id="fechaNacimiento"
-                  type="date"
-                    max={ayer()}
-                  autoComplete="bday"
-                  className={fieldClassName}
-                  {...a11y('fechaNacimiento', errors.fechaNacimiento?.message)}
-                  {...register('fechaNacimiento')}
+              <div className="flex min-w-0 flex-col gap-2.5 sm:col-span-2">
+                <Controller
+                  name="fechaNacimiento"
+                  control={control}
+                  render={({ field }) => (
+                    <FechaInput
+                      id="fechaNacimiento"
+                      label="Fecha de nacimiento"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      inputRef={field.ref}
+                      inputClassName={fieldClassName}
+                      autoComplete="bday"
+                      required
+                      invalid={!!errors.fechaNacimiento}
+                      errorId={errors.fechaNacimiento ? 'fechaNacimiento-error' : undefined}
+                    />
+                  )}
                 />
-              </Field>
+                {errors.fechaNacimiento && (
+                  <p id="fechaNacimiento-error" className="text-sm text-destructive">
+                    {errors.fechaNacimiento.message}
+                  </p>
+                )}
+              </div>
 
               <Controller
                 control={control}

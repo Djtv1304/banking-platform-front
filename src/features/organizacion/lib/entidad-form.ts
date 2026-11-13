@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import type { Entidad, EntidadPatch } from '@/features/organizacion/api/entidad'
+import { entidadCreateSchema, type Entidad, type EntidadCreate, type EntidadPatch } from '@/features/organizacion/api/entidad'
 
 const obligatorio = (max: number) =>
   z.string().trim().min(1, 'Completa este campo.').max(max, `Usa hasta ${max} caracteres.`)
@@ -39,6 +39,37 @@ export const entidadFormSchema = z.object({
 })
 
 export type EntidadForm = z.infer<typeof entidadFormSchema>
+
+/** Tipo de organización predeterminado confirmado en EntidadCreate. */
+export function valoresEntidadInicial(): EntidadForm {
+  return {
+    ruc: '',
+    razonSocial: '',
+    nombreComercial: '',
+    tipoOrganizacion: 'Cooperativa de Ahorro y Credito',
+    segmento: '',
+    numeroResolucionSeps: '',
+    fechaConstitucion: '',
+    representanteLegal: '',
+    identificacionRepresentante: '',
+    telefono: '',
+    email: '',
+    sitioWeb: '',
+  }
+}
+
+export function datosCrearEntidad(formulario: EntidadForm): EntidadCreate {
+  const values = entidadFormSchema.parse(formulario)
+  return entidadCreateSchema.parse({
+    ...values,
+    nombreComercial: values.nombreComercial || null,
+    segmento: values.segmento ? Number(values.segmento) : null,
+    numeroResolucionSeps: values.numeroResolucionSeps || null,
+    telefono: values.telefono || null,
+    email: values.email || null,
+    sitioWeb: values.sitioWeb || null,
+  })
+}
 
 export function valoresEntidad(entidad: Entidad): EntidadForm {
   return {
