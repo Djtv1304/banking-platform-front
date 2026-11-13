@@ -5,6 +5,9 @@ import type { AgenciaDetalle } from '@/features/organizacion/api/agencias.contra
 import {
   campoDelError,
   agenciaFormSchema,
+  esquemaTipoAgencia,
+  existeMatriz,
+  soloPermitirSucursal,
   mensajeErrorAgencia,
   motivoFormSchema,
   payloadCrear,
@@ -25,6 +28,64 @@ const agencia: AgenciaDetalle = {
   fechaCreacion: '2026-11-01T10:00:00-05:00',
   vinculadaWorkos: false,
 }
+
+describe('una sola Matriz en el formulario', () => {
+  const valores = { ...VALORES_NUEVA, codigo: 'SUC-QA', tipoAgencia: 'Sucursal', idCiudad: '1' }
+
+  it('sin agencias o con solo sucursales permite elegir ambos tipos', () => {
+    expect(existeMatriz([])).toBe(false)
+    expect(existeMatriz([{ tipoAgencia: 'Sucursal' }])).toBe(false)
+    for (const tipoAgencia of ['Matriz', 'Sucursal']) {
+      expect(esquemaTipoAgencia(false).safeParse({ ...valores, tipoAgencia }).success).toBe(true)
+    }
+  })
+
+  it('busca la Matriz en todo el catálogo aunque no esté activa ni en la misma ciudad', () => {
+    const catalogo = [
+      { tipoAgencia: 'Sucursal' as const, estado: 'A', ciudad: 'Quito' },
+      { tipoAgencia: 'Matriz' as const, estado: 'C', ciudad: 'Cuenca' },
+    ]
+    expect(existeMatriz(catalogo)).toBe(true)
+  })
+
+  it('con Matriz rechaza otra en el formulario y permite serializar una Sucursal sin ID', () => {
+    const esquema = esquemaTipoAgencia(true)
+    const invalido = esquema.safeParse({ ...valores, tipoAgencia: 'Matriz' })
+    expect(invalido.success).toBe(false)
+    if (!invalido.success) expect(invalido.error.issues[0].path).toEqual(['tipoAgencia'])
+    expect(payloadCrear(esquema.parse(valores))).toEqual({ codigo: 'SUC-QA', tipoAgencia: 'Sucursal', idCiudad: 1 })
+  })
+
+  it('la edición conserva el tipo Matriz y puede cambiar otros datos sin enviarlo', () => {
+    const inicial = valoresEdicion({ ...agencia, tipoAgencia: 'Matriz' })
+    const datos = agenciaFormSchema.parse({ ...inicial, telefono: '022111111' })
+    expect(datos.tipoAgencia).toBe('Matriz')
+    expect(payloadEdicion(inicial, datos)).toEqual({ telefono: '022111111' })
+  })
+
+  it('con Matriz restringe el alta y la edición de sucursales, pero no la propia Matriz', () => {
+    const catalogo = [{ tipoAgencia: 'Matriz' as const }, { tipoAgencia: 'Sucursal' as const }]
+    expect(soloPermitirSucursal(catalogo)).toBe(true)
+    expect(soloPermitirSucursal(catalogo, 'Sucursal')).toBe(true)
+    expect(soloPermitirSucursal(catalogo, 'Matriz')).toBe(false)
+    expect(soloPermitirSucursal([{ tipoAgencia: 'Sucursal' }], 'Sucursal')).toBe(false)
+  })
+
+  it('al editar una Sucursal impide promoverla a Matriz y permite guardar sus otros datos', () => {
+    const inicial = valoresEdicion(agencia)
+    const esquema = esquemaTipoAgencia(soloPermitirSucursal([{ tipoAgencia: 'Matriz' }], agencia.tipoAgencia))
+    expect(esquema.safeParse({ ...inicial, tipoAgencia: 'Matriz' }).success).toBe(false)
+    const datos = esquema.parse({ ...inicial, direccion: 'Nueva dirección' })
+    expect(payloadEdicion(inicial, datos)).toEqual({ direccion: 'Nueva dirección' })
+  })
+
+  it('al editar la propia Matriz conserva las dos opciones del formulario', () => {
+    const esquema = esquemaTipoAgencia(soloPermitirSucursal([{ tipoAgencia: 'Matriz' }], 'Matriz'))
+    for (const tipoAgencia of ['Matriz', 'Sucursal']) {
+      expect(esquema.safeParse({ ...valores, tipoAgencia }).success).toBe(true)
+    }
+  })
+})
 
 describe('alta (ORG-01)', () => {
   const valores = { ...VALORES_NUEVA, codigo: ' suc-sur ', tipoAgencia: 'Sucursal', idCiudad: '1' }
