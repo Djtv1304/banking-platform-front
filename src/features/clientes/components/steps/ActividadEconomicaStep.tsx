@@ -21,7 +21,7 @@ const normalizar = (texto: string) =>
 interface ActividadEconomicaStepProps {
   form: UseFormReturn<ActividadInput, unknown, ActividadData>
   onBack: () => void
-  onSubmit: (actividad: ActividadData) => void
+  onSubmit: (actividad: ActividadData) => Promise<void>
 }
 
 export function ActividadEconomicaStep({ form, onBack, onSubmit }: ActividadEconomicaStepProps) {

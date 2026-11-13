@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { CELULAR_PREFIJO } from '@/features/clientes/lib/celular'
-import { esCedulaValida, esRucValido } from '@/features/clientes/lib/identificacion'
+import { esCedulaValida, esPasaporteValido, esRucValido } from '@/features/clientes/lib/identificacion'
 
 /*
  * Registro de cliente en 3 pasos, un esquema por paso. Cada salida usa los nombres de columna
@@ -11,25 +11,25 @@ import { esCedulaValida, esRucValido } from '@/features/clientes/lib/identificac
 
 // ─── Opciones ────────────────────────────────────────────────────────────────
 
-// TODO(API): confirmar con el backend los valores de TipoCliente (varchar(10))
+// Valores internos de UI; el adaptador de CLI-02 los convierte al contrato del backend.
 export const TIPOS_CLIENTE = [
-  { value: 'NATURAL', label: 'Persona natural', documento: 'Cédula' },
+  { value: 'NATURAL', label: 'Persona natural', documento: 'Cédula o pasaporte' },
   { value: 'JURIDICO', label: 'Persona jurídica', documento: 'RUC' },
 ] as const
 export type TipoCliente = (typeof TIPOS_CLIENTE)[number]['value']
 
-/** Natural se identifica con cédula y jurídico con RUC */
-// TODO(API): confirmar los valores de TipoDocumento (varchar(10)); antes se usaban C / R
-const TIPO_DOCUMENTO = { NATURAL: 'CEDULA', JURIDICO: 'RUC' } as const satisfies Record<TipoCliente, string>
+export const DOCUMENTOS_NATURAL = [
+  { value: 'CEDULA', label: 'Cédula' },
+  { value: 'PASAPORTE', label: 'Pasaporte' },
+] as const
 
-// TODO(API): confirmar los códigos de Genero (char(1))
+// CLI-02 admite M y F.
 export const GENEROS = [
   { value: 'M', label: 'Masculino' },
   { value: 'F', label: 'Femenino' },
-  { value: 'O', label: 'Otro' },
 ] as const
 
-// TODO(API): confirmar los valores de EstadoCivil (varchar(20)) o si vendrán de un catálogo
+// El adaptador de CLI-02 convierte estas claves a los valores literales del backend.
 export const ESTADOS_CIVILES = [
   { value: 'SOLTERO', label: 'Soltero/a' },
   { value: 'CASADO', label: 'Casado/a' },
@@ -38,11 +38,11 @@ export const ESTADOS_CIVILES = [
   { value: 'VIUDO', label: 'Viudo/a' },
 ] as const
 
-// TODO(API): confirmar los valores de TipoDireccion (varchar(20)) o si vendrán de un catálogo
+// Tipos de CLI-02/CLI-10; el adaptador convierte las claves internas.
 export const TIPOS_DIRECCION = [
   { value: 'DOMICILIO', label: 'Domicilio' },
   { value: 'TRABAJO', label: 'Trabajo' },
-  { value: 'NEGOCIO', label: 'Negocio' },
+  { value: 'CORRESPONDENCIA', label: 'Correspondencia' },
   { value: 'OTRA', label: 'Otra' },
 ] as const
 
@@ -60,7 +60,7 @@ function esFechaNacimientoValida(valor: string) {
   hoy.setHours(0, 0, 0, 0)
   const limite = new Date(hoy)
   limite.setFullYear(limite.getFullYear() - EDAD_MAXIMA)
-  return fecha <= hoy && fecha >= limite
+  return fecha < hoy && fecha >= limite
 }
 
 /** '' → null, para columnas opcionales */
@@ -73,6 +73,7 @@ const texto = (max: number, mensajeMax: string) => z.string().trim().max(max, me
 export const datosClienteSchema = z
   .object({
     tipoCliente: z.enum(['NATURAL', 'JURIDICO'], { error: 'Selecciona el tipo de cliente' }),
+    tipoDocumento: z.enum(['CEDULA', 'PASAPORTE']),
     identificacion: z.string().trim(),
     // Persona natural
     nombres: texto(250, 'Los nombres no pueden superar 250 caracteres'),
@@ -107,7 +108,9 @@ export const datosClienteSchema = z
         return
       }
 
-      if (!esCedulaValida(datos.identificacion)) error('identificacion', 'Ingresa una cédula válida de 10 dígitos')
+      if (datos.tipoDocumento === 'PASAPORTE') {
+        if (!esPasaporteValido(datos.identificacion)) error('identificacion', 'Ingresa un pasaporte de 5 a 13 letras o dígitos, sin espacios ni símbolos')
+      } else if (!esCedulaValida(datos.identificacion)) error('identificacion', 'Ingresa una cédula válida de 10 dígitos')
       for (const campo of ['nombres', 'apellidos'] as const) {
         if (datos[campo].length < 2) error(campo, `Ingresa los ${campo}`)
         else if (!NOMBRE_REGEX.test(datos[campo])) error(campo, `Los ${campo} solo pueden contener letras y espacios`)
@@ -126,7 +129,7 @@ export const datosClienteSchema = z
     const natural = tipoCliente === 'NATURAL'
     return {
       tipoCliente,
-      tipoDocumento: TIPO_DOCUMENTO[tipoCliente],
+      tipoDocumento: natural ? datos.tipoDocumento : 'RUC',
       identificacion: datos.identificacion,
       razonSocial: natural ? null : datos.razonSocial,
       nombreComercial: natural ? null : vacioANull(datos.nombreComercial),
@@ -147,6 +150,7 @@ export type DatosClienteData = z.output<typeof datosClienteSchema>
 
 export const DATOS_CLIENTE_VACIOS: DatosClienteInput = {
   tipoCliente: 'NATURAL',
+  tipoDocumento: 'CEDULA',
   identificacion: '',
   nombres: '',
   apellidos: '',
@@ -178,6 +182,7 @@ const direccionSchema = z
   })
   .transform((direccion) => ({
     tipoDireccion: direccion.tipoDireccion,
+    codigoPais: direccion.codigoPais,
     idCiudad: Number(direccion.idCiudad),
     sector: vacioANull(direccion.sector),
     calleDireccion: direccion.calleDireccion,
@@ -190,6 +195,7 @@ export const direccionesSchema = z.object({
   direcciones: z
     .array(direccionSchema)
     .min(1, 'Agrega al menos una dirección')
+    .max(1, 'El registro inicial admite solo la dirección principal. Las adicionales se gestionan después.')
     .refine((direcciones) => direcciones.filter((d) => d.esPrincipal).length === 1, 'Marca una dirección como principal'),
 })
 

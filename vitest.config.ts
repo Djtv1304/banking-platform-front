@@ -1,7 +1,7 @@
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
-// Pruebas de lógica pura (sin DOM)
+// Pruebas de lógica y del proxy HTTP (sin DOM)
 export default defineConfig({
   resolve: {
     alias: {
@@ -9,7 +9,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'worker/**/*.test.ts'],
     environment: 'node',
   },
 })
