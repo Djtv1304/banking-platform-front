@@ -21,7 +21,7 @@ export const estadoAgenciaSchema = z.enum(['A', 'I', 'C'])
 
 /** Respuesta del detalle, de ORG-01 (201) y de ORG-02 (200). El valor de KeyAgencia no se publica */
 export const agenciaDetalleSchema = z.object({
-  idAgencia: z.string(),
+  idAgencia: z.string().trim().min(1),
   codigo: z.string(),
   tipoAgencia: tipoAgenciaSchema,
   estado: estadoAgenciaSchema,
@@ -36,9 +36,8 @@ export type TipoAgencia = z.infer<typeof tipoAgenciaSchema>
 export type EstadoAgencia = z.infer<typeof estadoAgenciaSchema>
 export type AgenciaDetalle = z.infer<typeof agenciaDetalleSchema>
 
-/** ORG-01 · `idAgencia` lo elige el administrador y no cambia nunca */
+/** ORG-01 · Backend genera `idAgencia` y lo devuelve en la respuesta. */
 export interface AgenciaCreate {
-  idAgencia: string
   codigo: string
   tipoAgencia: TipoAgencia
   idCiudad: number

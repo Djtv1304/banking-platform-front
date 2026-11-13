@@ -24,11 +24,6 @@ const opcional = (valido: (valor: string) => boolean, error: string) =>
     .transform((valor) => valor || undefined)
 
 const camposAgencia = z.object({
-  idAgencia: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .regex(/^[0-9A-Z]{3}$/, 'Usa exactamente 3 letras o números, p. ej. 001.'),
   codigo: z
     .string()
     .trim()
@@ -65,7 +60,6 @@ export type AgenciaFormData = z.output<typeof camposAgencia>
 export type CampoAgencia = keyof AgenciaFormInput
 
 export const VALORES_NUEVA: AgenciaFormInput = {
-  idAgencia: '',
   codigo: '',
   tipoAgencia: '',
   idCiudad: '',
@@ -75,7 +69,6 @@ export const VALORES_NUEVA: AgenciaFormInput = {
 
 /** ORG-02 · Se precarga lo que devuelve GET /agencias/{id}; el ID no se edita */
 export const valoresEdicion = (agencia: AgenciaDetalle): AgenciaFormInput => ({
-  idAgencia: agencia.idAgencia,
   codigo: agencia.codigo,
   tipoAgencia: agencia.tipoAgencia,
   idCiudad: String(agencia.idCiudad),
@@ -90,7 +83,6 @@ const sinVacios = <T extends object>(objeto: T) =>
 /** ORG-01 · El esquema ya garantizó la ciudad */
 export function payloadCrear(datos: AgenciaFormData): AgenciaCreate {
   return sinVacios({
-    idAgencia: datos.idAgencia,
     codigo: datos.codigo,
     tipoAgencia: datos.tipoAgencia,
     idCiudad: datos.idCiudad ?? 0,
@@ -135,7 +127,7 @@ export type MotivoFormData = z.output<typeof motivoFormSchema>
  * AGENCIA_CON_ACTIVIDAD, que lista lo que sigue activo, y los demás) muestran el mensaje del backend.
  */
 const MENSAJES: Record<string, string> = {
-  AGENCIA_YA_EXISTE: 'Ya existe una agencia con ese ID. Usa otro.',
+  AGENCIA_YA_EXISTE: 'No se pudo asignar el ID de la agencia. Solicita que revisen la numeración del sistema.',
   CODIGO_DUPLICADO: 'Ya existe una agencia con ese código.',
   MATRIZ_YA_EXISTE: 'Ya existe una agencia Matriz: solo puede haber una.',
   CIUDAD_NO_ENCONTRADA: 'La ciudad elegida no existe en el catálogo.',
@@ -152,7 +144,6 @@ export function mensajeErrorAgencia(error: ApiError) {
 
 /** Campo del formulario al que apunta un error del backend, para mostrarlo junto a él */
 const CAMPO_DEL_ERROR: Record<string, CampoAgencia> = {
-  AGENCIA_YA_EXISTE: 'idAgencia',
   CODIGO_DUPLICADO: 'codigo',
   MATRIZ_YA_EXISTE: 'tipoAgencia',
   CAMBIO_MATRIZ_NO_PERMITIDO: 'tipoAgencia',
