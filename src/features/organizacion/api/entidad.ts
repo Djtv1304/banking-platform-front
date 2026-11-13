@@ -31,7 +31,7 @@ export const entidadSchema = z.object({
 export type Entidad = z.infer<typeof entidadSchema>
 
 // Subconjunto editable por esta pantalla: estado y auditoría son informativos.
-export const entidadPatchSchema = z.object({
+const camposEntidadSchema = z.object({
   ruc: z.string().regex(/^[0-9]{10}001$/),
   razonSocial: z.string().trim().min(1).max(250),
   nombreComercial: z.string().max(150).nullable(),
@@ -44,13 +44,27 @@ export const entidadPatchSchema = z.object({
   telefono: z.string().max(15).nullable(),
   email: z.string().max(150).nullable(),
   sitioWeb: z.string().max(150).nullable()
-}).partial().strict().refine(v => Object.keys(v).length > 0, 'No hay cambios para guardar.')
+})
+
+export const entidadPatchSchema = camposEntidadSchema.partial().strict()
+  .refine(v => Object.keys(v).length > 0, 'No hay cambios para guardar.')
+
+// Contrato EntidadCreate de develop (PR #335). El estado inicial se omite:
+// backend aplica A; identificador, fecha y autor no se envían desde esta pantalla.
+export const entidadCreateSchema = camposEntidadSchema.partial().required({
+  ruc: true,
+  razonSocial: true,
+  fechaConstitucion: true,
+  representanteLegal: true,
+  identificacionRepresentante: true,
+}).strict()
 
 export type EntidadPatch = z.infer<typeof entidadPatchSchema>
+export type EntidadCreate = z.infer<typeof entidadCreateSchema>
 
-function respuestaEntidad(data: unknown, status: number) {
+function respuestaEntidad(data: unknown, status: number, esperado = 200) {
   const result = entidadSchema.safeParse(data)
-  if (status !== 200 || !result.success) {
+  if (status !== esperado || !result.success) {
     throw new ApiError('No pudimos confirmar los datos de la cooperativa recibidos del servidor.', status, 'respuesta_invalida')
   }
   return result.data
@@ -73,6 +87,26 @@ export async function editarEntidad(cambios: EntidadPatch) {
     status
   } = await apiClient.patch<unknown>(ENTIDAD_ENDPOINT, body)
   return respuestaEntidad(data, status)
+}
+
+export async function crearEntidad(datos: EntidadCreate) {
+  const body = entidadCreateSchema.parse(datos)
+  const { data, status } = await apiClient.post<unknown>(ENTIDAD_ENDPOINT, body)
+  return respuestaEntidad(data, status, 201)
+}
+
+export function esEntidadAusente(error: unknown) {
+  return error instanceof ApiError && error.status === 404 && error.code === 'ENTIDAD_NO_ENCONTRADA'
+}
+
+/** Un error de permisos, transporte u otro 404 no significa que podamos crear. */
+export async function consultarExistenciaEntidad() {
+  try {
+    return await obtenerEntidad()
+  } catch (error) {
+    if (esEntidadAusente(error)) return null
+    throw error
+  }
 }
 
 export function accesoEntidad(roles: readonly string[]) {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useBeforeUnload, useBlocker } from 'react-router'
 import { LoaderCircle, Save } from 'lucide-react'
@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
+  FechaInput,
   Label,
 } from '@/shared/ui'
 import type { Entidad, EntidadPatch } from '@/features/organizacion/api/entidad'
@@ -20,6 +21,7 @@ import {
   cambiosEntidad,
   entidadFormSchema,
   valoresEntidad,
+  valoresEntidadInicial,
   type EntidadForm as Valores,
 } from '@/features/organizacion/lib/entidad-form'
 
@@ -67,23 +69,39 @@ const grupos: {
   },
 ]
 
-interface Props {
-  entidad: Entidad
+interface PropsComunes {
   pendiente: boolean
   error: Error | null
-  guardar: (patch: EntidadPatch) => Promise<void>
   cancelar: () => void
 }
 
-export function EntidadForm({ entidad, pendiente, error, guardar, cancelar }: Props) {
+type Props = PropsComunes & (
+  | {
+    modo?: 'edicion'
+    entidad: Entidad
+    guardar: (patch: EntidadPatch) => Promise<void>
+  }
+  | {
+    modo: 'creacion'
+    guardar: (datos: Valores) => Promise<void>
+  }
+)
+
+export function EntidadForm(props: Props) {
+  const { pendiente, error, cancelar } = props
+  const creando = props.modo === 'creacion'
+  const valoresIniciales = props.modo === 'creacion'
+    ? valoresEntidadInicial()
+    : valoresEntidad(props.entidad)
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isDirty },
   } = useForm<Valores>({
     resolver: zodResolver(entidadFormSchema),
-    defaultValues: valoresEntidad(entidad),
+    defaultValues: valoresIniciales,
     shouldFocusError: true,
   })
   const [descartar, setDescartar] = useState(false)
@@ -101,7 +119,11 @@ export function EntidadForm({ entidad, pendiente, error, guardar, cancelar }: Pr
 
   const enviar = handleSubmit(async (datos) => {
     try {
-      await guardar(cambiosEntidad(entidad, datos))
+      if (props.modo === 'creacion') {
+        await props.guardar(datos)
+      } else {
+        await props.guardar(cambiosEntidad(props.entidad, datos))
+      }
     } catch {
       /* La mutación muestra el error sin borrar el borrador. */
     }
@@ -114,11 +136,13 @@ export function EntidadForm({ entidad, pendiente, error, guardar, cancelar }: Pr
         onSubmit={enviar}
         noValidate
         className="flex flex-col gap-8"
-        aria-label="Editar datos de la cooperativa"
+        aria-label={creando ? 'Crear cooperativa' : 'Editar datos de la cooperativa'}
         aria-busy={pendiente}
       >
         <p className="text-sm text-muted-foreground">
-          Los campos sin la indicación «opcional» son obligatorios. El estado y los datos del registro se conservan.
+          {creando
+            ? 'Los campos sin la indicación «opcional» son obligatorios. Solo puede registrarse una cooperativa.'
+            : 'Los campos sin la indicación «opcional» son obligatorios. El estado y los datos del registro se conservan.'}
         </p>
         <fieldset disabled={pendiente} className="flex min-w-0 flex-col gap-8">
           {grupos.map((grupo) => (
@@ -133,6 +157,25 @@ export function EntidadForm({ entidad, pendiente, error, guardar, cancelar }: Pr
               <div className="grid gap-5 sm:grid-cols-2">
                 {grupo.campos.map(({ key, label, max, type, opcional }) => {
                   const id = `entidad-${key}`
+                  if (key === 'fechaConstitucion') {
+                    return (
+                      <div key={key} className="flex min-w-0 flex-col gap-2.5 sm:col-span-2">
+                        <Controller
+                          name="fechaConstitucion"
+                          control={control}
+                          render={({ field }) => (
+                            <FechaInput
+                              id={id} label={label} value={field.value} onChange={field.onChange}
+                              onBlur={field.onBlur} inputRef={field.ref} required
+                              invalid={!!errors[key]} errorId={errors[key] ? `${id}-error` : undefined}
+                              inputClassName={clase}
+                            />
+                          )}
+                        />
+                        {errors[key] && <p id={`${id}-error`} className="text-sm text-destructive">{errors[key]?.message}</p>}
+                      </div>
+                    )
+                  }
                   const campo = register(key)
 
                   return (
@@ -159,6 +202,7 @@ export function EntidadForm({ entidad, pendiente, error, guardar, cancelar }: Pr
                           id={id}
                           type={type ?? 'text'}
                           maxLength={max}
+                          autoFocus={creando && key === 'ruc'}
                           className={clase}
                           {...campo}
                           onChange={(event) => {
@@ -203,11 +247,11 @@ export function EntidadForm({ entidad, pendiente, error, guardar, cancelar }: Pr
           </Button>
           <Button
             type="submit"
-            disabled={pendiente || !isDirty}
+            disabled={pendiente || (!creando && !isDirty)}
             className="min-h-11 rounded-xl px-6"
           >
             {pendiente ? <LoaderCircle className="animate-spin" /> : <Save />}
-            {pendiente ? 'Guardando…' : 'Guardar cambios'}
+            {pendiente ? (creando ? 'Creando…' : 'Guardando…') : (creando ? 'Crear cooperativa' : 'Guardar cambios')}
           </Button>
         </div>
       </form>
@@ -243,7 +287,7 @@ export function EntidadForm({ entidad, pendiente, error, guardar, cancelar }: Pr
             <Button
               disabled={pendiente}
               onClick={() => {
-                reset(valoresEntidad(entidad))
+                reset(valoresIniciales)
                 setDescartar(false)
                 if (blocker.state === 'blocked') blocker.proceed()
                 else cancelar()

@@ -1,21 +1,22 @@
 import { useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Building2, CircleAlert, LoaderCircle, Pencil } from 'lucide-react'
+import { Building2, CircleAlert, LoaderCircle, Pencil, Plus } from 'lucide-react'
 
 import { useAuthStore } from '@/features/auth'
-import { ApiError } from '@/shared/api'
 import { Button } from '@/shared/ui'
 import {
   accesoEntidad,
   ENTIDAD_KEY,
   mensajeErrorEntidad,
+  esEntidadAusente,
   type Entidad,
   type EntidadPatch,
 } from '@/features/organizacion/api/entidad'
 import { EncabezadoEntidad } from '@/features/organizacion/components/EncabezadoEntidad'
 import { EntidadForm } from '@/features/organizacion/components/EntidadForm'
 import { useActualizarEntidad, useEntidad } from '@/features/organizacion/hooks/useEntidad'
-import { fechaEntidad } from '@/features/organizacion/lib/entidad-form'
+import { useCrearEntidad } from '@/features/organizacion/hooks/useCrearEntidad'
+import { datosCrearEntidad, fechaEntidad, type EntidadForm as Valores } from '@/features/organizacion/lib/entidad-form'
 
 export function DatosCooperativaPage() {
   const roles = useAuthStore((store) => store.user?.roles)
@@ -23,13 +24,20 @@ export function DatosCooperativaPage() {
   const cache = useQueryClient()
   const [baseEdicion, setBaseEdicion] = useState<Entidad | null>(null)
   const editando = baseEdicion !== null
+  const [creando, setCreando] = useState(false)
   const [aviso, setAviso] = useState('')
-  const consulta = useEntidad(acceso.consulta, editando)
+  const consulta = useEntidad(acceso.consulta, editando || creando)
   const edicion = useActualizarEntidad()
-  const sinEntidad =
-    consulta.error instanceof ApiError &&
-    consulta.error.status === 404 &&
-    consulta.error.code === 'ENTIDAD_NO_ENCONTRADA'
+  const alta = useCrearEntidad()
+  const sinEntidad = !consulta.data && esEntidadAusente(consulta.error)
+
+  async function crear(datos: Valores) {
+    const resultado = await alta.registrar(datosCrearEntidad(datos))
+    setCreando(false)
+    setAviso(resultado === 'creada'
+      ? 'La cooperativa se creó correctamente.'
+      : 'La cooperativa ya está registrada. Mostramos sus datos actuales; no se ha creado otra ni se han sustituido sus datos.')
+  }
 
   async function guardar(cambios: EntidadPatch) {
     if (!Object.keys(cambios).length) {
@@ -54,7 +62,7 @@ export function DatosCooperativaPage() {
             Consulta la información institucional y mantén actualizados sus datos.
           </p>
         </div>
-        {acceso.edicion && consulta.isSuccess && consulta.data && !editando && (
+        {acceso.edicion && consulta.isSuccess && consulta.data && !editando && !creando && (
           <Button
             className="min-h-11 rounded-xl"
             onClick={() => {
@@ -74,6 +82,20 @@ export function DatosCooperativaPage() {
         <p role="alert" className="rounded-2xl border border-border bg-card p-6">
           No tienes permiso para consultar los datos de la cooperativa.
         </p>
+      ) : creando && acceso.edicion ? (
+        <section className="rounded-2xl border border-border bg-card p-5 sm:p-8">
+          <h2 className="mb-2 text-xl font-semibold text-heading">Crear cooperativa</h2>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Registra la información institucional. Este paso se realiza una sola vez.
+          </p>
+          <EntidadForm
+            modo="creacion"
+            pendiente={alta.pendiente}
+            error={alta.error}
+            guardar={crear}
+            cancelar={() => { setCreando(false); alta.reset() }}
+          />
+        </section>
       ) : consulta.isPending ? (
         <p
           role="status"
@@ -89,20 +111,29 @@ export function DatosCooperativaPage() {
         >
           <Building2 className="size-8 text-muted-foreground" />
           <h2 className="text-xl font-semibold text-heading">
-            {sinEntidad ? 'Cooperativa pendiente de configuración' : 'No pudimos cargar los datos'}
+            {sinEntidad ? 'Configura tu cooperativa' : 'No pudimos cargar los datos'}
           </h2>
           <p className="text-sm text-muted-foreground">
             {sinEntidad
-              ? 'Todavía no se ha cargado el registro institucional. La forma de realizar la carga inicial está pendiente de confirmación con Danny.'
+              ? (acceso.edicion
+                ? 'Todavía no se ha registrado la información institucional. Crea la cooperativa para consultar y actualizar sus datos.'
+                : 'Todavía no se ha registrado la cooperativa. Solicita a un administrador que complete la configuración inicial.')
               : mensajeErrorEntidad(consulta.error)}
           </p>
-          <Button
+          {sinEntidad ? acceso.edicion && (
+            <Button
+              className="min-h-11 rounded-xl"
+              onClick={() => { alta.reset(); setAviso(''); setCreando(true) }}
+            >
+              <Plus />Crear cooperativa
+            </Button>
+          ) : <Button
             variant="outline"
             disabled={consulta.isFetching}
             onClick={() => void consulta.refetch()}
           >
             Reintentar
-          </Button>
+          </Button>}
         </section>
       ) : consulta.data && (
         <>
