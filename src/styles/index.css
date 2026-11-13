@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/ibm-plex-sans";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -120,7 +120,7 @@
 /* ── 3. Utilidades de Tailwind ──────────────────────────────────────── */
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'DM Sans Variable', sans-serif;
+    --font-sans: 'IBM Plex Sans Variable', 'Segoe UI', system-ui, sans-serif;
 
     --color-brand-amber: var(--brand-amber);
     --color-brand-ink: var(--brand-ink);
