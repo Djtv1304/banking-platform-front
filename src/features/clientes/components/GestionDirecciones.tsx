@@ -90,8 +90,8 @@ export function GestionDirecciones({ idCliente, soloLectura = false }: Props) {
           <p className="break-words font-medium text-heading">{confirmacion?.direccion.calleDireccion}</p>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <div className="flex flex-wrap justify-end gap-3">
-            <Button type="button" variant="outline" disabled={pendiente} onClick={() => setConfirmacion(null)}>Cancelar</Button>
-            <Button type="button" disabled={pendiente} variant={confirmacion?.accion === 'baja' ? 'destructive' : 'default'} onClick={() => void confirmar()}>
+            <Button type="button" variant="outline" size="form" disabled={pendiente} onClick={() => setConfirmacion(null)}>Cancelar</Button>
+            <Button type="button" size="form" disabled={pendiente} variant={confirmacion?.accion === 'baja' ? 'destructive' : 'default'} onClick={() => void confirmar()}>
               {pendiente && <LoaderCircle className="size-4 animate-spin" />}{pendiente ? 'Procesando…' : confirmacion?.accion === 'baja' ? 'Eliminar dirección' : 'Confirmar'}
             </Button>
           </div>

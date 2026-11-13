@@ -98,8 +98,8 @@ export function DireccionForm({ direccion, pendiente, error, onGuardar, onCancel
       {direccion?.esPrincipal && <p className="text-sm text-muted-foreground">Para sustituir esta principal, elige otra dirección desde la ficha.</p>}
       {error && <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
       <div className="flex flex-wrap justify-end gap-3 border-t border-border pt-4">
-        <Button type="button" variant="outline" disabled={pendiente} onClick={onCancelar}>Cancelar</Button>
-        <Button type="submit" disabled={pendiente || !catalogosDisponibles}>
+        <Button type="button" variant="outline" size="form" disabled={pendiente} onClick={onCancelar}>Cancelar</Button>
+        <Button type="submit" size="form" disabled={pendiente || !catalogosDisponibles}>
           {pendiente && <LoaderCircle className="size-4 animate-spin" />}
           {pendiente ? 'Guardando…' : 'Guardar dirección'}
         </Button>

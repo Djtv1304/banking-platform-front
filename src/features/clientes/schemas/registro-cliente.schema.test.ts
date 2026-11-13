@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { normalizarCelular } from '@/features/clientes/lib/celular'
+import { fechaDesdePartes } from '@/shared/lib/fecha-partes'
 import { DATOS_CLIENTE_VACIOS, datosClienteSchema } from '@/features/clientes/schemas/registro-cliente.schema'
 
 const cliente = {
@@ -37,6 +38,19 @@ describe('validación del celular del cliente', () => {
 })
 
 describe('fecha de nacimiento del cliente', () => {
+  it('rechaza borradores del campo por partes y conserva ISO cuando se completa una fecha válida', () => {
+    for (const partes of [
+      { dia: '29', mes: '', anio: '2000' },
+      { dia: '29', mes: '02', anio: '200' },
+      { dia: '31', mes: '02', anio: '2000' },
+    ]) {
+      const fechaNacimiento = fechaDesdePartes(partes)
+      expect(datosClienteSchema.safeParse({ ...cliente, fechaNacimiento }).success).toBe(false)
+    }
+    const fechaNacimiento = fechaDesdePartes({ dia: '29', mes: '02', anio: '2000' })
+    expect(datosClienteSchema.parse({ ...cliente, fechaNacimiento }).fechaNacimiento).toBe('2000-02-29')
+  })
+
   it.each(['2023-02-29', '2024-02-30', '2000-04-31', '2000-13-01', '2000-00-10', '2000-2-9', '29/02/2000', ''])('rechaza una fecha inexistente o mal formada: %j', (fechaNacimiento) => {
     const resultado = datosClienteSchema.safeParse({ ...cliente, fechaNacimiento })
     expect(resultado.success).toBe(false)
