@@ -3,7 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router'
 import { DashboardLayout } from '@/app/layouts/DashboardLayout'
 import { LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
-import { DatosCooperativaPage } from '@/features/organizacion'
+import { AgenciasPage, DatosCooperativaPage } from '@/features/organizacion'
 import { DetalleUsuarioPage, UsuariosPage } from '@/features/usuarios'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
@@ -78,6 +78,10 @@ export const router = createBrowserRouter([
                 ),
               },
             ],
+          },
+          {
+            element: <RequireProfile allowed={ROUTE_ACCESS.agencias} />,
+            children: [{ path: '/organizacion/agencias', element: <AgenciasPage /> }],
           },
           {
             element: <RequireProfile allowed={ROUTE_ACCESS.parametrosGenerales} />,
