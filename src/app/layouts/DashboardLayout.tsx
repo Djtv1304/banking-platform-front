@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
   Bell,
+  Building2,
   Calculator,
   CircleHelp,
   CreditCard,
@@ -21,6 +22,7 @@ import {
 
 import { canAccess, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
+import { ROLES_GESTION_USUARIOS } from '@/features/usuarios'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
 import { useAgencias } from '@/features/catalogos'
@@ -43,12 +45,20 @@ interface NavItem {
   end?: boolean
   /** Perfiles que ven la opción. Sin valor = todos. El admin ve todas. */
   profiles?: readonly AccessProfile[]
+  roles?: readonly string[]
   /** Módulo sin pantallas todavía: abre «Módulo en preparación» y muestra la etiqueta «Pronto» */
   enPreparacion?: boolean
 }
 
 const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   { items: [{ to: '/', label: 'Inicio', Icon: House, end: true }] },
+  {
+    title: 'Organización',
+    items: [
+      { to: '/organizacion/entidad', label: 'Datos de la cooperativa', Icon: Building2, profiles: ROUTE_ACCESS.datosCooperativa, roles: ['ADMIN', 'ASESOR'] },
+      { to: '/organizacion/agencias', label: 'Agencias', Icon: Building2, profiles: ROUTE_ACCESS.agencias },
+    ],
+  },
   {
     title: 'Clientes',
     items: [
@@ -104,22 +114,22 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     title: 'Accesos y roles',
     items: [
       {
-        to: '/accesos',
+        to: '/usuarios',
         label: 'Usuarios del sistema',
         Icon: ShieldCheck,
-        profiles: ROUTE_ACCESS.accesosRoles,
-        enPreparacion: true,
+        profiles: ROUTE_ACCESS.gestionUsuarios,
+        roles: ROLES_GESTION_USUARIOS,
       },
     ],
   },
 ]
 
 /** Solo las opciones (y secciones con al menos una opción) que el perfil puede ver */
-function getVisibleSections(profile: AccessProfile | null) {
+function getVisibleSections(profile: AccessProfile | null, roles: readonly string[]) {
   if (!profile) return []
   return NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => canAccess(profile, item.profiles)),
+    items: section.items.filter((item) => canAccess(profile, item.profiles) && (!item.roles || roles.some((rol) => item.roles?.includes(rol.trim().toUpperCase())))),
   })).filter((section) => section.items.length > 0)
 }
 
@@ -140,7 +150,8 @@ function useSidebarCollapsed() {
 export function DashboardLayout() {
   const [collapsed, toggleCollapsed] = useSidebarCollapsed()
   const { pathname } = useLocation()
-  const sections = getVisibleSections(useAccessProfile())
+  const roles = useAuthStore((state) => state.user?.roles)
+  const sections = getVisibleSections(useAccessProfile(), roles ?? [])
   const currentPage = sections
     .flatMap((section) => section.items.map((item) => ({ ...item, sectionTitle: section.title })))
     .find(({ to, end }) => (end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)))

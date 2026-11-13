@@ -1,19 +1,11 @@
-/** Códigos de provincia válidos en Ecuador: 01–24 y 30 (ecuatorianos registrados en el exterior) */
-function provinciaValida(codigo: number) {
-  return (codigo >= 1 && codigo <= 24) || codigo === 30
-}
+import { esCedulaValida, esProvinciaValida } from '@/shared/lib'
 
-/** Cédula ecuatoriana: 10 dígitos, provincia válida, tercer dígito < 6 y dígito verificador (módulo 10). */
-export function esCedulaValida(cedula: string) {
-  if (!/^\d{10}$/.test(cedula)) return false
-  if (!provinciaValida(Number(cedula.slice(0, 2))) || Number(cedula[2]) >= 6) return false
+// La cédula es común a clientes y usuarios internos: vive en shared/lib
+export { esCedulaValida }
 
-  const suma = [...cedula.slice(0, 9)].reduce((total, digito, index) => {
-    const producto = Number(digito) * (index % 2 === 0 ? 2 : 1)
-    return total + (producto > 9 ? producto - 9 : producto)
-  }, 0)
-  const verificador = (10 - (suma % 10)) % 10
-  return verificador === Number(cedula[9])
+/** Formato de CLI-01/CLI-02: no comprueba autenticidad ni vigencia del documento. */
+export function esPasaporteValido(pasaporte: string) {
+  return /^[A-Za-z0-9]{5,13}$/.test(pasaporte)
 }
 
 /**
@@ -23,7 +15,7 @@ export function esCedulaValida(cedula: string) {
  */
 export function esRucValido(ruc: string) {
   if (!/^\d{13}$/.test(ruc) || ruc.endsWith('000')) return false
-  if (!provinciaValida(Number(ruc.slice(0, 2)))) return false
+  if (!esProvinciaValida(Number(ruc.slice(0, 2)))) return false
 
   const tercerDigito = Number(ruc[2])
   if (tercerDigito < 6) return esCedulaValida(ruc.slice(0, 10))
