@@ -4,6 +4,7 @@ import { DashboardLayout } from '@/app/layouts/DashboardLayout'
 import { LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
 import { DatosCooperativaPage } from '@/features/organizacion'
+import { DetalleUsuarioPage, UsuariosPage } from '@/features/usuarios'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
@@ -107,17 +108,10 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.accesosRoles} />,
+            element: <RequireProfile allowed={ROUTE_ACCESS.gestionUsuarios} />,
             children: [
-              {
-                path: '/accesos',
-                element: (
-                  <ModuloEnPreparacion
-                    modulo="Accesos y roles"
-                    descripcion="Aquí se registrarán los funcionarios del sistema y se asignarán sus roles."
-                  />
-                ),
-              },
+              { path: '/usuarios', element: <UsuariosPage /> },
+              { path: '/usuarios/:idUsuario', element: <DetalleUsuarioPage /> },
             ],
           },
         ],
