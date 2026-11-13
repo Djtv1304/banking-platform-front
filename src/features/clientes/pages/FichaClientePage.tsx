@@ -3,10 +3,13 @@ import { Link, useParams } from 'react-router'
 import { ArrowLeft, CircleAlert, LoaderCircle, MapPin, UserRoundX } from 'lucide-react'
 
 import { ApiError } from '@/shared/api'
+import { GestionDirecciones } from '@/features/clientes/components/GestionDirecciones'
+import { puedeGestionarDirecciones } from '@/features/clientes/lib/direcciones'
 import { Badge, Button } from '@/shared/ui'
 import { useAuthStore } from '@/features/auth'
 import { GestionCliente } from '@/features/clientes/components/GestionCliente'
 import { HistorialCliente } from '@/features/clientes/components/HistorialCliente'
+import { GestionRiesgo } from '@/features/clientes/components/GestionRiesgo'
 import { accesoGestionClientes } from '@/features/clientes/lib/gestion-clientes'
 import type { Cliente } from '@/features/clientes/api/clientes.contract'
 import { useCliente } from '@/features/clientes/hooks/useConsultaClientes'
@@ -20,7 +23,7 @@ import {
   varianteEstado,
 } from '@/features/clientes/lib/consulta'
 
-/* Conserva la ficha de C-03 y compone las acciones de C-04 según los roles del servidor. */
+/* Compone la ficha de C-03, las acciones de C-04 y la gestión de direcciones C-07. */
 
 export function FichaClientePage() {
   const { idCliente } = useParams()
@@ -45,7 +48,7 @@ export function FichaClientePage() {
         {noExiste ? (
           <ClienteNoEncontrado />
         ) : !acceso.consulta ? (
-          acceso.historial ? <><h1 className="mb-6 text-3xl font-bold text-heading">Historial del cliente #{id}</h1><HistorialCliente key={id} id={id!} /></> : <p role="alert">No tienes permiso para consultar este cliente.</p>
+          acceso.historial ? <div className="flex flex-col gap-6"><h1 className="text-3xl font-bold text-heading">Historial del cliente #{id}</h1><HistorialCliente key={id} id={id!} /><GestionRiesgo key={`riesgo-${id}`} id={id!} nombre={`cliente #${id}`} /></div> : <p role="alert">No tienes permiso para consultar este cliente.</p>
         ) : consulta.isError ? (
           <div
             role="alert"
@@ -88,6 +91,8 @@ function ClienteNoEncontrado() {
 }
 
 function Ficha({ cliente }: { cliente: Cliente }) {
+  const roles = useAuthStore((state) => state.user?.roles)
+  const gestion = puedeGestionarDirecciones(roles ?? [])
   // La principal primero; el resto en el orden en que llegan
   const direcciones = [...cliente.direcciones].sort((a, b) => Number(b.esPrincipal) - Number(a.esPrincipal))
 
@@ -99,6 +104,8 @@ function Ficha({ cliente }: { cliente: Cliente }) {
       </header>
 
       <GestionCliente key={cliente.idCliente} cliente={cliente} />
+
+      <GestionRiesgo key={`riesgo-${cliente.idCliente}`} id={cliente.idCliente} nombre={nombreVisible(cliente)} estado={cliente.estado} />
 
       <Seccion titulo="Datos del cliente">
         <dl className="grid gap-5 sm:grid-cols-2">
@@ -124,7 +131,7 @@ function Ficha({ cliente }: { cliente: Cliente }) {
       </Seccion>
 
       <Seccion titulo="Direcciones">
-        {direcciones.length === 0 ? (
+        {gestion ? <GestionDirecciones idCliente={cliente.idCliente} soloLectura={cliente.estado === 'Eliminado'} /> : direcciones.length === 0 ? (
           <p className="text-sm text-muted-foreground">El cliente no tiene direcciones activas.</p>
         ) : (
           <ul className="flex flex-col gap-3">

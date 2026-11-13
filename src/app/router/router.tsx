@@ -3,6 +3,8 @@ import { createBrowserRouter, Navigate } from 'react-router'
 import { DashboardLayout } from '@/app/layouts/DashboardLayout'
 import { LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
+import { AgenciasPage, DatosCooperativaPage } from '@/features/organizacion'
+import { DetalleUsuarioPage, UsuariosPage } from '@/features/usuarios'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
@@ -22,6 +24,10 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/', element: <HomePage /> },
+          {
+            element: <RequireProfile allowed={ROUTE_ACCESS.datosCooperativa} />,
+            children: [{ path: '/organizacion/entidad', element: <DatosCooperativaPage /> }],
+          },
           {
             element: <RequireProfile allowed={ROUTE_ACCESS.registrarCliente} />,
             children: [{ path: '/registrar-cliente', element: <RegistrarClientePage /> }],
@@ -74,6 +80,10 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            element: <RequireProfile allowed={ROUTE_ACCESS.agencias} />,
+            children: [{ path: '/organizacion/agencias', element: <AgenciasPage /> }],
+          },
+          {
             element: <RequireProfile allowed={ROUTE_ACCESS.parametrosGenerales} />,
             children: [
               {
@@ -102,17 +112,10 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.accesosRoles} />,
+            element: <RequireProfile allowed={ROUTE_ACCESS.gestionUsuarios} />,
             children: [
-              {
-                path: '/accesos',
-                element: (
-                  <ModuloEnPreparacion
-                    modulo="Accesos y roles"
-                    descripcion="Aquí se registrarán los funcionarios del sistema y se asignarán sus roles."
-                  />
-                ),
-              },
+              { path: '/usuarios', element: <UsuariosPage /> },
+              { path: '/usuarios/:idUsuario', element: <DetalleUsuarioPage /> },
             ],
           },
         ],

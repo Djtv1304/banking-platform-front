@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { esCedulaValida, esRucValido } from '@/features/clientes/lib/identificacion'
+import { esCedulaValida, esPasaporteValido, esRucValido } from '@/features/clientes/lib/identificacion'
 
 // Números sintéticos: cumplen el dígito verificador pero no pertenecen a nadie
 const CEDULA_VALIDA = '1712345675'
 const CEDULA_PROVINCIA_30 = '3000000012'
+
+describe('esPasaporteValido · formato del backend', () => {
+  it.each(['A1234', 'AB12345678901', 'ab123456', '123456789'])('acepta %s', (valor) => expect(esPasaporteValido(valor)).toBe(true))
+  it.each(['', 'A123', 'AB123456789012', 'AB 12345', 'AB-12345', 'ÁB12345'])('rechaza %j', (valor) => expect(esPasaporteValido(valor)).toBe(false))
+})
 
 describe('esCedulaValida', () => {
   it('acepta una cédula con provincia y dígito verificador correctos', () => {

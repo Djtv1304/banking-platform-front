@@ -1,0 +1,74 @@
+import { z } from 'zod'
+import { ApiError, apiClient } from '@/shared/api'
+
+export const NIVELES_LAFT = ['Bajo', 'Medio', 'Alto'] as const
+export const RESULTADOS_RIESGO = ['Aprobado', 'Observado', 'Rechazado'] as const
+export const riesgoCreateSchema = z.object({
+  nivelRiesgoLAFT: z.enum(NIVELES_LAFT, { error: 'Selecciona el nivel de riesgo.' }),
+  esPEP: z.boolean(),
+  resultadoEvaluacion: z.enum(RESULTADOS_RIESGO, { error: 'Selecciona el resultado.' }),
+  tieneAntecedentes: z.boolean(),
+  idTipoAntecedente: z.number().int().positive().nullable(),
+  observaciones: z.string().trim().max(250, 'Usa hasta 250 caracteres.').nullable(),
+}).superRefine((datos, contexto) => {
+  if (datos.tieneAntecedentes !== (datos.idTipoAntecedente !== null)) {
+    contexto.addIssue({ code: 'custom', path: ['idTipoAntecedente'], message: 'Selecciona un tipo solo cuando existan antecedentes.' })
+  }
+})
+export const riesgoSchema = z.object({
+  ...riesgoCreateSchema.shape,
+  idEvaluacion: z.number().int().positive(),
+  idCliente: z.number().int().positive(),
+  fechaEvaluacion: z.iso.datetime({ offset: true }).or(z.iso.datetime({ local: true })),
+  evaluador: z.number().int(),
+  esVigente: z.boolean(),
+})
+const registradoSchema = riesgoSchema.safeExtend({ estadoCliente: z.string().min(1) })
+export const tipoAntecedenteSchema = z.object({
+  idTipoAntecedente: z.number().int().positive(),
+  nombre: z.string(),
+  categoria: z.enum(['EnRevision', 'Critico']),
+  puedeImpedirVinculacion: z.boolean(),
+})
+export type RiesgoCreate = z.infer<typeof riesgoCreateSchema>
+export type Riesgo = z.infer<typeof riesgoSchema>
+export type TipoAntecedente = z.infer<typeof tipoAntecedenteSchema>
+export const riesgoKey = (id: number) => ['clientes', 'riesgo', id] as const
+const endpoint = (id: number) => `/api/v1/clientes/${id}/evaluaciones-riesgo`
+
+function validar<T extends z.ZodType>(schema: T, data: unknown, status: number): z.infer<T> {
+  const resultado = schema.safeParse(data)
+  if (!resultado.success) throw new ApiError('No pudimos leer la respuesta del servidor.', status, 'respuesta_invalida')
+  return resultado.data
+}
+
+export async function listarRiesgos(id: number, signal?: AbortSignal) {
+  const { data, status } = await apiClient.get<unknown>(endpoint(id), { signal })
+  const lista = validar(z.array(riesgoSchema), data, status)
+  if (lista.some((fila) => fila.idCliente !== id)) throw new ApiError('La evaluación recibida pertenece a otro cliente.', status, 'respuesta_invalida')
+  return lista
+}
+
+export async function registrarRiesgo(id: number, entrada: RiesgoCreate) {
+  const body = riesgoCreateSchema.parse(entrada)
+  const { data, status } = await apiClient.post<unknown>(endpoint(id), body)
+  const resultado = validar(registradoSchema, data, status)
+  if (status !== 201 || resultado.idCliente !== id) throw new ApiError('Comprueba el historial antes de volver a registrar la evaluación.', status, 'respuesta_invalida')
+  return resultado
+}
+
+export async function listarTiposAntecedente(signal?: AbortSignal) {
+  const { data, status } = await apiClient.get<unknown>('/api/v1/catalogos/tipos-antecedente', { signal })
+  return validar(z.array(tipoAntecedenteSchema), data, status)
+}
+
+export function accesoRiesgo(roles: readonly string[]) {
+  const normalizados = roles.map((rol) => rol.trim().toUpperCase())
+  const registro = normalizados.some((rol) => ['ASESOR', 'SUPERVISOR', 'ADMIN'].includes(rol))
+  return { registro, historial: registro || normalizados.includes('AUDITOR') }
+}
+
+export function fechaRiesgoVisible(fecha: string) {
+  if (!/(Z|[+-]\d{2}:\d{2})$/.test(fecha)) return `${fecha.replace('T', ' ')} (sin zona informada)`
+  return `${new Intl.DateTimeFormat('es-EC', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Guayaquil' }).format(new Date(fecha))} (Ecuador)`
+}
