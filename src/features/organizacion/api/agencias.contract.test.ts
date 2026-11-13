@@ -40,10 +40,24 @@ describe('agenciaDetalleSchema', () => {
 
 describe('API de agencias', () => {
   it('ORG-01 envía el body a /api/v1/agencias y valida la respuesta', async () => {
-    const body = { idAgencia: '002', codigo: 'SUC-NORTE', tipoAgencia: 'Sucursal', idCiudad: 17 } as const
+    const body = { codigo: 'SUC-NORTE', tipoAgencia: 'Sucursal', idCiudad: 17 } as const
     const llamada = vi.spyOn(apiClient, 'post').mockResolvedValue(respuesta(agencia, 201))
     await expect(crearAgencia(body)).resolves.toEqual(agencia)
     expect(llamada).toHaveBeenCalledWith('/api/v1/agencias', body)
+  })
+
+  it('conserva el ID con ceros asignado por backend aunque no se haya enviado en el POST', async () => {
+    const body = { codigo: 'SUC-ESTE', tipoAgencia: 'Sucursal', idCiudad: 17 } as const
+    const creada = { ...agencia, idAgencia: '007', codigo: body.codigo }
+    vi.spyOn(apiClient, 'post').mockResolvedValue(respuesta(creada, 201))
+    const resultado = await crearAgencia(body)
+    expect(resultado.idAgencia).toBe('007')
+    expect(resultado.codigo).toBe('SUC-ESTE')
+  })
+
+  it('no acepta una respuesta de creación sin ID asignado', async () => {
+    vi.spyOn(apiClient, 'post').mockResolvedValue(respuesta({ ...agencia, idAgencia: '' }, 201))
+    await expect(crearAgencia({ codigo: 'SUC-ESTE', tipoAgencia: 'Sucursal', idCiudad: 17 })).rejects.toMatchObject({ code: 'respuesta_invalida' })
   })
 
   it('ORG-02 usa PATCH sobre la agencia', async () => {

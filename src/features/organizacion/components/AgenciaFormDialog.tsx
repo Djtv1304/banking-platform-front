@@ -38,7 +38,6 @@ import {
 } from '@/features/organizacion/lib/agencia-form'
 import { a11yCampo } from '@/features/organizacion/lib/agencias'
 
-const AYUDA_ID = '3 letras o números, p. ej. 001.'
 const AYUDA_CODIGO = 'Hasta 10 letras, números o guiones.'
 
 export type ModoAgencia = { tipo: 'crear' } | { tipo: 'editar'; agencia: Agencia }
@@ -84,7 +83,7 @@ export function AgenciaFormDialog({ modo, onCerrar, onGuardado }: AgenciaFormDia
           <DialogDescription>
             {editando
               ? 'Cambia solo lo que necesites. El ID de la agencia no cambia.'
-              : 'La agencia se crea activa. Su ID no se podrá cambiar después.'}
+              : 'La agencia se crea activa. El sistema asigna su ID automáticamente al guardar.'}
           </DialogDescription>
         </DialogHeader>
         {contenido}
@@ -156,18 +155,6 @@ function FormularioAgencia({ modo, detalle, ciudades, onCancelar, onGuardado }: 
   return (
     <form onSubmit={handleSubmit(guardar)} noValidate className="flex flex-col gap-5">
       <div className="grid gap-4 sm:grid-cols-2">
-        {!editando && (
-          <CampoAgencia id="agencia-id" label="ID de la agencia" error={errors.idAgencia?.message} ayuda={AYUDA_ID}>
-            <Input
-              id="agencia-id"
-              autoComplete="off"
-              maxLength={3}
-              className={`${inputClassName} uppercase`}
-              {...a11yCampo('agencia-id', errors.idAgencia?.message, AYUDA_ID)}
-              {...register('idAgencia')}
-            />
-          </CampoAgencia>
-        )}
         <CampoAgencia id="agencia-codigo" label="Código" error={errors.codigo?.message} ayuda={AYUDA_CODIGO}>
           <Input
             id="agencia-codigo"
