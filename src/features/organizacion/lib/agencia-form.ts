@@ -55,6 +55,27 @@ export const agenciaFormSchema = camposAgencia.superRefine((valor, ctx) => {
   if (valor.idCiudad === undefined) ctx.addIssue({ code: 'custom', path: ['idCiudad'], message: 'Elige la ciudad.' })
 })
 
+/** Catálogo completo, sin excluir agencias por ciudad o estado. */
+export function existeMatriz(agencias: readonly { tipoAgencia: TipoAgencia }[]) {
+  return agencias.some((agencia) => agencia.tipoAgencia === 'Matriz')
+}
+
+/** La propia Matriz conserva sus opciones; otra agencia no puede ser una segunda Matriz. */
+export function soloPermitirSucursal(
+  agencias: readonly { tipoAgencia: TipoAgencia }[],
+  tipoActual?: TipoAgencia,
+) {
+  return tipoActual !== 'Matriz' && existeMatriz(agencias)
+}
+
+export function esquemaTipoAgencia(soloSucursal: boolean) {
+  return agenciaFormSchema.superRefine((valor, ctx) => {
+    if (soloSucursal && valor.tipoAgencia !== 'Sucursal') {
+      ctx.addIssue({ code: 'custom', path: ['tipoAgencia'], message: 'Ya existe una Matriz. Esta agencia solo puede ser Sucursal.' })
+    }
+  })
+}
+
 export type AgenciaFormInput = z.input<typeof camposAgencia>
 export type AgenciaFormData = z.output<typeof camposAgencia>
 export type CampoAgencia = keyof AgenciaFormInput

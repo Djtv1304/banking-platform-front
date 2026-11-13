@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { LoaderCircle, Save } from 'lucide-react'
@@ -21,13 +21,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui'
-import { useCiudades, type Agencia, type Ciudad } from '@/features/catalogos'
+import { useAgencias, useCiudades, type Agencia, type Ciudad } from '@/features/catalogos'
 import type { AgenciaDetalle } from '@/features/organizacion/api/agencias.contract'
 import { CampoAgencia, inputClassName, selectClassName } from '@/features/organizacion/components/CampoAgencia'
 import { useActualizarAgencia, useAgenciaDetalle, useCrearAgencia } from '@/features/organizacion/hooks/useAgenciasAdmin'
 import {
   campoDelError,
-  agenciaFormSchema,
+  esquemaTipoAgencia,
+  soloPermitirSucursal,
   mensajeErrorAgencia,
   payloadCrear,
   payloadEdicion,
@@ -52,11 +53,23 @@ interface AgenciaFormDialogProps {
 /** ORG-01 (alta) y ORG-02 (edición de datos). Las agencias son de Ecuador */
 export function AgenciaFormDialog({ modo, onCerrar, onGuardado }: AgenciaFormDialogProps) {
   const ciudades = useCiudades('ECU')
+  const agencias = useAgencias()
   const editando = modo?.tipo === 'editar'
   const detalle = useAgenciaDetalle(modo?.tipo === 'editar' ? modo.agencia.idAgencia : null)
 
   const contenido = (() => {
     if (!modo) return null
+    if (agencias.isError) {
+      return (
+        <Aviso tono="error">
+          No pudimos comprobar si ya existe una Matriz.
+          <Button type="button" variant="outline" onClick={() => void agencias.refetch()} disabled={agencias.isFetching}>
+            Reintentar
+          </Button>
+        </Aviso>
+      )
+    }
+    if (agencias.isPending) return <Cargando texto="Comprobando agencias…" />
     if (ciudades.isError) return <Aviso tono="error">{toApiError(ciudades.error).message}</Aviso>
     if (editando && detalle.isError) return <Aviso tono="error">{mensajeErrorAgencia(toApiError(detalle.error))}</Aviso>
     if (ciudades.isPending) return <Cargando texto="Cargando ciudades…" />
@@ -67,6 +80,7 @@ export function AgenciaFormDialog({ modo, onCerrar, onGuardado }: AgenciaFormDia
         modo={modo}
         detalle={detalle.data ?? null}
         ciudades={ciudades.data}
+        soloSucursal={soloPermitirSucursal(agencias.data, detalle.data?.tipoAgencia)}
         onCancelar={onCerrar}
         onGuardado={onGuardado}
       />
@@ -97,14 +111,18 @@ interface FormularioAgenciaProps {
   /** Solo al editar: lo que devolvió GET /agencias/{id} */
   detalle: AgenciaDetalle | null
   ciudades: Ciudad[]
+  soloSucursal: boolean
   onCancelar: () => void
   onGuardado: (mensaje: string) => void
 }
 
-function FormularioAgencia({ modo, detalle, ciudades, onCancelar, onGuardado }: FormularioAgenciaProps) {
+function FormularioAgencia({ modo, detalle, ciudades, soloSucursal, onCancelar, onGuardado }: FormularioAgenciaProps) {
   const editando = modo.tipo === 'editar'
   // Se calcula una vez al abrir: es la base para saber qué cambió
-  const [inicial] = useState(() => (detalle ? valoresEdicion(detalle) : VALORES_NUEVA))
+  const [inicial] = useState(() => (detalle ? valoresEdicion(detalle) : {
+    ...VALORES_NUEVA,
+    tipoAgencia: soloSucursal ? 'Sucursal' : '',
+  }))
   const [sinCambios, setSinCambios] = useState(false)
   const crear = useCrearAgencia()
   const actualizar = useActualizarAgencia()
@@ -115,11 +133,17 @@ function FormularioAgencia({ modo, detalle, ciudades, onCancelar, onGuardado }: 
     control,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<AgenciaFormInput, unknown, AgenciaFormData>({
-    resolver: zodResolver(agenciaFormSchema),
+    resolver: zodResolver(esquemaTipoAgencia(soloSucursal)),
     defaultValues: inicial,
   })
+
+  // Si el catálogo se actualiza, conserva el resto del borrador.
+  useEffect(() => {
+    if (soloSucursal) setValue('tipoAgencia', 'Sucursal', { shouldValidate: true })
+  }, [soloSucursal, setValue])
 
   // Si el error del backend corresponde a un campo, se muestra junto a él
   const errorApi = mutacion.error ? toApiError(mutacion.error) : null
@@ -170,17 +194,18 @@ function FormularioAgencia({ modo, detalle, ciudades, onCancelar, onGuardado }: 
             control={control}
             name="tipoAgencia"
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
+              <Select value={field.value} onValueChange={field.onChange} disabled={soloSucursal}>
                 <SelectTrigger id="agencia-tipo" onBlur={field.onBlur} className={selectClassName} {...a11yCampo('agencia-tipo', errors.tipoAgencia?.message)}>
                   <SelectValue placeholder="Elige el tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Matriz">Matriz</SelectItem>
+                  {!soloSucursal && <SelectItem value="Matriz">Matriz</SelectItem>}
                   <SelectItem value="Sucursal">Sucursal</SelectItem>
                 </SelectContent>
               </Select>
             )}
           />
+          {soloSucursal && <p className="text-sm text-muted-foreground">Ya existe una Matriz. Esta agencia solo puede ser Sucursal.</p>}
         </CampoAgencia>
         <CampoAgencia id="agencia-ciudad" label="Ciudad" error={errors.idCiudad?.message}>
           <Controller
