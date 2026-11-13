@@ -22,6 +22,7 @@ import {
 
 import { canAccess, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
+import { ROLES_GESTION_USUARIOS } from '@/features/usuarios'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
 import { useAgencias } from '@/features/catalogos'
@@ -110,11 +111,11 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     title: 'Accesos y roles',
     items: [
       {
-        to: '/accesos',
+        to: '/usuarios',
         label: 'Usuarios del sistema',
         Icon: ShieldCheck,
-        profiles: ROUTE_ACCESS.accesosRoles,
-        enPreparacion: true,
+        profiles: ROUTE_ACCESS.gestionUsuarios,
+        roles: ROLES_GESTION_USUARIOS,
       },
     ],
   },

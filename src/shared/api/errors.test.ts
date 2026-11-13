@@ -25,6 +25,20 @@ describe('toApiError', () => {
     expect(error.message).toBe('La jornada no está abierta.')
   })
 
+  it('conserva los errores por campo válidos de ProblemDetails', () => {
+    const error = toApiError(
+      axiosError(422, {
+        status: 422,
+        code: 'VALIDACION',
+        detail: 'Hay campos inválidos.',
+        errors: [{ field: 'email', message: 'Correo inválido' }, { field: 1, message: 'x' }, null],
+      }),
+    )
+    expect(error.message).toBe('Hay campos inválidos.')
+    expect(error.fields).toEqual([{ field: 'email', message: 'Correo inválido' }])
+    expect(toApiError(axiosError(500, { title: 'Error' })).fields).toEqual([])
+  })
+
   it('lee el 401 del backend sin sesión', () => {
     const error = toApiError(axiosError(401, { status: 401, code: 'NO_AUTENTICADO', detail: 'Inicie sesión para continuar.' }))
     expect(error.status).toBe(401)
