@@ -34,6 +34,9 @@ function buildBackendHeaders(request: Request) {
   // Se juntan primero: borrar mientras se itera un Headers salta entradas
   const toDelete = [...headers.keys()].filter(isHopOrSpoofableHeader)
   for (const name of toDelete) headers.delete(name)
+  // Se reconstruye desde la URL recibida por el Worker, nunca desde cabeceras del cliente.
+  // El backend valida este dominio contra su lista de previews permitidas antes de usarlo.
+  headers.set('X-Forwarded-Host', new URL(request.url).hostname)
   return headers
 }
 

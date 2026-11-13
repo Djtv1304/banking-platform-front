@@ -26,6 +26,7 @@ export {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 export { Input } from '@/shared/ui/input';
+export { FechaInput } from '@/shared/ui/fecha-input';
 export { Label } from '@/shared/ui/label';
 export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 export { ThemeToggle } from '@/shared/ui/theme-toggle';

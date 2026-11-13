@@ -6,6 +6,8 @@ import type { AccessProfile } from '@/features/auth'
  * Sin entrada = todos los usuarios autenticados. El admin siempre tiene acceso.
  */
 export const ROUTE_ACCESS = {
+  // El rol exacto (ASESOR o ADMIN) se comprueba también dentro de la página.
+  datosCooperativa: ['staff'],
   registrarCliente: ['staff'],
   // TAR-01: ASESOR y ADMIN
   solicitarTarjeta: ['staff'],
@@ -19,11 +21,12 @@ export const ROUTE_ACCESS = {
   consultarMovimientos: ['staff'],
   // TAR-02/03: ASESOR, SUPERVISOR y ADMIN (el CAJERO es 'staff' en la UI: su 403 muestra «No tienes permiso»)
   consultarTarjetas: ['staff'],
-  // F-05: módulos del menú todavía en preparación (parámetros y accesos son de administración)
+  // AUT-05 a AUT-09: ADMIN y SUPERVISOR (el rol exacto se comprueba en el menú y dentro de la página)
+  gestionUsuarios: ['staff'],
+  // F-05: módulos del menú todavía en preparación (parámetros son de administración)
   creditos: ['staff'],
   parametrosGenerales: ['admin'],
   cuentasContables: ['staff'],
-  accesosRoles: ['admin'],
   // ORG-01/02: solo ADMIN
   agencias: ['admin'],
 } as const satisfies Record<string, readonly AccessProfile[]>
