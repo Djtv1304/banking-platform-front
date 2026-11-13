@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router'
 import { DashboardLayout } from '@/app/layouts/DashboardLayout'
 import { LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
+import { DatosCooperativaPage } from '@/features/organizacion'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
@@ -22,6 +23,10 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/', element: <HomePage /> },
+          {
+            element: <RequireProfile allowed={ROUTE_ACCESS.datosCooperativa} />,
+            children: [{ path: '/organizacion/entidad', element: <DatosCooperativaPage /> }],
+          },
           {
             element: <RequireProfile allowed={ROUTE_ACCESS.registrarCliente} />,
             children: [{ path: '/registrar-cliente', element: <RegistrarClientePage /> }],

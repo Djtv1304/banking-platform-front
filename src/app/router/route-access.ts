@@ -6,6 +6,8 @@ import type { AccessProfile } from '@/features/auth'
  * Sin entrada = todos los usuarios autenticados. El admin siempre tiene acceso.
  */
 export const ROUTE_ACCESS = {
+  // El rol exacto (ASESOR o ADMIN) se comprueba también dentro de la página.
+  datosCooperativa: ['staff'],
   registrarCliente: ['staff'],
   // TAR-01: ASESOR y ADMIN
   solicitarTarjeta: ['staff'],
