@@ -14,7 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-import { formatRol, useAuthStore } from '@/features/auth'
+import { CLIENTES_ROLES, formatRol, hasAnyRole, useAuthStore } from '@/features/auth'
 import { cn } from '@/shared/lib'
 import { Badge } from '@/shared/ui'
 
@@ -39,9 +39,9 @@ const STATUS = {
   pending: { label: 'Pendiente', className: 'bg-muted text-muted-foreground', Icon: Clock },
 }
 
-const QUICK_ACTIONS: { label: string; Icon: LucideIcon; to?: string }[] = [
-  { label: 'Registrar cliente', Icon: UserPlus, to: '/registrar-cliente' },
-  { label: 'Buscar cliente', Icon: Search, to: '/clientes-busqueda' },
+const QUICK_ACTIONS: { label: string; Icon: LucideIcon; to?: string; roles?: readonly string[] }[] = [
+  { label: 'Registrar cliente', Icon: UserPlus, to: '/registrar-cliente', roles: CLIENTES_ROLES.registrar },
+  { label: 'Buscar cliente', Icon: Search, to: '/clientes-busqueda', roles: CLIENTES_ROLES.consultar },
   { label: 'Apertura de cuenta', Icon: WalletCards, to: '/cuentas/abrir' },
   { label: 'Reportes', Icon: BarChart3 },
 ]
@@ -139,7 +139,7 @@ export function StaffHome() {
           <section className={cn(cardClassName, 'p-6')}>
             <h2 className="font-semibold text-heading">Accesos rápidos</h2>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              {QUICK_ACTIONS.map(({ label, Icon, to }) => {
+              {QUICK_ACTIONS.filter((action) => !action.roles || hasAnyRole(user.roles, action.roles)).map(({ label, Icon, to }) => {
                 const content = (
                   <>
                     <span className="flex size-9 items-center justify-center rounded-lg bg-primary/15 text-link">

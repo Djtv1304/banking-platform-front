@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router'
 
-import { canAccess, sanitizeReturnTo, useAccessProfile, useAuthStatus, type AccessProfile } from '@/features/auth'
+import { canAccess, hasAnyRole, sanitizeReturnTo, useAccessProfile, useAuthStatus, useAuthStore, type AccessProfile } from '@/features/auth'
 
 // Pantalla vacía mientras GET /api/v1/auth/me responde
 function SessionRestoring() {
@@ -41,5 +41,12 @@ export function RequireProfile({ allowed }: { allowed: readonly AccessProfile[] 
   const profile = useAccessProfile()
 
   if (!profile || !canAccess(profile, allowed)) return <Navigate to="/" replace />
+  return <Outlet />
+}
+
+/** Dentro de RequireAuth: la URL directa respeta los mismos roles que el menú. */
+export function RequireRoles({ allowed }: { allowed: readonly string[] }) {
+  const roles = useAuthStore((state) => state.user?.roles)
+  if (!hasAnyRole(roles ?? [], allowed)) return <Navigate to="/" replace />
   return <Outlet />
 }

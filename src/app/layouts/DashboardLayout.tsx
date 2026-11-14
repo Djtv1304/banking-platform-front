@@ -21,7 +21,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-import { canAccess, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
+import { canAccess, CLIENTES_ROLES, hasAnyRole, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { ROLES_GESTION_USUARIOS } from '@/features/usuarios'
 import { cn } from '@/shared/lib'
@@ -63,8 +63,8 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Clientes',
     items: [
-      { to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente },
-      { to: '/clientes-busqueda', label: 'Consultar clientes', Icon: UserSearch, profiles: ROUTE_ACCESS.consultarClientes },
+      { to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente, roles: CLIENTES_ROLES.registrar },
+      { to: '/clientes-busqueda', label: 'Consultar clientes', Icon: UserSearch, profiles: ROUTE_ACCESS.consultarClientes, roles: CLIENTES_ROLES.consultar },
     ],
   },
   {
@@ -133,7 +133,7 @@ function getVisibleSections(profile: AccessProfile | null, roles: readonly strin
   if (!profile) return []
   return NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => canAccess(profile, item.profiles) && (!item.roles || roles.some((rol) => item.roles?.includes(rol.trim().toUpperCase())))),
+    items: section.items.filter((item) => canAccess(profile, item.profiles) && (!item.roles || hasAnyRole(roles, item.roles))),
   })).filter((section) => section.items.length > 0)
 }
 

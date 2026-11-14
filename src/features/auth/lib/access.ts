@@ -15,6 +15,17 @@ export const ROLES = {
 
 export type AccessProfile = 'admin' | 'staff' | 'cliente'
 
+/** CLI-02 y CLI-03/04: compartidas por navegación, rutas y accesos rápidos. */
+export const CLIENTES_ROLES = {
+  registrar: ['ASESOR', 'ADMIN'],
+  consultar: ['ASESOR', 'CAJERO', 'SUPERVISOR', 'ADMIN'],
+} as const
+
+/** Permisos concretos de UI; el backend sigue siendo quien autoriza la operación. */
+export function hasAnyRole(roles: readonly string[], allowed: readonly string[]) {
+  return roles.some((role) => allowed.includes(role.trim().toUpperCase()))
+}
+
 /**
  * Si el usuario tiene varios roles gana el de mayor alcance: admin > staff > cliente.
  * Sin roles se trata como cliente (el perfil con menos opciones).

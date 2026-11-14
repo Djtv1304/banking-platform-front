@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 
 import { DashboardLayout } from '@/app/layouts/DashboardLayout'
-import { LoginPage } from '@/features/auth'
+import { CLIENTES_ROLES, LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
 import { AgenciasPage, DatosCooperativaPage } from '@/features/organizacion'
 import { DetalleUsuarioPage, UsuariosPage } from '@/features/usuarios'
@@ -9,7 +9,7 @@ import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/fe
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
 import { AbrirCuentaPage } from '@/features/cuenta'
-import { GuestOnly, RequireAuth, RequireProfile } from '@/app/router/guards'
+import { GuestOnly, RequireAuth, RequireProfile, RequireRoles } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { ModuloEnPreparacion } from '@/shared/ui'
 
@@ -30,7 +30,7 @@ export const router = createBrowserRouter([
             children: [{ path: '/organizacion/entidad', element: <DatosCooperativaPage /> }],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.registrarCliente} />,
+            element: <RequireRoles allowed={CLIENTES_ROLES.registrar} />,
             children: [{ path: '/registrar-cliente', element: <RegistrarClientePage /> }],
           },
           {
@@ -49,7 +49,7 @@ export const router = createBrowserRouter([
             children: [{ path: '/cuentas/:idCuenta/cupos', element: <CuposCuentaPage /> }],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.consultarClientes} />,
+            element: <RequireRoles allowed={CLIENTES_ROLES.consultar} />,
             children: [
               { path: '/clientes-busqueda', element: <BuscarClientesPage /> },
               { path: '/clientes-busqueda/:idCliente', element: <FichaClientePage /> },

@@ -3,7 +3,7 @@
 
 export { LoginPage } from '@/features/auth/pages/LoginPage';
 export { useAccessProfile, useAuthStatus, useAuthStore } from '@/features/auth/store/auth.store';
-export { canAccess, getAccessProfile, ROLES } from '@/features/auth/lib/access';
+export { canAccess, CLIENTES_ROLES, getAccessProfile, hasAnyRole, ROLES } from '@/features/auth/lib/access';
 export type { AccessProfile } from '@/features/auth/lib/access';
 export type { AuthStatus } from '@/features/auth/store/auth.store';
 export { registerAuthHandlers, restoreSession, signOut } from '@/features/auth/session';
