@@ -7,12 +7,14 @@ import {
   getAgencias,
   getCanales,
   getCatalogosAdministrables,
+  getComisiones,
   getCiudades,
   getDenominaciones,
   getPaises,
   getProductos,
   getRedes,
   getRegistrosCatalogo,
+  getSeguros,
   getSistemasAmortizacion,
   getTasasInteres,
   getTiposAntecedente,
@@ -132,4 +134,15 @@ export function useActualizarRegistroCatalogo() {
     retry: false,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalogos'] }),
   })
+}
+
+/** Cambian desde Catálogos: sin caché por sesión (se invalidan con ['catalogos']) */
+export function useComisiones() {
+  const query = useQuery({ queryKey: ['catalogos', 'comisiones'], queryFn: getComisiones })
+  return { ...query, data: query.data ?? (VACIO as Awaited<ReturnType<typeof getComisiones>>) }
+}
+
+export function useSeguros() {
+  const query = useQuery({ queryKey: ['catalogos', 'seguros'], queryFn: getSeguros })
+  return { ...query, data: query.data ?? (VACIO as Awaited<ReturnType<typeof getSeguros>>) }
 }

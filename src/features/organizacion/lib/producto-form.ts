@@ -178,6 +178,8 @@ const MENSAJES: Record<string, string> = {
   CANAL_NO_EXISTE: 'Hay canales que ya no existen o están inactivos. Recarga e intenta otra vez.',
   CUPO_MENOR_QUE_PERSONALIZADO:
     'Hay cuentas con cupos personalizados mayores en ese canal. Ajústalos antes de bajar o quitar el máximo.',
+  COMISION_NO_EXISTE: 'Hay comisiones que ya no existen o están inactivas. Recarga e intenta otra vez.',
+  SEGURO_NO_EXISTE: 'Hay seguros que ya no existen o están inactivos. Recarga e intenta otra vez.',
   USUARIO_INTERNO_NO_VINCULADO: 'Tu usuario no está habilitado para esta operación. Pide al administrador que lo vincule.',
 }
 

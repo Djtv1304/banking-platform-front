@@ -6,6 +6,7 @@ import {
   actividadEconomicaSchema,
   agenciaSchema,
   canalSchema,
+  comisionSchema,
   catalogoAdministrableSchema,
   ciudadSchema,
   denominacionSchema,
@@ -13,6 +14,7 @@ import {
   productoSchema,
   redSchema,
   registroCatalogoSchema,
+  seguroSchema,
   sistemaAmortizacionSchema,
   tasaInteresSchema,
   tipoAntecedenteSchema,
@@ -106,3 +108,7 @@ export async function actualizarRegistroCatalogo(clave: string, id: string, body
   }
   return result.data
 }
+
+export const getComisiones = () => getLista(CATALOGOS_ENDPOINTS.comisiones, comisionSchema)
+
+export const getSeguros = () => getLista(CATALOGOS_ENDPOINTS.seguros, seguroSchema)

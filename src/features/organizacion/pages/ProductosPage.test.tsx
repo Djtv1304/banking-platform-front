@@ -23,7 +23,10 @@ vi.mock('@/features/organizacion/hooks/useProductosAdmin', () => ({
 }))
 vi.mock('@/features/organizacion/components/ProductoFormDialog', () => ({ ProductoFormDialog: () => null }))
 vi.mock('@/features/organizacion/components/SubProductoFormDialog', () => ({ SubProductoFormDialog: () => null }))
-vi.mock('@/features/organizacion/components/ParametrosSubProductoDialog', () => ({ ParametrosSubProductoDialog: () => null }))
+vi.mock('@/features/organizacion/components/ParametrosSubProductoDialog', () => ({
+  ParametrosSubProductoDialog: () => null,
+  VinculosProductoDialog: () => null,
+}))
 vi.mock('@/shared/ui', () => ({
   Button: ({ children, ...props }: ComponentProps<'button'>) => <button {...props}>{children}</button>,
   Badge: ({ children }: ComponentProps<'span'>) => <span>{children}</span>,
@@ -117,6 +120,7 @@ describe('DetalleProductoPage', () => {
     estado.data = [CONSUMO]
     expect(detalle()).toContain('aria-label="Parámetros de CRE001-01"')
     expect(detalle()).toContain('tablas de amortización')
+    expect(detalle()).toContain('Tasas y cargos')
   })
 
   it('ASESOR consulta los parámetros pero no cambia nada', () => {
