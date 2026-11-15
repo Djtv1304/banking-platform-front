@@ -13,6 +13,8 @@ const sinControl = (valor: string) =>
     return codigo > 0x1f && codigo !== 0x7f
   })
 const DINERO = /^\d{1,16}(\.\d{1,2})?$/
+/** Valor de comisión o seguro: >= 0 con hasta 6 decimales (en % si el cálculo es Porcentaje) */
+const NUMERO = /^\d{1,8}(\.\d{1,6})?$/
 const PORCIENTO = /^\d{1,3}(\.\d{1,2})?$/
 
 export type Resultado = { valor: ValorCampo } | { error: string }
@@ -56,6 +58,8 @@ export function leerCampo(campo: CampoCatalogo, entrada: string | boolean): Resu
       if (n > 100 || (campo.nombre === 'tasaNominalAnual' && n === 0)) return { error: 'Entre 0.01 y 100 %.' }
       return { valor: Math.round(n * 100) / 10000 }
     }
+    case 'numero':
+      return NUMERO.test(texto) ? { valor: Number(texto) } : { error: 'Usa un número como 0.45 o 5.' }
     case 'fecha':
       return /^\d{4}-\d{2}-\d{2}$/.test(texto) ? { valor: texto } : { error: 'Elige una fecha.' }
   }
@@ -87,6 +91,7 @@ export function mostrar(campo: CampoCatalogo, valor: ValorCampo | undefined): st
   if (campo.tipo === 'booleano') return valor ? 'Sí' : 'No'
   if (valor == null || valor === '') return '—'
   if (campo.tipo === 'dinero') return Number(valor).toLocaleString('es-EC', FORMATO_DINERO)
+  if (campo.tipo === 'numero') return Number(valor).toLocaleString('es-EC', { maximumFractionDigits: 6 })
   if (campo.tipo === 'porcentaje') return `${(Number(valor) * 100).toLocaleString('es-EC', { maximumFractionDigits: 2 })} %`
   return String(valor)
 }
