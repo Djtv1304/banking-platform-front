@@ -11,8 +11,9 @@ import { ProductoFormDialog, type ModoProducto } from '@/features/organizacion/c
 import { useProductosAdmin } from '@/features/organizacion/hooks/useProductosAdmin'
 import {
   condicionesDe,
-  ETIQUETA_TIPO,
+  agruparPorTipo,
   filtrarProductos,
+  GRUPO_TIPO,
   mensajeErrorProducto,
   rutaProducto,
 } from '@/features/organizacion/lib/producto-form'
@@ -36,28 +37,41 @@ export function ProductosPage() {
     const visibles = filtrarProductos(productos.data, busqueda)
     if (visibles.length === 0) return <Aviso>Ningún producto coincide con «{busqueda.trim()}».</Aviso>
     return (
-      <ul className="flex flex-col divide-y divide-border">
-        {visibles.map((producto) => (
-          <li key={producto.idProducto}>
-            <Link
-              to={rutaProducto(producto.idProducto)}
-              className="flex items-center justify-between gap-4 rounded-xl px-3 py-4 hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring"
-            >
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-base font-semibold text-heading">{producto.nombreProducto}</span>
-                  <EstadoProductoBadge estado={producto.estado} />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {producto.codigoProducto} · {ETIQUETA_TIPO[producto.tipoProducto]} · {condicionesDe(producto)} ·{' '}
-                  {producto.subproductos.length} subproducto{producto.subproductos.length === 1 ? '' : 's'}
-                </p>
-              </div>
-              <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-            </Link>
-          </li>
+      <div className="flex flex-col gap-6">
+        {agruparPorTipo(visibles).map(({ tipo, productos: delGrupo }) => (
+          <section key={tipo} aria-labelledby={`grupo-${tipo}`} className="flex flex-col gap-1">
+            <h2 id={`grupo-${tipo}`} className="px-3 text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+              {GRUPO_TIPO[tipo]} <span className="font-normal">({delGrupo.length})</span>
+            </h2>
+            <ul className="flex flex-col divide-y divide-border">
+              {delGrupo.map((producto) => (
+                <li key={producto.idProducto}>
+                  <Link
+                    to={rutaProducto(producto.idProducto)}
+                    className="flex items-center justify-between gap-4 rounded-xl px-3 py-4 hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-base font-semibold text-heading">{producto.nombreProducto}</span>
+                        <EstadoProductoBadge estado={producto.estado} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {producto.codigoProducto} · {condicionesDe(producto)}
+                      </p>
+                      {producto.subproductos.length > 0 && (
+                        <p className="mt-1 text-xs text-heading">
+                          {producto.subproductos.map((s) => s.nombreSubProducto).join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                    <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
         ))}
-      </ul>
+      </div>
     )
   })()
 

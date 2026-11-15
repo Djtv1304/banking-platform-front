@@ -175,6 +175,9 @@ const MENSAJES: Record<string, string> = {
   CAMPO_NO_APLICA: 'Ese dato no aplica a este tipo de producto.',
   TASA_NO_APLICA: 'Hay tasas que ya no existen o no son del tipo de crédito del producto. Recarga e intenta otra vez.',
   SISTEMA_NO_EXISTE: 'Hay sistemas de amortización que ya no existen o están inactivos.',
+  CANAL_NO_EXISTE: 'Hay canales que ya no existen o están inactivos. Recarga e intenta otra vez.',
+  CUPO_MENOR_QUE_PERSONALIZADO:
+    'Hay cuentas con cupos personalizados mayores en ese canal. Ajústalos antes de bajar o quitar el máximo.',
   USUARIO_INTERNO_NO_VINCULADO: 'Tu usuario no está habilitado para esta operación. Pide al administrador que lo vincule.',
 }
 
@@ -226,3 +229,17 @@ export function filtrarProductos(productos: readonly ProductoAdmin[], busqueda: 
 }
 
 export const rutaProducto = (idProducto: number) => `/productos/${idProducto}`
+
+/** Títulos de los grupos del listado, en este orden */
+export const GRUPO_TIPO: Record<TipoProductoAdmin, string> = {
+  Cuenta: 'Cuentas',
+  Credito: 'Créditos',
+  Tarjeta: 'Tarjetas',
+}
+
+/** Productos agrupados por tipo (solo los grupos que tienen alguno) */
+export function agruparPorTipo(productos: readonly ProductoAdmin[]) {
+  return (Object.keys(GRUPO_TIPO) as TipoProductoAdmin[])
+    .map((tipo) => ({ tipo, productos: productos.filter((p) => p.tipoProducto === tipo) }))
+    .filter((g) => g.productos.length > 0)
+}

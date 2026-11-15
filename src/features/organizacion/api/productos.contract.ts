@@ -14,6 +14,8 @@ export const PRODUCTOS_ENDPOINTS = {
   subproductos: (idProducto: number) => `/api/v1/productos/${idProducto}/subproductos`,
   subproducto: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}`,
   parametros: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/parametros`,
+  cupos: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/cupos`,
+  restricciones: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/restricciones`,
 } as const
 
 export const PRODUCTOS_ROLES = {
@@ -115,4 +117,40 @@ export interface SubProductoParametrosBody {
   plazoMaximoMeses: number | null
   tasasInteres: number[]
   sistemasAmortizacion: string[]
+}
+
+/** Cuentas y tarjetas: máximos por canal. Los cupos que personaliza el cliente no los superan */
+export const cupoCanalSchema = z.object({
+  idCanal: z.number(),
+  codigoCanal: z.string(),
+  nombreCanal: z.string(),
+  habilitado: z.boolean(),
+  cupoDiarioMaximo: z.number().nullish(),
+  cupoMensualMaximo: z.number().nullish(),
+  montoMaxTransaccion: z.number().nullish(),
+  maxTransaccionesDia: z.number().nullish(),
+})
+
+export type CupoCanal = z.infer<typeof cupoCanalSchema>
+
+/** PUT (solo ADMIN) · Los canales que no vienen se quitan */
+export interface CupoCanalBody {
+  idCanal: number
+  cupoDiarioMaximo: number
+  cupoMensualMaximo: number
+  montoMaxTransaccion: number
+  maxTransaccionesDia: number
+}
+
+/** Cuentas: null = sin esa restricción */
+export const restriccionesSchema = z.object({
+  diasSinRetiros: z.number().nullish(),
+  saldoMinimo: z.number().nullish(),
+})
+
+export type Restricciones = z.infer<typeof restriccionesSchema>
+
+export interface RestriccionesBody {
+  diasSinRetiros: number | null
+  saldoMinimo: number | null
 }
