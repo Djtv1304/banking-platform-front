@@ -25,7 +25,6 @@ export const ROUTE_ACCESS = {
   gestionUsuarios: ['staff'],
   // F-05: módulos del menú todavía en preparación (parámetros son de administración)
   creditos: ['staff'],
-  parametrosGenerales: ['admin'],
   cuentasContables: ['staff'],
   // ORG-01/02: solo ADMIN
   agencias: ['admin'],

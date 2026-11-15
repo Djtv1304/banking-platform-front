@@ -11,9 +11,12 @@ import {
   paisSchema,
   productoSchema,
   redSchema,
+  sistemaAmortizacionSchema,
+  tasaInteresSchema,
   tipoAntecedenteSchema,
   tipoCreditoSchema,
   tipoMovimientoCajaSchema,
+  type TasaInteresCreate,
   type TipoProducto,
   type TipoTarjeta,
 } from '@/features/catalogos/api/catalogos.contract'
@@ -63,3 +66,24 @@ export const getTiposCredito = () => getLista(CATALOGOS_ENDPOINTS.tiposCredito, 
 
 export const getTiposMovimientoCaja = () =>
   getLista(CATALOGOS_ENDPOINTS.tiposMovimientoCaja, tipoMovimientoCajaSchema)
+
+export const getSistemasAmortizacion = () =>
+  getLista(CATALOGOS_ENDPOINTS.sistemasAmortizacion, sistemaAmortizacionSchema)
+
+/** Todas las tasas, o solo las de un tipo de crédito */
+export const getTasasInteres = (idTipoCredito?: number) =>
+  getLista(
+    CATALOGOS_ENDPOINTS.tasasInteres,
+    tasaInteresSchema,
+    idTipoCredito ? { idTipoCredito: String(idTipoCredito) } : undefined,
+  )
+
+/** 201 con la tasa creada (solo ADMIN) */
+export async function crearTasaInteres(body: TasaInteresCreate) {
+  const { data, status } = await apiClient.post<unknown>(CATALOGOS_ENDPOINTS.tasasInteres, body)
+  const result = tasaInteresSchema.safeParse(data)
+  if (!result.success) {
+    throw new ApiError('No pudimos leer la respuesta del servidor. Inténtalo más tarde.', status, 'respuesta_invalida')
+  }
+  return result.data
+}

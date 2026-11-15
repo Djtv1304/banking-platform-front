@@ -172,6 +172,10 @@ const MENSAJES: Record<string, string> = {
   PRODUCTO_NO_ENCONTRADO: 'El producto ya no existe. Recarga la lista.',
   SUBPRODUCTO_NO_ENCONTRADO: 'El subproducto ya no existe. Recarga la lista.',
   DATOS_INVALIDOS: 'Revisa los datos: hay valores que no son válidos.',
+  CAMPO_NO_APLICA: 'Ese dato no aplica a este tipo de producto.',
+  TASA_NO_APLICA: 'Hay tasas que ya no existen o no son del tipo de crédito del producto. Recarga e intenta otra vez.',
+  SISTEMA_NO_EXISTE: 'Hay sistemas de amortización que ya no existen o están inactivos.',
+  USUARIO_INTERNO_NO_VINCULADO: 'Tu usuario no está habilitado para esta operación. Pide al administrador que lo vincule.',
 }
 
 export function mensajeErrorProducto(error: ApiError) {
@@ -196,3 +200,29 @@ export function condicionesDe(producto: ProductoAdmin) {
   if (producto.tipoProducto === 'Credito') return `Crédito ${producto.nombreTipoCredito ?? ''}`.trim()
   return `Tarjeta ${producto.nombreRed ?? ''}`.trim()
 }
+
+/** Sin tildes ni mayúsculas: «credito» encuentra «Crédito de consumo» */
+const normalizar = (texto: string) =>
+  texto
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+
+/** Busca en código, nombre, descripción, tipo y nombres de subproductos */
+export function filtrarProductos(productos: readonly ProductoAdmin[], busqueda: string) {
+  const termino = normalizar(busqueda.trim())
+  if (!termino) return [...productos]
+  return productos.filter((p) =>
+    normalizar(
+      [
+        p.codigoProducto,
+        p.nombreProducto,
+        p.descripcion ?? '',
+        ETIQUETA_TIPO[p.tipoProducto],
+        ...p.subproductos.map((s) => s.nombreSubProducto),
+      ].join(' '),
+    ).includes(termino),
+  )
+}
+
+export const rutaProducto = (idProducto: number) => `/productos/${idProducto}`

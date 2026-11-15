@@ -3,7 +3,14 @@ import { createBrowserRouter, Navigate } from 'react-router'
 import { DashboardLayout } from '@/app/layouts/DashboardLayout'
 import { CLIENTES_ROLES, LoginPage } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
-import { AgenciasPage, DatosCooperativaPage, PRODUCTOS_ROLES, ProductosPage } from '@/features/organizacion'
+import {
+  AgenciasPage,
+  DatosCooperativaPage,
+  DetalleProductoPage,
+  PRODUCTOS_ROLES,
+  ProductosPage,
+} from '@/features/organizacion'
+import { CATALOGOS_ROLES, TasasInteresPage } from '@/features/catalogos'
 import { DetalleUsuarioPage, UsuariosPage } from '@/features/usuarios'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
@@ -87,21 +94,14 @@ export const router = createBrowserRouter([
           {
             // La URL directa respeta los mismos roles que el menú; las acciones son solo de ADMIN
             element: <RequireRoles allowed={PRODUCTOS_ROLES.consultar} />,
-            children: [{ path: '/organizacion/productos', element: <ProductosPage /> }],
+            children: [
+              { path: '/productos', element: <ProductosPage /> },
+              { path: '/productos/:idProducto', element: <DetalleProductoPage /> },
+            ],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.parametrosGenerales} />,
-            children: [
-              {
-                path: '/parametros',
-                element: (
-                  <ModuloEnPreparacion
-                    modulo="Parámetros generales"
-                    descripcion="Aquí se configurarán los productos, subproductos y BIN que necesita la emisión de tarjetas."
-                  />
-                ),
-              },
-            ],
+            element: <RequireRoles allowed={CATALOGOS_ROLES.consultar} />,
+            children: [{ path: '/catalogos/tasas-interes', element: <TasasInteresPage /> }],
           },
           {
             element: <RequireProfile allowed={ROUTE_ACCESS.cuentasContables} />,

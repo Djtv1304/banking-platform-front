@@ -5,9 +5,11 @@ import {
   PRODUCTOS_ENDPOINTS,
   productoAdminSchema,
   subProductoAdminSchema,
+  subProductoParametrosSchema,
   type ProductoCreate,
   type ProductoUpdate,
   type SubProductoCreate,
+  type SubProductoParametrosBody,
   type SubProductoUpdate,
 } from '@/features/organizacion/api/productos.contract'
 
@@ -24,6 +26,11 @@ function validar<T extends z.ZodType>(schema: T, data: unknown, status: number):
 export async function listarProductos() {
   const { data, status } = await apiClient.get<unknown>(PRODUCTOS_ENDPOINTS.lista)
   return validar(productoAdminSchema.array(), data, status)
+}
+
+export async function obtenerProducto(idProducto: number) {
+  const { data, status } = await apiClient.get<unknown>(PRODUCTOS_ENDPOINTS.producto(idProducto))
+  return validar(productoAdminSchema, data, status)
 }
 
 /** 201 con el producto creado, inactivo y sin subproductos */
@@ -46,4 +53,14 @@ export async function crearSubProducto(idProducto: number, body: SubProductoCrea
 export async function actualizarSubProducto(idSubProducto: number, body: SubProductoUpdate) {
   const { data, status } = await apiClient.patch<unknown>(PRODUCTOS_ENDPOINTS.subproducto(idSubProducto), body)
   return validar(subProductoAdminSchema, data, status)
+}
+
+export async function obtenerParametros(idSubProducto: number) {
+  const { data, status } = await apiClient.get<unknown>(PRODUCTOS_ENDPOINTS.parametros(idSubProducto))
+  return validar(subProductoParametrosSchema, data, status)
+}
+
+export async function guardarParametros(idSubProducto: number, body: SubProductoParametrosBody) {
+  const { data, status } = await apiClient.put<unknown>(PRODUCTOS_ENDPOINTS.parametros(idSubProducto), body)
+  return validar(subProductoParametrosSchema, data, status)
 }
