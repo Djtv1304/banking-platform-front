@@ -1,0 +1,91 @@
+import { z } from 'zod'
+
+/*
+ * Contrato de Productos y subproductos (`/api/v1/productos`) en camelCase.
+ *
+ * ADMIN y ASESOR consultan; solo ADMIN crea y edita. Un producto nace inactivo y se activa cuando
+ * tiene al menos un subproducto. No hay DELETE: la baja es lógica por estado. Los bodies rechazan
+ * campos desconocidos (400): se envían solo los campos que se definen.
+ */
+
+export const PRODUCTOS_ENDPOINTS = {
+  lista: '/api/v1/productos',
+  producto: (idProducto: number) => `/api/v1/productos/${idProducto}`,
+  subproductos: (idProducto: number) => `/api/v1/productos/${idProducto}/subproductos`,
+  subproducto: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}`,
+} as const
+
+export const PRODUCTOS_ROLES = {
+  consultar: ['ADMIN', 'ASESOR'],
+  administrar: ['ADMIN'],
+} as const
+
+export const tipoProductoSchema = z.enum(['Cuenta', 'Credito', 'Tarjeta'])
+export const estadoProductoSchema = z.enum(['A', 'I'])
+export const tipoCuentaSchema = z.enum(['Ahorro', 'Corriente'])
+
+export const subProductoAdminSchema = z.object({
+  idSubProducto: z.number(),
+  idProducto: z.number(),
+  codigoSubProducto: z.string(),
+  nombreSubProducto: z.string(),
+  estado: estadoProductoSchema,
+  fechaRegistro: z.string(),
+  /** Solo en subproductos de tarjeta: lo define el prefijo del código (TDB débito, TCR crédito) */
+  tipoTarjeta: z.enum(['Debito', 'Credito']).nullish(),
+})
+
+export const productoAdminSchema = z.object({
+  idProducto: z.number(),
+  codigoProducto: z.string(),
+  nombreProducto: z.string(),
+  descripcion: z.string().nullish(),
+  tipoProducto: tipoProductoSchema,
+  tipoCuenta: tipoCuentaSchema.nullish(),
+  montoAperturaMinimo: z.number().nullish(),
+  idTipoCredito: z.number().nullish(),
+  nombreTipoCredito: z.string().nullish(),
+  idRed: z.number().nullish(),
+  nombreRed: z.string().nullish(),
+  permiteOperacionesPresenciales: z.boolean(),
+  estado: estadoProductoSchema,
+  subproductos: z.array(subProductoAdminSchema),
+})
+
+export type TipoProductoAdmin = z.infer<typeof tipoProductoSchema>
+export type EstadoProducto = z.infer<typeof estadoProductoSchema>
+export type TipoCuenta = z.infer<typeof tipoCuentaSchema>
+export type ProductoAdmin = z.infer<typeof productoAdminSchema>
+export type SubProductoAdmin = z.infer<typeof subProductoAdminSchema>
+
+/** POST · Cuenta pide tipoCuenta (y monto); Credito pide idTipoCredito; Tarjeta pide idRed */
+export interface ProductoCreate {
+  codigoProducto: string
+  nombreProducto: string
+  descripcion?: string
+  tipoProducto: TipoProductoAdmin
+  tipoCuenta?: TipoCuenta
+  montoAperturaMinimo?: number
+  idTipoCredito?: number
+  idRed?: number
+  permiteOperacionesPresenciales: boolean
+}
+
+/** PATCH · Parcial. Código y tipo no cambian. `descripcion: null` la borra */
+export interface ProductoUpdate {
+  nombreProducto?: string
+  descripcion?: string | null
+  montoAperturaMinimo?: number
+  permiteOperacionesPresenciales?: boolean
+  estado?: EstadoProducto
+}
+
+export interface SubProductoCreate {
+  codigoSubProducto: string
+  nombreSubProducto: string
+}
+
+export interface SubProductoUpdate {
+  nombreSubProducto?: string
+  estado?: EstadoProducto
+}

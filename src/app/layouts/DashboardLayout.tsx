@@ -11,6 +11,7 @@ import {
   Landmark,
   LogOut,
   Moon,
+  Package,
   PanelLeft,
   ShieldCheck,
   SlidersHorizontal,
@@ -24,6 +25,7 @@ import {
 import { canAccess, CLIENTES_ROLES, hasAnyRole, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { ROLES_GESTION_USUARIOS } from '@/features/usuarios'
+import { PRODUCTOS_ROLES } from '@/features/organizacion'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
 import { useAgencias } from '@/features/catalogos'
@@ -58,6 +60,8 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     items: [
       { to: '/organizacion/entidad', label: 'Datos de la cooperativa', Icon: Building2, profiles: ROUTE_ACCESS.datosCooperativa, roles: ['ADMIN', 'ASESOR'] },
       { to: '/organizacion/agencias', label: 'Agencias', Icon: Building2, profiles: ROUTE_ACCESS.agencias },
+      // ADMIN administra; ASESOR solo consulta (la página oculta las acciones)
+      { to: '/organizacion/productos', label: 'Productos', Icon: Package, roles: PRODUCTOS_ROLES.consultar },
     ],
   },
   {

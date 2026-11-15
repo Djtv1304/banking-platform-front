@@ -8,6 +8,7 @@ import {
   getDenominaciones,
   getPaises,
   getProductos,
+  getRedes,
   getTiposAntecedente,
   getTiposCredito,
   getTiposMovimientoCaja,
@@ -68,6 +69,8 @@ export const useProductos = (tipo?: TipoProducto, tipoTarjeta?: TipoTarjeta) =>
     queryKey: ['catalogos', 'productos', tipo ?? 'todos', tipoTarjeta ?? 'todas'],
     queryFn: () => getProductos(tipo, tipoTarjeta),
   })
+
+export const useRedes = () => useCatalogo({ queryKey: ['catalogos', 'redes'], queryFn: getRedes })
 
 export const useCanales = () => useCatalogo({ queryKey: ['catalogos', 'canales'], queryFn: getCanales })
 

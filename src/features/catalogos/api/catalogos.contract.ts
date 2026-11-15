@@ -18,6 +18,7 @@ export const CATALOGOS_ENDPOINTS = {
   tiposAntecedente: `${BASE}/tipos-antecedente`,
   denominaciones: `${BASE}/denominaciones`,
   agencias: `${BASE}/agencias`,
+  redes: `${BASE}/redes`,
   productos: `${BASE}/productos`,
   canales: `${BASE}/canales`,
   tiposCredito: `${BASE}/tipos-credito`,
@@ -94,6 +95,8 @@ export const productoSchema = z.object({
   idProducto: z.number(),
   codigoProducto: z.string(),
   nombreProducto: z.string(),
+  /** Qué es el producto, para el asesor; `null` si no se cargó */
+  descripcion: z.string().nullish(),
   tipoProducto: tipoProductoSchema,
   /** Solo Cuenta */
   montoAperturaMinimo: z.number().nullable(),
@@ -106,6 +109,13 @@ export const productoSchema = z.object({
   permiteOperacionesPresenciales: z.boolean(),
   /** Subproductos activos; TAR-01 pide `idSubProducto` (define el BIN de la tarjeta) */
   subproductos: z.array(subProductoSchema),
+})
+
+/** Redes de tarjeta activas (Visa, Mastercard…): las que puede usar un producto Tarjeta */
+export const redSchema = z.object({
+  idRed: z.number(),
+  codigoRed: z.string(),
+  nombre: z.string(),
 })
 
 /** CAT-08 · Solo activos. Los `requiere*` los valida el backend; la SPA solo los muestra */
@@ -145,6 +155,7 @@ export type Agencia = z.infer<typeof agenciaSchema>
 export type TipoProducto = z.infer<typeof tipoProductoSchema>
 export type TipoTarjeta = z.infer<typeof tipoTarjetaSchema>
 export type Producto = z.infer<typeof productoSchema>
+export type Red = z.infer<typeof redSchema>
 export type SubProducto = z.infer<typeof subProductoSchema>
 export type Canal = z.infer<typeof canalSchema>
 export type TipoCredito = z.infer<typeof tipoCreditoSchema>
