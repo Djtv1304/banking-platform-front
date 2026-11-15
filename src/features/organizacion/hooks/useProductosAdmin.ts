@@ -6,11 +6,9 @@ import {
   crearProducto,
   crearSubProducto,
   guardarCupos,
-  guardarParametros,
   guardarRestricciones,
   listarProductos,
   obtenerCupos,
-  obtenerParametros,
   obtenerProducto,
   obtenerRestricciones,
 } from '@/features/organizacion/api/productos.api'
@@ -19,7 +17,6 @@ import type {
   ProductoUpdate,
   RestriccionesBody,
   SubProductoCreate,
-  SubProductoParametrosBody,
   SubProductoUpdate,
 } from '@/features/organizacion/api/productos.contract'
 
@@ -37,27 +34,6 @@ export function useProductoAdmin(idProducto: number) {
     queryKey: [...CLAVE_PRODUCTOS, idProducto],
     queryFn: () => obtenerProducto(idProducto),
     enabled: Number.isInteger(idProducto) && idProducto > 0,
-  })
-}
-
-const claveParametros = (idSubProducto: number) => ['organizacion', 'parametros', idSubProducto] as const
-
-export function useParametrosSubProducto(idSubProducto: number | null) {
-  return useQuery({
-    queryKey: claveParametros(idSubProducto ?? 0),
-    queryFn: () => obtenerParametros(idSubProducto ?? 0),
-    enabled: idSubProducto !== null,
-  })
-}
-
-/** Sin reintento: una escritura no se repite sola */
-export function useGuardarParametros() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ idSubProducto, body }: { idSubProducto: number; body: SubProductoParametrosBody }) =>
-      guardarParametros(idSubProducto, body),
-    retry: false,
-    onSuccess: (parametros) => queryClient.setQueryData(claveParametros(parametros.idSubProducto), parametros),
   })
 }
 

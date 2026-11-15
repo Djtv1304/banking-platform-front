@@ -63,6 +63,14 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: 'Productos y Catálogos',
+    // ADMIN administra; ASESOR solo consulta (las páginas ocultan las acciones)
+    items: [
+      { to: '/productos', label: 'Productos', Icon: Package, roles: PRODUCTOS_ROLES.consultar },
+      { to: '/catalogos', label: 'Catálogos', Icon: Library, roles: CATALOGOS_ROLES.consultar },
+    ],
+  },
+  {
     title: 'Clientes',
     items: [
       { to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente, roles: CLIENTES_ROLES.registrar },
@@ -91,14 +99,6 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Tarjetas',
     items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas }],
-  },
-  {
-    title: 'Productos y Catálogos',
-    // ADMIN administra; ASESOR solo consulta (las páginas ocultan las acciones)
-    items: [
-      { to: '/productos', label: 'Productos', Icon: Package, roles: PRODUCTOS_ROLES.consultar },
-      { to: '/catalogos', label: 'Catálogos', Icon: Library, roles: CATALOGOS_ROLES.consultar },
-    ],
   },
   {
     title: 'Cuentas contables',

@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { ChevronRight, Eye, Plus, Search } from 'lucide-react'
+import { ChevronDown, ChevronRight, Eye, Plus, Search } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
+import { cn } from '@/shared/lib'
 import { Aviso, Button, Cargando, Input } from '@/shared/ui'
 import { hasAnyRole, useAuthStore } from '@/features/auth'
-import { PRODUCTOS_ROLES } from '@/features/organizacion/api/productos.contract'
+import { PRODUCTOS_ROLES, type TipoProductoAdmin } from '@/features/organizacion/api/productos.contract'
 import { EstadoProductoBadge } from '@/features/organizacion/components/EstadoProductoBadge'
 import { ProductoFormDialog, type ModoProducto } from '@/features/organizacion/components/ProductoFormDialog'
 import { useProductosAdmin } from '@/features/organizacion/hooks/useProductosAdmin'
@@ -29,6 +30,16 @@ export function ProductosPage() {
   const [busqueda, setBusqueda] = useState('')
   const [formulario, setFormulario] = useState<ModoProducto | null>(null)
   const [confirmacion, setConfirmacion] = useState<string | null>(null)
+  // Los grupos empiezan cerrados para no saturar la vista
+  const [abiertos, setAbiertos] = useState<ReadonlySet<TipoProductoAdmin>>(new Set())
+  const buscando = busqueda.trim() !== ''
+  const alternarGrupo = (tipo: TipoProductoAdmin) =>
+    setAbiertos((actual) => {
+      const nuevo = new Set(actual)
+      if (nuevo.has(tipo)) nuevo.delete(tipo)
+      else nuevo.add(tipo)
+      return nuevo
+    })
 
   const contenido = (() => {
     if (productos.isError) return <Aviso tono="error">{mensajeErrorProducto(toApiError(productos.error))}</Aviso>
@@ -38,12 +49,27 @@ export function ProductosPage() {
     if (visibles.length === 0) return <Aviso>Ningún producto coincide con «{busqueda.trim()}».</Aviso>
     return (
       <div className="flex flex-col gap-6">
-        {agruparPorTipo(visibles).map(({ tipo, productos: delGrupo }) => (
-          <section key={tipo} aria-labelledby={`grupo-${tipo}`} className="flex flex-col gap-1">
-            <h2 id={`grupo-${tipo}`} className="px-3 text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-              {GRUPO_TIPO[tipo]} <span className="font-normal">({delGrupo.length})</span>
+        {agruparPorTipo(visibles).map(({ tipo, productos: delGrupo }) => {
+          // Con búsqueda se abren los grupos que tienen coincidencias
+          const desplegado = buscando || abiertos.has(tipo)
+          return (
+          <section key={tipo} className="flex flex-col gap-1 rounded-2xl border border-border">
+            <h2>
+              <button
+                type="button"
+                aria-expanded={desplegado}
+                aria-controls={`grupo-${tipo}`}
+                onClick={() => alternarGrupo(tipo)}
+                className="flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left hover:bg-muted/60"
+              >
+                <span className="text-base font-semibold text-heading">
+                  {GRUPO_TIPO[tipo]} <span className="text-sm font-normal text-muted-foreground">({delGrupo.length})</span>
+                </span>
+                <ChevronDown className={cn('size-5 text-muted-foreground transition-transform', desplegado && 'rotate-180')} aria-hidden />
+              </button>
             </h2>
-            <ul className="flex flex-col divide-y divide-border">
+            {desplegado && (
+            <ul id={`grupo-${tipo}`} className="flex flex-col divide-y divide-border px-1 pb-2">
               {delGrupo.map((producto) => (
                 <li key={producto.idProducto}>
                   <Link
@@ -69,8 +95,10 @@ export function ProductosPage() {
                 </li>
               ))}
             </ul>
+            )}
           </section>
-        ))}
+          )
+        })}
       </div>
     )
   })()
