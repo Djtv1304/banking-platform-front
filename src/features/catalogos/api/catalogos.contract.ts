@@ -25,6 +25,10 @@ export const CATALOGOS_ENDPOINTS = {
   tiposMovimientoCaja: `${BASE}/tipos-movimiento-caja`,
   sistemasAmortizacion: `${BASE}/sistemas-amortizacion`,
   tasasInteres: `${BASE}/tasas-interes`,
+  administracion: `${BASE}/administracion`,
+  registros: (clave: string) => `${BASE}/administracion/${encodeURIComponent(clave)}`,
+  registro: (clave: string, id: string) =>
+    `${BASE}/administracion/${encodeURIComponent(clave)}/${encodeURIComponent(id)}`,
 } as const
 
 /** Los catálogos los consulta ADMIN y ASESOR en la SPA; solo ADMIN crea tasas de interés */
@@ -207,3 +211,35 @@ export type TipoCredito = z.infer<typeof tipoCreditoSchema>
 export type TipoMovimientoCaja = z.infer<typeof tipoMovimientoCajaSchema>
 export type SistemaAmortizacion = z.infer<typeof sistemaAmortizacionSchema>
 export type TasaInteres = z.infer<typeof tasaInteresSchema>
+
+/*
+ * Administración de catálogos (ADMIN edita y activa o desactiva; ADMIN y ASESOR consultan).
+ * El backend describe cada catálogo y sus campos: la pantalla dibuja la tabla y el formulario con eso.
+ */
+export const campoCatalogoSchema = z.object({
+  nombre: z.string(),
+  etiqueta: z.string(),
+  tipo: z.enum(['texto', 'entero', 'dinero', 'porcentaje', 'booleano', 'fecha']),
+  editable: z.boolean(),
+  nulo: z.boolean(),
+  maximo: z.number().nullish(),
+  minimo: z.number().nullish(),
+})
+
+export const catalogoAdministrableSchema = z.object({
+  clave: z.string(),
+  nombre: z.string(),
+  descripcion: z.string(),
+  permiteCrear: z.boolean(),
+  campos: z.array(campoCatalogoSchema),
+})
+
+/** Una fila: `id` y `estado` (A/I) siempre; el resto según los campos del catálogo */
+export const registroCatalogoSchema = z
+  .object({ id: z.string(), estado: z.enum(['A', 'I']) })
+  .catchall(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+
+export type CampoCatalogo = z.infer<typeof campoCatalogoSchema>
+export type CatalogoAdministrable = z.infer<typeof catalogoAdministrableSchema>
+export type RegistroCatalogo = z.infer<typeof registroCatalogoSchema>
+export type ValorCampo = string | number | boolean | null

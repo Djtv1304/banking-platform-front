@@ -70,7 +70,7 @@ export function ParametrosSubProductoDialog({
           </DialogTitle>
           <DialogDescription>
             Límites del crédito y las tasas y tablas de amortización que se pueden ofrecer. Las tasas se crean en
-            Productos y Catálogos › Tasas de interés.
+            Productos y Catálogos › Catálogos › Tasas de interés.
           </DialogDescription>
         </DialogHeader>
         {subproducto &&
@@ -171,7 +171,7 @@ function Formulario({
           <Cargando texto="Cargando tasas…" />
         ) : tasas.data.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No hay tasas para este tipo de crédito. Créalas en Productos y Catálogos › Tasas de interés.
+            No hay tasas para este tipo de crédito. Créalas en Productos y Catálogos › Catálogos › Tasas de interés.
           </p>
         ) : (
           <Controller

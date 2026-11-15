@@ -35,4 +35,4 @@ export {
   useTiposMovimientoCaja,
 } from '@/features/catalogos/hooks/useCatalogos'
 export { CATALOGOS_ROLES } from '@/features/catalogos/api/catalogos.contract'
-export { TasasInteresPage } from '@/features/catalogos/pages/TasasInteresPage'
+export { CatalogosPage } from '@/features/catalogos/pages/CatalogosPage'

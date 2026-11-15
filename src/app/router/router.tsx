@@ -10,7 +10,7 @@ import {
   PRODUCTOS_ROLES,
   ProductosPage,
 } from '@/features/organizacion'
-import { CATALOGOS_ROLES, TasasInteresPage } from '@/features/catalogos'
+import { CATALOGOS_ROLES, CatalogosPage } from '@/features/catalogos'
 import { DetalleUsuarioPage, UsuariosPage } from '@/features/usuarios'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
@@ -101,7 +101,7 @@ export const router = createBrowserRouter([
           },
           {
             element: <RequireRoles allowed={CATALOGOS_ROLES.consultar} />,
-            children: [{ path: '/catalogos/tasas-interes', element: <TasasInteresPage /> }],
+            children: [{ path: '/catalogos', element: <CatalogosPage /> }],
           },
           {
             element: <RequireProfile allowed={ROUTE_ACCESS.cuentasContables} />,
