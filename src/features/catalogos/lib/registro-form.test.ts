@@ -51,3 +51,11 @@ describe('edición de un registro de catálogo', () => {
     expect(filtrarRegistros([fila, { ...fila, id: '2', nombre: 'Microcrédito' }], 'CREDITO')).toHaveLength(1)
   })
 })
+
+it('valor de comisión o seguro: número >= 0 con hasta 6 decimales', () => {
+  const valor = campo({ nombre: 'valor', tipo: 'numero' })
+  expect(leerCampo(valor, '0.45')).toEqual({ valor: 0.45 })
+  expect(leerCampo(valor, '0.050000')).toEqual({ valor: 0.05 })
+  expect(leerCampo(valor, '-1')).toHaveProperty('error')
+  expect(mostrar(valor, 0.45)).toBe('0,45')
+})

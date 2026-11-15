@@ -246,7 +246,8 @@ export type TasaInteres = z.infer<typeof tasaInteresSchema>
 export const campoCatalogoSchema = z.object({
   nombre: z.string(),
   etiqueta: z.string(),
-  tipo: z.enum(['texto', 'entero', 'dinero', 'porcentaje', 'booleano', 'fecha']),
+  /** Mismos tipos que TipoCampo en catalogos/administracion.py; un tipo desconocido rechaza toda la lista */
+  tipo: z.enum(['texto', 'entero', 'dinero', 'porcentaje', 'numero', 'booleano', 'fecha']),
   editable: z.boolean(),
   nulo: z.boolean(),
   maximo: z.number().nullish(),
