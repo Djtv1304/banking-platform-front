@@ -13,7 +13,6 @@ export const PRODUCTOS_ENDPOINTS = {
   producto: (idProducto: number) => `/api/v1/productos/${idProducto}`,
   subproductos: (idProducto: number) => `/api/v1/productos/${idProducto}/subproductos`,
   subproducto: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}`,
-  parametros: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/parametros`,
   cupos: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/cupos`,
   restricciones: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/restricciones`,
 } as const
@@ -91,32 +90,6 @@ export interface SubProductoCreate {
 export interface SubProductoUpdate {
   nombreSubProducto?: string
   estado?: EstadoProducto
-}
-
-/**
- * Parámetros de un subproducto de crédito: límites de monto y plazo, y los vínculos (checklist) con
- * las tasas de interés y los sistemas de amortización que se crean en Catálogos. null = sin límite.
- */
-export const subProductoParametrosSchema = z.object({
-  idSubProducto: z.number(),
-  montoMinimo: z.number().nullish(),
-  montoMaximo: z.number().nullish(),
-  plazoMinimoMeses: z.number().nullish(),
-  plazoMaximoMeses: z.number().nullish(),
-  tasasInteres: z.array(z.number()),
-  sistemasAmortizacion: z.array(z.string()),
-})
-
-export type SubProductoParametros = z.infer<typeof subProductoParametrosSchema>
-
-/** PUT (solo ADMIN) · Reemplaza todo: una lista vacía quita los vínculos */
-export interface SubProductoParametrosBody {
-  montoMinimo: number | null
-  montoMaximo: number | null
-  plazoMinimoMeses: number | null
-  plazoMaximoMeses: number | null
-  tasasInteres: number[]
-  sistemasAmortizacion: string[]
 }
 
 /** Cuentas y tarjetas: máximos por canal. Los cupos que personaliza el cliente no los superan */

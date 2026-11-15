@@ -75,14 +75,14 @@ const lista = () => renderToStaticMarkup(<ProductosPage />)
 const detalle = () => renderToStaticMarkup(<DetalleProductoPage />)
 
 describe('ProductosPage (listado)', () => {
-  it('agrupa por tipo, con buscador, subproductos y enlace al detalle', () => {
+  it('agrupa por tipo y los grupos empiezan cerrados', () => {
     estado.data = [AHORRO, CONSUMO]
     const salida = lista()
     expect(salida).toContain('aria-label="Buscar productos"')
-    expect(salida).toContain('href="/productos/1"')
-    expect(salida).toContain('Persona natural')
     expect(salida.indexOf('Cuentas')).toBeLessThan(salida.indexOf('Créditos'))
     expect(salida).not.toContain('Tarjetas')
+    expect(salida).toContain('aria-expanded="false"')
+    expect(salida).not.toContain('href="/productos/1"')
   })
 
   it('ADMIN crea; ASESOR solo consulta', () => {

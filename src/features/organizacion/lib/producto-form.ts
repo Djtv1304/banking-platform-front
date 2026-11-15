@@ -243,3 +243,9 @@ export function agruparPorTipo(productos: readonly ProductoAdmin[]) {
     .map((tipo) => ({ tipo, productos: productos.filter((p) => p.tipoProducto === tipo) }))
     .filter((g) => g.productos.length > 0)
 }
+
+export const porcentaje = (fraccion: number) =>
+  `${(fraccion * 100).toLocaleString('es-EC', { maximumFractionDigits: 2 })} %`
+
+export const dinero = (valor: number | null | undefined) =>
+  valor == null ? 'sin límite' : valor.toLocaleString('es-EC', { style: 'currency', currency: 'USD' })
