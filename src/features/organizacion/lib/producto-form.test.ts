@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import { ApiError } from '@/shared/api'
+import type { ProductoAdmin } from '@/features/organizacion/api/productos.contract'
 import {
+  filtrarProductos,
   mensajeErrorProducto,
   payloadCrear,
   payloadEdicion,
@@ -62,4 +64,20 @@ describe('formulario de subproducto', () => {
 it('traduce los errores del backend', () => {
   expect(mensajeErrorProducto(new ApiError('x', 409, 'PRODUCTO_SIN_SUBPRODUCTOS'))).toContain('al menos un subproducto')
   expect(mensajeErrorProducto(new ApiError('x', 403, 'SIN_PERMISO'))).toContain('administrador')
+})
+
+it('el buscador ignora tildes y mayúsculas y busca también en subproductos', () => {
+  const p = (codigo: string, nombre: string, sub: string): ProductoAdmin => ({
+    idProducto: 1,
+    codigoProducto: codigo,
+    nombreProducto: nombre,
+    tipoProducto: 'Credito' as const,
+    permiteOperacionesPresenciales: true,
+    estado: 'A' as const,
+    subproductos: [{ idSubProducto: 1, idProducto: 1, codigoSubProducto: `${codigo}-1`, nombreSubProducto: sub, estado: 'A' as const, fechaRegistro: '' }],
+  })
+  const productos = [p('CRE001', 'Crédito de consumo', 'Hasta 10000'), p('CRE002', 'Microcrédito', 'Emprendedor')]
+  expect(filtrarProductos(productos, 'CREDITO DE').map((x) => x.codigoProducto)).toEqual(['CRE001'])
+  expect(filtrarProductos(productos, 'emprend').map((x) => x.codigoProducto)).toEqual(['CRE002'])
+  expect(filtrarProductos(productos, '  ')).toHaveLength(2)
 })

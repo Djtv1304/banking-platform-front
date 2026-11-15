@@ -172,6 +172,15 @@ const MENSAJES: Record<string, string> = {
   PRODUCTO_NO_ENCONTRADO: 'El producto ya no existe. Recarga la lista.',
   SUBPRODUCTO_NO_ENCONTRADO: 'El subproducto ya no existe. Recarga la lista.',
   DATOS_INVALIDOS: 'Revisa los datos: hay valores que no son válidos.',
+  CAMPO_NO_APLICA: 'Ese dato no aplica a este tipo de producto.',
+  TASA_NO_APLICA: 'Hay tasas que ya no existen o no son del tipo de crédito del producto. Recarga e intenta otra vez.',
+  SISTEMA_NO_EXISTE: 'Hay sistemas de amortización que ya no existen o están inactivos.',
+  CANAL_NO_EXISTE: 'Hay canales que ya no existen o están inactivos. Recarga e intenta otra vez.',
+  CUPO_MENOR_QUE_PERSONALIZADO:
+    'Hay cuentas con cupos personalizados mayores en ese canal. Ajústalos antes de bajar o quitar el máximo.',
+  COMISION_NO_EXISTE: 'Hay comisiones que ya no existen o están inactivas. Recarga e intenta otra vez.',
+  SEGURO_NO_EXISTE: 'Hay seguros que ya no existen o están inactivos. Recarga e intenta otra vez.',
+  USUARIO_INTERNO_NO_VINCULADO: 'Tu usuario no está habilitado para esta operación. Pide al administrador que lo vincule.',
 }
 
 export function mensajeErrorProducto(error: ApiError) {
@@ -196,3 +205,49 @@ export function condicionesDe(producto: ProductoAdmin) {
   if (producto.tipoProducto === 'Credito') return `Crédito ${producto.nombreTipoCredito ?? ''}`.trim()
   return `Tarjeta ${producto.nombreRed ?? ''}`.trim()
 }
+
+/** Sin tildes ni mayúsculas: «credito» encuentra «Crédito de consumo» */
+const normalizar = (texto: string) =>
+  texto
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+
+/** Busca en código, nombre, descripción, tipo y nombres de subproductos */
+export function filtrarProductos(productos: readonly ProductoAdmin[], busqueda: string) {
+  const termino = normalizar(busqueda.trim())
+  if (!termino) return [...productos]
+  return productos.filter((p) =>
+    normalizar(
+      [
+        p.codigoProducto,
+        p.nombreProducto,
+        p.descripcion ?? '',
+        ETIQUETA_TIPO[p.tipoProducto],
+        ...p.subproductos.map((s) => s.nombreSubProducto),
+      ].join(' '),
+    ).includes(termino),
+  )
+}
+
+export const rutaProducto = (idProducto: number) => `/productos/${idProducto}`
+
+/** Títulos de los grupos del listado, en este orden */
+export const GRUPO_TIPO: Record<TipoProductoAdmin, string> = {
+  Cuenta: 'Cuentas',
+  Credito: 'Créditos',
+  Tarjeta: 'Tarjetas',
+}
+
+/** Productos agrupados por tipo (solo los grupos que tienen alguno) */
+export function agruparPorTipo(productos: readonly ProductoAdmin[]) {
+  return (Object.keys(GRUPO_TIPO) as TipoProductoAdmin[])
+    .map((tipo) => ({ tipo, productos: productos.filter((p) => p.tipoProducto === tipo) }))
+    .filter((g) => g.productos.length > 0)
+}
+
+export const porcentaje = (fraccion: number) =>
+  `${(fraccion * 100).toLocaleString('es-EC', { maximumFractionDigits: 2 })} %`
+
+export const dinero = (valor: number | null | undefined) =>
+  valor == null ? 'sin límite' : valor.toLocaleString('es-EC', { style: 'currency', currency: 'USD' })

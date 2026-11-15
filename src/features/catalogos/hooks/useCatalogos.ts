@@ -1,19 +1,27 @@
-import { useQuery, type UseQueryOptions } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query'
 
 import {
+  actualizarRegistroCatalogo,
+  crearTasaInteres,
   getActividadesEconomicas,
   getAgencias,
   getCanales,
+  getCatalogosAdministrables,
+  getComisiones,
   getCiudades,
   getDenominaciones,
   getPaises,
   getProductos,
   getRedes,
+  getRegistrosCatalogo,
+  getSeguros,
+  getSistemasAmortizacion,
+  getTasasInteres,
   getTiposAntecedente,
   getTiposCredito,
   getTiposMovimientoCaja,
 } from '@/features/catalogos/api/catalogos.api'
-import type { TipoProducto, TipoTarjeta } from '@/features/catalogos/api/catalogos.contract'
+import type { TipoProducto, TipoTarjeta, ValorCampo } from '@/features/catalogos/api/catalogos.contract'
 
 /*
  * Catálogos con caché por sesión (F-09).
@@ -79,3 +87,62 @@ export const useTiposCredito = () =>
 
 export const useTiposMovimientoCaja = () =>
   useCatalogo({ queryKey: ['catalogos', 'tipos-movimiento-caja'], queryFn: getTiposMovimientoCaja })
+
+export const useSistemasAmortizacion = () =>
+  useCatalogo({ queryKey: ['catalogos', 'sistemas-amortizacion'], queryFn: getSistemasAmortizacion })
+
+const CLAVE_TASAS = ['catalogos', 'tasas-interes'] as const
+
+/** Las tasas sí cambian (las crea el ADMIN): no se guardan por sesión, se invalidan al crear */
+export function useTasasInteres(idTipoCredito?: number) {
+  const query = useQuery({
+    queryKey: [...CLAVE_TASAS, idTipoCredito ?? 'todas'],
+    queryFn: () => getTasasInteres(idTipoCredito),
+  })
+  return { ...query, data: query.data ?? (VACIO as Awaited<ReturnType<typeof getTasasInteres>>) }
+}
+
+/** Sin reintento: una escritura no se repite sola */
+export function useCrearTasaInteres() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: crearTasaInteres,
+    retry: false,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: CLAVE_TASAS }),
+  })
+}
+
+export const useCatalogosAdministrables = () =>
+  useCatalogo({ queryKey: ['catalogos', 'administracion'], queryFn: getCatalogosAdministrables })
+
+/** Sin caché por sesión: el ADMIN los cambia */
+export function useRegistrosCatalogo(clave: string | null) {
+  const query = useQuery({
+    queryKey: ['catalogos', 'administracion', clave],
+    queryFn: () => getRegistrosCatalogo(clave ?? ''),
+    enabled: clave !== null,
+  })
+  return { ...query, data: query.data ?? (VACIO as Awaited<ReturnType<typeof getRegistrosCatalogo>>) }
+}
+
+/** Al guardar se refrescan todos los catálogos: los formularios del resto de la app los usan */
+export function useActualizarRegistroCatalogo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ clave, id, body }: { clave: string; id: string; body: Record<string, ValorCampo> }) =>
+      actualizarRegistroCatalogo(clave, id, body),
+    retry: false,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalogos'] }),
+  })
+}
+
+/** Cambian desde Catálogos: sin caché por sesión (se invalidan con ['catalogos']) */
+export function useComisiones() {
+  const query = useQuery({ queryKey: ['catalogos', 'comisiones'], queryFn: getComisiones })
+  return { ...query, data: query.data ?? (VACIO as Awaited<ReturnType<typeof getComisiones>>) }
+}
+
+export function useSeguros() {
+  const query = useQuery({ queryKey: ['catalogos', 'seguros'], queryFn: getSeguros })
+  return { ...query, data: query.data ?? (VACIO as Awaited<ReturnType<typeof getSeguros>>) }
+}

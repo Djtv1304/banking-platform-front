@@ -14,7 +14,7 @@ import {
   Package,
   PanelLeft,
   ShieldCheck,
-  SlidersHorizontal,
+  Library,
   Sun,
   UserPlus,
   UserSearch,
@@ -28,7 +28,7 @@ import { ROLES_GESTION_USUARIOS } from '@/features/usuarios'
 import { PRODUCTOS_ROLES } from '@/features/organizacion'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
-import { useAgencias } from '@/features/catalogos'
+import { CATALOGOS_ROLES, useAgencias } from '@/features/catalogos'
 import { INSTITUCION } from '@/shared/config'
 import {
   Badge,
@@ -60,8 +60,14 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     items: [
       { to: '/organizacion/entidad', label: 'Datos de la cooperativa', Icon: Building2, profiles: ROUTE_ACCESS.datosCooperativa, roles: ['ADMIN', 'ASESOR'] },
       { to: '/organizacion/agencias', label: 'Agencias', Icon: Building2, profiles: ROUTE_ACCESS.agencias },
-      // ADMIN administra; ASESOR solo consulta (la página oculta las acciones)
-      { to: '/organizacion/productos', label: 'Productos', Icon: Package, roles: PRODUCTOS_ROLES.consultar },
+    ],
+  },
+  {
+    title: 'Productos y Catálogos',
+    // ADMIN administra; ASESOR solo consulta (las páginas ocultan las acciones)
+    items: [
+      { to: '/productos', label: 'Productos', Icon: Package, roles: PRODUCTOS_ROLES.consultar },
+      { to: '/catalogos', label: 'Catálogos', Icon: Library, roles: CATALOGOS_ROLES.consultar },
     ],
   },
   {
@@ -93,18 +99,6 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Tarjetas',
     items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas }],
-  },
-  {
-    title: 'Parámetros generales',
-    items: [
-      {
-        to: '/parametros',
-        label: 'Productos y BIN',
-        Icon: SlidersHorizontal,
-        profiles: ROUTE_ACCESS.parametrosGenerales,
-        enPreparacion: true,
-      },
-    ],
   },
   {
     title: 'Cuentas contables',

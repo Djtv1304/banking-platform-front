@@ -13,6 +13,10 @@ export const PRODUCTOS_ENDPOINTS = {
   producto: (idProducto: number) => `/api/v1/productos/${idProducto}`,
   subproductos: (idProducto: number) => `/api/v1/productos/${idProducto}/subproductos`,
   subproducto: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}`,
+  cupos: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/cupos`,
+  vinculosProducto: (idProducto: number) => `/api/v1/productos/${idProducto}/vinculos`,
+  vinculosSubProducto: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/vinculos`,
+  restricciones: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/restricciones`,
 } as const
 
 export const PRODUCTOS_ROLES = {
@@ -89,3 +93,60 @@ export interface SubProductoUpdate {
   nombreSubProducto?: string
   estado?: EstadoProducto
 }
+
+/** Cuentas y tarjetas: máximos por canal. Los cupos que personaliza el cliente no los superan */
+export const cupoCanalSchema = z.object({
+  idCanal: z.number(),
+  codigoCanal: z.string(),
+  nombreCanal: z.string(),
+  habilitado: z.boolean(),
+  cupoDiarioMaximo: z.number().nullish(),
+  cupoMensualMaximo: z.number().nullish(),
+  montoMaxTransaccion: z.number().nullish(),
+  maxTransaccionesDia: z.number().nullish(),
+})
+
+export type CupoCanal = z.infer<typeof cupoCanalSchema>
+
+/** PUT (solo ADMIN) · Los canales que no vienen se quitan */
+export interface CupoCanalBody {
+  idCanal: number
+  cupoDiarioMaximo: number
+  cupoMensualMaximo: number
+  montoMaxTransaccion: number
+  maxTransaccionesDia: number
+}
+
+/** Cuentas: null = sin esa restricción */
+export const restriccionesSchema = z.object({
+  diasSinRetiros: z.number().nullish(),
+  saldoMinimo: z.number().nullish(),
+})
+
+export type Restricciones = z.infer<typeof restriccionesSchema>
+
+export interface RestriccionesBody {
+  diasSinRetiros: number | null
+  saldoMinimo: number | null
+}
+
+/*
+ * Vínculos uno a varios con tasas, comisiones, seguros y sistemas de amortización. Lo del producto
+ * aplica a todos sus subproductos; lo del subproducto lo personaliza (una comisión con
+ * `exonerado` no se cobra en ese subproducto). Por ahora solo se guarda el checklist.
+ */
+const vinculosBaseSchema = z.object({
+  tasasInteres: z.array(z.number()),
+  comisiones: z.array(z.object({ idComision: z.number(), exonerado: z.boolean() })),
+  seguros: z.array(z.object({ idSeguro: z.number(), esObligatorio: z.boolean() })),
+  sistemasAmortizacion: z.array(z.string()),
+})
+
+export const vinculosSchema = vinculosBaseSchema.extend({
+  /** Solo en subproductos: lo que heredan del producto */
+  delProducto: vinculosBaseSchema.nullish(),
+})
+
+export type Vinculos = z.infer<typeof vinculosBaseSchema>
+export type VinculosVista = z.infer<typeof vinculosSchema>
+export type DestinoVinculos = { tipo: 'producto'; id: number } | { tipo: 'subproducto'; id: number }
