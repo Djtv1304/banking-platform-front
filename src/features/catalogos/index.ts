@@ -6,13 +6,16 @@ export type {
   Agencia,
   Canal,
   Ciudad,
+  Comision,
   Denominacion,
   Pais,
   Producto,
   Red,
+  Seguro,
   SistemaAmortizacion,
   SubProducto,
   TasaInteres,
+  TipoTasa,
   TipoAntecedente,
   TipoCredito,
   TipoMovimientoCaja,
@@ -23,11 +26,13 @@ export {
   useActividadesEconomicas,
   useAgencias,
   useCanales,
+  useComisiones,
   useCiudades,
   useDenominaciones,
   usePaises,
   useProductos,
   useRedes,
+  useSeguros,
   useSistemasAmortizacion,
   useTasasInteres,
   useTiposAntecedente,
@@ -36,3 +41,4 @@ export {
 } from '@/features/catalogos/hooks/useCatalogos'
 export { CATALOGOS_ROLES } from '@/features/catalogos/api/catalogos.contract'
 export { CatalogosPage } from '@/features/catalogos/pages/CatalogosPage'
+export { ETIQUETA_TIPO_TASA } from '@/features/catalogos/api/catalogos.contract'

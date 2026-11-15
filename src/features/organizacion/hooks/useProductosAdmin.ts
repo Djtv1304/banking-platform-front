@@ -7,15 +7,19 @@ import {
   crearSubProducto,
   guardarCupos,
   guardarRestricciones,
+  guardarVinculos,
   listarProductos,
   obtenerCupos,
   obtenerProducto,
   obtenerRestricciones,
+  obtenerVinculos,
 } from '@/features/organizacion/api/productos.api'
 import type {
   CupoCanalBody,
+  DestinoVinculos,
   ProductoUpdate,
   RestriccionesBody,
+  Vinculos,
   SubProductoCreate,
   SubProductoUpdate,
 } from '@/features/organizacion/api/productos.contract'
@@ -106,5 +110,21 @@ export function useGuardarRestricciones(idSubProducto: number) {
     mutationFn: (body: RestriccionesBody) => guardarRestricciones(idSubProducto, body),
     retry: false,
     onSuccess: (r) => queryClient.setQueryData(claveRestricciones(idSubProducto), r),
+  })
+}
+
+const claveVinculos = (d: DestinoVinculos) => ['organizacion', 'vinculos', d.tipo, d.id] as const
+
+export function useVinculos(destino: DestinoVinculos) {
+  return useQuery({ queryKey: claveVinculos(destino), queryFn: () => obtenerVinculos(destino) })
+}
+
+/** Al guardar los del producto, los subproductos ven otra herencia: se refrescan todos */
+export function useGuardarVinculos(destino: DestinoVinculos) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Vinculos) => guardarVinculos(destino, body),
+    retry: false,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['organizacion', 'vinculos'] }),
   })
 }

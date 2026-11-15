@@ -7,12 +7,15 @@ import {
   cupoCanalSchema,
   restriccionesSchema,
   subProductoAdminSchema,
+  vinculosSchema,
   type CupoCanalBody,
+  type DestinoVinculos,
   type ProductoCreate,
   type ProductoUpdate,
   type RestriccionesBody,
   type SubProductoCreate,
   type SubProductoUpdate,
+  type Vinculos,
 } from '@/features/organizacion/api/productos.contract'
 
 const RESPUESTA_INVALIDA = 'No pudimos leer la respuesta del servidor. Inténtalo más tarde.'
@@ -75,4 +78,18 @@ export async function obtenerRestricciones(idSubProducto: number) {
 export async function guardarRestricciones(idSubProducto: number, body: RestriccionesBody) {
   const { data, status } = await apiClient.put<unknown>(PRODUCTOS_ENDPOINTS.restricciones(idSubProducto), body)
   return validar(restriccionesSchema, data, status)
+}
+
+const urlVinculos = (d: DestinoVinculos) =>
+  d.tipo === 'producto' ? PRODUCTOS_ENDPOINTS.vinculosProducto(d.id) : PRODUCTOS_ENDPOINTS.vinculosSubProducto(d.id)
+
+export async function obtenerVinculos(destino: DestinoVinculos) {
+  const { data, status } = await apiClient.get<unknown>(urlVinculos(destino))
+  return validar(vinculosSchema, data, status)
+}
+
+/** PUT (solo ADMIN): el checklist completo; lo que no va queda desmarcado */
+export async function guardarVinculos(destino: DestinoVinculos, body: Vinculos) {
+  const { data, status } = await apiClient.put<unknown>(urlVinculos(destino), body)
+  return validar(vinculosSchema, data, status)
 }

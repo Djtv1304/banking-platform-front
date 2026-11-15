@@ -25,6 +25,8 @@ export const CATALOGOS_ENDPOINTS = {
   tiposMovimientoCaja: `${BASE}/tipos-movimiento-caja`,
   sistemasAmortizacion: `${BASE}/sistemas-amortizacion`,
   tasasInteres: `${BASE}/tasas-interes`,
+  comisiones: `${BASE}/comisiones`,
+  seguros: `${BASE}/seguros`,
   administracion: `${BASE}/administracion`,
   registros: (clave: string) => `${BASE}/administracion/${encodeURIComponent(clave)}`,
   registro: (clave: string, id: string) =>
@@ -169,13 +171,37 @@ export const sistemaAmortizacionSchema = z.object({
  * Tasa de un tipo de crédito para un rango de monto y un plazo máximo. Incluye vigentes, futuras y
  * vencidas; `vigente` dice si aplica hoy. Las tasas son fracciones anuales (0.16 = 16 %).
  */
+export const tipoTasaSchema = z.enum([
+  'CREDITO',
+  'AHORRO',
+  'TARJETA_COMPRA',
+  'TARJETA_AVANCE',
+  'TARJETA_DIFERIDO',
+  'TARJETA_EXTERIOR',
+  'TARJETA_MORA',
+])
+
+export type TipoTasa = z.infer<typeof tipoTasaSchema>
+
+export const ETIQUETA_TIPO_TASA: Record<TipoTasa, string> = {
+  CREDITO: 'Crédito',
+  AHORRO: 'Ahorro',
+  TARJETA_COMPRA: 'Tarjeta · compras',
+  TARJETA_AVANCE: 'Tarjeta · avances de efectivo',
+  TARJETA_DIFERIDO: 'Tarjeta · diferidos',
+  TARJETA_EXTERIOR: 'Tarjeta · compras en el exterior',
+  TARJETA_MORA: 'Tarjeta · mora',
+}
+
+/** CREDITO lleva tipo de crédito y plazo máximo; ahorro y tarjeta no */
 export const tasaInteresSchema = z.object({
   idTasaInteres: z.number(),
-  idTipoCredito: z.number(),
-  nombreTipoCredito: z.string(),
+  tipoTasa: tipoTasaSchema,
+  idTipoCredito: z.number().nullish(),
+  nombreTipoCredito: z.string().nullish(),
   tasaNominalAnual: z.number(),
   recargoMoraSobreTasa: z.number(),
-  plazoMaximoMeses: z.number(),
+  plazoMaximoMeses: z.number().nullish(),
   montoMinimo: z.number().nullish(),
   montoMaximo: z.number().nullish(),
   vigenciaDesde: z.string(),
@@ -185,10 +211,11 @@ export const tasaInteresSchema = z.object({
 
 /** POST (solo ADMIN). No se edita: una tasa nueva con su vigencia reemplaza a la anterior */
 export interface TasaInteresCreate {
-  idTipoCredito: number
+  tipoTasa: TipoTasa
+  idTipoCredito?: number
   tasaNominalAnual: number
   recargoMoraSobreTasa: number
-  plazoMaximoMeses: number
+  plazoMaximoMeses?: number
   montoMinimo?: number
   montoMaximo?: number
   vigenciaDesde: string
@@ -243,3 +270,26 @@ export type CampoCatalogo = z.infer<typeof campoCatalogoSchema>
 export type CatalogoAdministrable = z.infer<typeof catalogoAdministrableSchema>
 export type RegistroCatalogo = z.infer<typeof registroCatalogoSchema>
 export type ValorCampo = string | number | boolean | null
+
+/** Comisiones y recargos activos (Transacciones.Comisiones). Porcentaje: `valor` en % */
+export const comisionSchema = z.object({
+  idComision: z.number(),
+  codigoComision: z.string(),
+  tipoComision: z.string(),
+  tipoCalculo: z.enum(['Fijo', 'Porcentaje']),
+  valor: z.number(),
+  nombreCanal: z.string(),
+  descripcion: z.string(),
+})
+
+export const seguroSchema = z.object({
+  idSeguro: z.number(),
+  codigoSeguro: z.string(),
+  nombre: z.string(),
+  aseguradora: z.string().nullish(),
+  tipoCalculo: z.enum(['Fijo', 'Porcentaje']),
+  valor: z.number(),
+})
+
+export type Comision = z.infer<typeof comisionSchema>
+export type Seguro = z.infer<typeof seguroSchema>

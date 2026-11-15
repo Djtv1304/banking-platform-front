@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
-import { ArrowLeft, Eye, Pencil, Plus, Power, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, Eye, Link2, Pencil, Plus, Power, SlidersHorizontal } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando } from '@/shared/ui'
@@ -12,7 +12,10 @@ import {
   type SubProductoAdmin,
 } from '@/features/organizacion/api/productos.contract'
 import { EstadoProductoBadge } from '@/features/organizacion/components/EstadoProductoBadge'
-import { ParametrosSubProductoDialog } from '@/features/organizacion/components/ParametrosSubProductoDialog'
+import {
+  ParametrosSubProductoDialog,
+  VinculosProductoDialog,
+} from '@/features/organizacion/components/ParametrosSubProductoDialog'
 import { ProductoFormDialog, type ModoProducto } from '@/features/organizacion/components/ProductoFormDialog'
 import { SubProductoFormDialog } from '@/features/organizacion/components/SubProductoFormDialog'
 import {
@@ -23,9 +26,9 @@ import {
 import { condicionesDe, ETIQUETA_TIPO, mensajeErrorProducto } from '@/features/organizacion/lib/producto-form'
 
 const AYUDA_PARAMETROS = {
-  Credito: 'Cada subproducto define sus montos, plazos, tasas y tablas de amortización.',
-  Cuenta: 'Cada subproducto define sus cupos por canal y sus restricciones.',
-  Tarjeta: 'Cada subproducto define sus cupos por canal.',
+  Credito: 'Cada subproducto personaliza sus tasas, comisiones, seguros y tablas de amortización.',
+  Cuenta: 'Cada subproducto define sus cupos por canal, restricciones, tasas de ahorro y comisiones.',
+  Tarjeta: 'Cada subproducto define sus cupos por canal, tasas de tarjeta y comisiones.',
 } as const
 
 /**
@@ -63,6 +66,7 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
   const [formulario, setFormulario] = useState<ModoProducto | null>(null)
   const [nuevoSub, setNuevoSub] = useState(false)
   const [parametrizar, setParametrizar] = useState<SubProductoAdmin | null>(null)
+  const [vinculos, setVinculos] = useState(false)
   const [confirmacion, setConfirmacion] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const ocupado = actualizarProducto.isPending || actualizarSub.isPending
@@ -123,8 +127,13 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
             {producto.descripcion ?? <span className="text-muted-foreground">Sin descripción.</span>}
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={() => setVinculos(true)}>
+            <Link2 />
+            Tasas y cargos
+          </Button>
         {esAdmin ? (
-          <div className="flex flex-wrap gap-2">
+          <>
             <Button variant="ghost" onClick={() => setFormulario({ tipo: 'editar', producto })}>
               <Pencil />
               Editar
@@ -133,13 +142,14 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
               <Power />
               {producto.estado === 'A' ? 'Desactivar' : 'Activar'}
             </Button>
-          </div>
+          </>
         ) : (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <Eye className="size-4" aria-hidden />
             Solo consulta
           </p>
         )}
+        </div>
       </header>
 
       {confirmacion && <Aviso>{confirmacion}</Aviso>}
@@ -210,6 +220,16 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
         )}
       </section>
 
+      <VinculosProductoDialog
+        producto={producto}
+        abierto={vinculos}
+        soloLectura={!esAdmin}
+        onCerrar={() => setVinculos(false)}
+        onGuardado={(mensaje) => {
+          setVinculos(false)
+          alGuardar(mensaje)
+        }}
+      />
       <ParametrosSubProductoDialog
         producto={producto}
         subproducto={parametrizar}

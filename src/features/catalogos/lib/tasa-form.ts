@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import type { TasaInteresCreate } from '@/features/catalogos/api/catalogos.contract'
+import { tipoTasaSchema, type TasaInteresCreate } from '@/features/catalogos/api/catalogos.contract'
 
 /* Formulario de una tasa de interés: mismas reglas que POST /api/v1/catalogos/tasas-interes */
 
@@ -16,7 +16,8 @@ const FECHA = /^\d{4}-\d{2}-\d{2}$/
 /** En el formulario la tasa se escribe en porcentaje (16 = 16 %); el backend la guarda como fracción */
 export const tasaFormSchema = z
   .object({
-    idTipoCredito: z.string().min(1, 'Elige el tipo de crédito.'),
+    tipoTasa: tipoTasaSchema,
+    idTipoCredito: z.string(),
     tasa: numero(/^\d{1,3}(\.\d{1,2})?$/, 'Usa un porcentaje como 16 o 16.5.'),
     recargoMora: numero(/^\d{1,3}(\.\d{1,2})?$/, 'Usa un porcentaje como 2.'),
     plazoMaximoMeses: numero(/^\d{1,3}$/, 'Usa meses enteros.'),
@@ -28,7 +29,10 @@ export const tasaFormSchema = z
   .superRefine((d, ctx) => {
     if (d.tasa === undefined || d.tasa <= 0 || d.tasa > 100) ctx.addIssue({ code: 'custom', path: ['tasa'], message: 'Entre 0.01 y 100 %.' })
     if (d.recargoMora !== undefined && d.recargoMora > 100) ctx.addIssue({ code: 'custom', path: ['recargoMora'], message: 'Hasta 100 %.' })
-    if (d.plazoMaximoMeses === undefined || d.plazoMaximoMeses < 1 || d.plazoMaximoMeses > 600) {
+    const credito = d.tipoTasa === 'CREDITO'
+    if (credito && !d.idTipoCredito) ctx.addIssue({ code: 'custom', path: ['idTipoCredito'], message: 'Elige el tipo de crédito.' })
+    // El plazo lo exige crédito; en tarjeta (p. ej. diferidos) es opcional
+    if ((credito && d.plazoMaximoMeses === undefined) || (d.plazoMaximoMeses !== undefined && (d.plazoMaximoMeses < 1 || d.plazoMaximoMeses > 600))) {
       ctx.addIssue({ code: 'custom', path: ['plazoMaximoMeses'], message: 'Entre 1 y 600 meses.' })
     }
     if (d.montoMinimo === 0) ctx.addIssue({ code: 'custom', path: ['montoMinimo'], message: 'Debe ser mayor que 0.' })
@@ -49,10 +53,11 @@ const fraccion = (porciento: number) => Math.round(porciento * 100) / 10000
 
 export function payloadTasa(d: TasaFormData): TasaInteresCreate {
   return {
-    idTipoCredito: Number(d.idTipoCredito),
+    tipoTasa: d.tipoTasa,
+    ...(d.tipoTasa === 'CREDITO' && { idTipoCredito: Number(d.idTipoCredito) }),
     tasaNominalAnual: fraccion(d.tasa ?? 0),
     recargoMoraSobreTasa: fraccion(d.recargoMora ?? 0),
-    plazoMaximoMeses: d.plazoMaximoMeses ?? 0,
+    ...(d.plazoMaximoMeses !== undefined && { plazoMaximoMeses: d.plazoMaximoMeses }),
     ...(d.montoMinimo !== undefined && { montoMinimo: d.montoMinimo }),
     ...(d.montoMaximo !== undefined && { montoMaximo: d.montoMaximo }),
     vigenciaDesde: d.vigenciaDesde,
