@@ -1,22 +1,25 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query'
 
 import {
+  actualizarRegistroCatalogo,
   crearTasaInteres,
   getActividadesEconomicas,
   getAgencias,
   getCanales,
+  getCatalogosAdministrables,
   getCiudades,
   getDenominaciones,
   getPaises,
   getProductos,
   getRedes,
+  getRegistrosCatalogo,
   getSistemasAmortizacion,
   getTasasInteres,
   getTiposAntecedente,
   getTiposCredito,
   getTiposMovimientoCaja,
 } from '@/features/catalogos/api/catalogos.api'
-import type { TipoProducto, TipoTarjeta } from '@/features/catalogos/api/catalogos.contract'
+import type { TipoProducto, TipoTarjeta, ValorCampo } from '@/features/catalogos/api/catalogos.contract'
 
 /*
  * Catálogos con caché por sesión (F-09).
@@ -104,5 +107,29 @@ export function useCrearTasaInteres() {
     mutationFn: crearTasaInteres,
     retry: false,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: CLAVE_TASAS }),
+  })
+}
+
+export const useCatalogosAdministrables = () =>
+  useCatalogo({ queryKey: ['catalogos', 'administracion'], queryFn: getCatalogosAdministrables })
+
+/** Sin caché por sesión: el ADMIN los cambia */
+export function useRegistrosCatalogo(clave: string | null) {
+  const query = useQuery({
+    queryKey: ['catalogos', 'administracion', clave],
+    queryFn: () => getRegistrosCatalogo(clave ?? ''),
+    enabled: clave !== null,
+  })
+  return { ...query, data: query.data ?? (VACIO as Awaited<ReturnType<typeof getRegistrosCatalogo>>) }
+}
+
+/** Al guardar se refrescan todos los catálogos: los formularios del resto de la app los usan */
+export function useActualizarRegistroCatalogo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ clave, id, body }: { clave: string; id: string; body: Record<string, ValorCampo> }) =>
+      actualizarRegistroCatalogo(clave, id, body),
+    retry: false,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalogos'] }),
   })
 }

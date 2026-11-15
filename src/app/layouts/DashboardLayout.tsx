@@ -14,7 +14,7 @@ import {
   Package,
   PanelLeft,
   ShieldCheck,
-  Percent,
+  Library,
   Sun,
   UserPlus,
   UserSearch,
@@ -97,7 +97,7 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     // ADMIN administra; ASESOR solo consulta (las páginas ocultan las acciones)
     items: [
       { to: '/productos', label: 'Productos', Icon: Package, roles: PRODUCTOS_ROLES.consultar },
-      { to: '/catalogos/tasas-interes', label: 'Tasas de interés', Icon: Percent, roles: CATALOGOS_ROLES.consultar },
+      { to: '/catalogos', label: 'Catálogos', Icon: Library, roles: CATALOGOS_ROLES.consultar },
     ],
   },
   {

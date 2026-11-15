@@ -6,17 +6,20 @@ import {
   actividadEconomicaSchema,
   agenciaSchema,
   canalSchema,
+  catalogoAdministrableSchema,
   ciudadSchema,
   denominacionSchema,
   paisSchema,
   productoSchema,
   redSchema,
+  registroCatalogoSchema,
   sistemaAmortizacionSchema,
   tasaInteresSchema,
   tipoAntecedenteSchema,
   tipoCreditoSchema,
   tipoMovimientoCajaSchema,
   type TasaInteresCreate,
+  type ValorCampo,
   type TipoProducto,
   type TipoTarjeta,
 } from '@/features/catalogos/api/catalogos.contract'
@@ -82,6 +85,22 @@ export const getTasasInteres = (idTipoCredito?: number) =>
 export async function crearTasaInteres(body: TasaInteresCreate) {
   const { data, status } = await apiClient.post<unknown>(CATALOGOS_ENDPOINTS.tasasInteres, body)
   const result = tasaInteresSchema.safeParse(data)
+  if (!result.success) {
+    throw new ApiError('No pudimos leer la respuesta del servidor. Inténtalo más tarde.', status, 'respuesta_invalida')
+  }
+  return result.data
+}
+
+export const getCatalogosAdministrables = () =>
+  getLista(CATALOGOS_ENDPOINTS.administracion, catalogoAdministrableSchema)
+
+/** Todas las filas, activas e inactivas */
+export const getRegistrosCatalogo = (clave: string) => getLista(CATALOGOS_ENDPOINTS.registros(clave), registroCatalogoSchema)
+
+/** PATCH (solo ADMIN): solo los campos que cambian, o `estado` */
+export async function actualizarRegistroCatalogo(clave: string, id: string, body: Record<string, ValorCampo>) {
+  const { data, status } = await apiClient.patch<unknown>(CATALOGOS_ENDPOINTS.registro(clave, id), body)
+  const result = registroCatalogoSchema.safeParse(data)
   if (!result.success) {
     throw new ApiError('No pudimos leer la respuesta del servidor. Inténtalo más tarde.', status, 'respuesta_invalida')
   }
