@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/react-query'
 import { setUnauthorizedHandler } from '@/shared/api'
 import { getMe, logout } from '@/features/auth/api/auth.api'
 import { useAuthStore } from '@/features/auth/store/auth.store'
@@ -36,7 +37,12 @@ export async function signOut() {
 /**
  * Conecta el cliente HTTP de `shared/api` con esta feature: cualquier 401 de la API significa que
  * la sesión ya no es válida (el backend renueva la sesión sellada por su cuenta mientras pueda).
+ * Además de olvidar al usuario, vacía la caché de consultas para que los datos de clientes, cuentas
+ * o tarjetas que ya se habían cargado no sigan en memoria ni se muestren a quien entre después.
  */
-export function registerAuthHandlers() {
-  setUnauthorizedHandler(() => useAuthStore.getState().clearSession())
+export function registerAuthHandlers(queryClient: Pick<QueryClient, 'clear'>) {
+  setUnauthorizedHandler(() => {
+    useAuthStore.getState().clearSession()
+    queryClient.clear()
+  })
 }
