@@ -75,13 +75,14 @@ const lista = () => renderToStaticMarkup(<ProductosPage />)
 const detalle = () => renderToStaticMarkup(<DetalleProductoPage />)
 
 describe('ProductosPage (listado)', () => {
-  it('solo lista los productos, con buscador y enlace al detalle', () => {
+  it('agrupa por tipo, con buscador, subproductos y enlace al detalle', () => {
+    estado.data = [AHORRO, CONSUMO]
     const salida = lista()
-    expect(salida).toContain('Ahorro a la vista')
     expect(salida).toContain('aria-label="Buscar productos"')
     expect(salida).toContain('href="/productos/1"')
-    expect(salida).toContain('1 subproducto')
-    expect(salida).not.toContain('AHO001-PN')
+    expect(salida).toContain('Persona natural')
+    expect(salida.indexOf('Cuentas')).toBeLessThan(salida.indexOf('Créditos'))
+    expect(salida).not.toContain('Tarjetas')
   })
 
   it('ADMIN crea; ASESOR solo consulta', () => {
@@ -110,10 +111,12 @@ describe('DetalleProductoPage', () => {
     expect(salida).toContain('Subproducto</button>')
   })
 
-  it('solo los subproductos de crédito se parametrizan', () => {
-    expect(detalle()).not.toContain('Parámetros de')
+  it('todos los subproductos se parametrizan, con la ayuda de su tipo', () => {
+    expect(detalle()).toContain('aria-label="Parámetros de AHO001-PN"')
+    expect(detalle()).toContain('cupos por canal')
     estado.data = [CONSUMO]
     expect(detalle()).toContain('aria-label="Parámetros de CRE001-01"')
+    expect(detalle()).toContain('tablas de amortización')
   })
 
   it('ASESOR consulta los parámetros pero no cambia nada', () => {

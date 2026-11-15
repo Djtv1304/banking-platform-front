@@ -5,13 +5,19 @@ import {
   actualizarSubProducto,
   crearProducto,
   crearSubProducto,
+  guardarCupos,
   guardarParametros,
+  guardarRestricciones,
   listarProductos,
+  obtenerCupos,
   obtenerParametros,
   obtenerProducto,
+  obtenerRestricciones,
 } from '@/features/organizacion/api/productos.api'
 import type {
+  CupoCanalBody,
   ProductoUpdate,
+  RestriccionesBody,
   SubProductoCreate,
   SubProductoParametrosBody,
   SubProductoUpdate,
@@ -95,5 +101,34 @@ export function useActualizarSubProducto() {
       actualizarSubProducto(idSubProducto, body),
     retry: false,
     onSuccess,
+  })
+}
+
+const claveCupos = (idSubProducto: number) => ['organizacion', 'cupos', idSubProducto] as const
+const claveRestricciones = (idSubProducto: number) => ['organizacion', 'restricciones', idSubProducto] as const
+
+export function useCuposSubProducto(idSubProducto: number) {
+  return useQuery({ queryKey: claveCupos(idSubProducto), queryFn: () => obtenerCupos(idSubProducto) })
+}
+
+export function useGuardarCupos(idSubProducto: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (cupos: CupoCanalBody[]) => guardarCupos(idSubProducto, cupos),
+    retry: false,
+    onSuccess: (cupos) => queryClient.setQueryData(claveCupos(idSubProducto), cupos),
+  })
+}
+
+export function useRestriccionesSubProducto(idSubProducto: number) {
+  return useQuery({ queryKey: claveRestricciones(idSubProducto), queryFn: () => obtenerRestricciones(idSubProducto) })
+}
+
+export function useGuardarRestricciones(idSubProducto: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: RestriccionesBody) => guardarRestricciones(idSubProducto, body),
+    retry: false,
+    onSuccess: (r) => queryClient.setQueryData(claveRestricciones(idSubProducto), r),
   })
 }

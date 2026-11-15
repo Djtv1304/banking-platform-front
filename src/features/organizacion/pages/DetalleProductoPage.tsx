@@ -22,6 +22,12 @@ import {
 } from '@/features/organizacion/hooks/useProductosAdmin'
 import { condicionesDe, ETIQUETA_TIPO, mensajeErrorProducto } from '@/features/organizacion/lib/producto-form'
 
+const AYUDA_PARAMETROS = {
+  Credito: 'Cada subproducto define sus montos, plazos, tasas y tablas de amortización.',
+  Cuenta: 'Cada subproducto define sus cupos por canal y sus restricciones.',
+  Tarjeta: 'Cada subproducto define sus cupos por canal.',
+} as const
+
 /**
  * Un producto con sus subproductos. En productos de crédito cada subproducto se parametriza
  * (montos, plazos, tasas y tablas de amortización). ASESOR consulta; solo ADMIN cambia.
@@ -59,7 +65,6 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
   const [parametrizar, setParametrizar] = useState<SubProductoAdmin | null>(null)
   const [confirmacion, setConfirmacion] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const esCredito = producto.tipoProducto === 'Credito'
   const ocupado = actualizarProducto.isPending || actualizarSub.isPending
 
   const alGuardar = (mensaje: string) => {
@@ -144,11 +149,7 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 id="titulo-subproductos" className="text-lg font-semibold text-heading">Subproductos</h2>
-            {esCredito && (
-              <p className="text-sm text-muted-foreground">
-                Cada subproducto define sus montos, plazos, tasas y tablas de amortización.
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground">{AYUDA_PARAMETROS[producto.tipoProducto]}</p>
           </div>
           {esAdmin && (
             <Button variant="outline" onClick={() => setNuevoSub(true)}>
@@ -169,7 +170,7 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
                   <th scope="col" className="px-3 py-2 font-medium">Código</th>
                   <th scope="col" className="px-3 py-2 font-medium">Nombre</th>
                   <th scope="col" className="px-3 py-2 font-medium">Estado</th>
-                  {(esAdmin || esCredito) && <th scope="col" className="px-3 py-2 text-right font-medium">Acciones</th>}
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -183,14 +184,11 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
                       )}
                     </td>
                     <td className="px-3 py-2"><EstadoProductoBadge estado={sub.estado} /></td>
-                    {(esAdmin || esCredito) && (
                       <td className="px-3 py-2 text-right whitespace-nowrap">
-                        {esCredito && (
-                          <Button variant="ghost" size="sm" onClick={() => setParametrizar(sub)} aria-label={`Parámetros de ${sub.codigoSubProducto}`}>
-                            <SlidersHorizontal />
-                            Parámetros
-                          </Button>
-                        )}
+                        <Button variant="ghost" size="sm" onClick={() => setParametrizar(sub)} aria-label={`Parámetros de ${sub.codigoSubProducto}`}>
+                          <SlidersHorizontal />
+                          Parámetros
+                        </Button>
                         {esAdmin && (
                           <Button
                             variant="ghost"
@@ -204,7 +202,6 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
                           </Button>
                         )}
                       </td>
-                    )}
                   </tr>
                 ))}
               </tbody>
@@ -213,15 +210,13 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
         )}
       </section>
 
-      {esCredito && (
-        <ParametrosSubProductoDialog
-          producto={producto}
-          subproducto={parametrizar}
-          soloLectura={!esAdmin}
-          onCerrar={() => setParametrizar(null)}
-          onGuardado={alGuardar}
-        />
-      )}
+      <ParametrosSubProductoDialog
+        producto={producto}
+        subproducto={parametrizar}
+        soloLectura={!esAdmin}
+        onCerrar={() => setParametrizar(null)}
+        onGuardado={alGuardar}
+      />
       {esAdmin && (
         <>
           <ProductoFormDialog modo={formulario} onCerrar={() => setFormulario(null)} onGuardado={alGuardar} />

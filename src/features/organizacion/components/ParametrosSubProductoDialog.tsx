@@ -24,6 +24,7 @@ import type {
   SubProductoParametros,
 } from '@/features/organizacion/api/productos.contract'
 import { CampoAgencia as Campo, inputClassName } from '@/features/organizacion/components/CampoAgencia'
+import { SeccionCupos, SeccionRestricciones } from '@/features/organizacion/components/SeccionesSubProducto'
 import { useGuardarParametros, useParametrosSubProducto } from '@/features/organizacion/hooks/useProductosAdmin'
 import { a11yCampo } from '@/features/organizacion/lib/agencias'
 import {
@@ -39,7 +40,7 @@ import { mensajeErrorProducto } from '@/features/organizacion/lib/producto-form'
 
 interface ParametrosSubProductoDialogProps {
   producto: ProductoAdmin
-  /** Subproducto de crédito a parametrizar; null = cerrado */
+  /** Subproducto a parametrizar; null = cerrado */
   subproducto: SubProductoAdmin | null
   /** ASESOR lo ve en solo lectura */
   soloLectura: boolean
@@ -47,10 +48,15 @@ interface ParametrosSubProductoDialogProps {
   onGuardado: (mensaje: string) => void
 }
 
+const DESCRIPCION = {
+  Credito: 'Montos y plazos del crédito, y las tasas y tablas de amortización que se pueden ofrecer.',
+  Cuenta: 'Cupos por canal y restricciones de la cuenta.',
+  Tarjeta: 'Cupos por canal de la tarjeta.',
+} as const
+
 /**
- * Parámetros de un subproducto de crédito: límites de monto y plazo, y qué tasas de interés y
- * sistemas de amortización ofrece. Las tasas y los sistemas se crean en Catálogos; aquí solo se
- * vinculan con un checklist.
+ * Parámetros de un subproducto por secciones, según el tipo de producto. Cada sección se guarda
+ * por separado. Los objetos que se vinculan (tasas, sistemas, canales) se crean en Catálogos.
  */
 export function ParametrosSubProductoDialog({
   producto,
@@ -59,8 +65,6 @@ export function ParametrosSubProductoDialog({
   onCerrar,
   onGuardado,
 }: ParametrosSubProductoDialogProps) {
-  const parametros = useParametrosSubProducto(subproducto?.idSubProducto ?? null)
-
   return (
     <Dialog open={subproducto !== null} onOpenChange={(abierto) => !abierto && onCerrar()}>
       <DialogContent className="max-h-[90vh] gap-5 overflow-y-auto p-6 sm:max-w-2xl">
@@ -68,29 +72,62 @@ export function ParametrosSubProductoDialog({
           <DialogTitle className="text-lg font-semibold text-heading">
             Parámetros de {subproducto?.nombreSubProducto ?? 'subproducto'}
           </DialogTitle>
-          <DialogDescription>
-            Límites del crédito y las tasas y tablas de amortización que se pueden ofrecer. Las tasas se crean en
-            Productos y Catálogos › Catálogos › Tasas de interés.
-          </DialogDescription>
+          <DialogDescription>{DESCRIPCION[producto.tipoProducto]}</DialogDescription>
         </DialogHeader>
-        {subproducto &&
-          (parametros.isError ? (
-            <Aviso tono="error">{mensajeErrorProducto(toApiError(parametros.error))}</Aviso>
-          ) : parametros.isPending ? (
-            <Cargando texto="Cargando parámetros…" />
-          ) : (
-            <Formulario
-              key={subproducto.idSubProducto}
-              producto={producto}
-              subproducto={subproducto}
-              inicial={parametros.data}
-              soloLectura={soloLectura}
-              onCancelar={onCerrar}
-              onGuardado={onGuardado}
-            />
-          ))}
+        {subproducto && producto.tipoProducto === 'Credito' && (
+          <SeccionCredito
+            key={subproducto.idSubProducto}
+            producto={producto}
+            subproducto={subproducto}
+            soloLectura={soloLectura}
+            onCerrar={onCerrar}
+            onGuardado={onGuardado}
+          />
+        )}
+        {subproducto && producto.tipoProducto !== 'Credito' && (
+          <div key={subproducto.idSubProducto} className="flex flex-col gap-6">
+            <SeccionCupos subproducto={subproducto} soloLectura={soloLectura} onGuardado={onGuardado} />
+            {producto.tipoProducto === 'Cuenta' && (
+              <SeccionRestricciones subproducto={subproducto} soloLectura={soloLectura} onGuardado={onGuardado} />
+            )}
+            <DialogFooter className="-mx-6 -mb-6 px-6">
+              <Button type="button" variant="outline" size="lg" onClick={onCerrar} className="rounded-lg px-4">
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** Crédito: límites de monto y plazo, y checklist de tasas y tablas de amortización */
+function SeccionCredito({
+  producto,
+  subproducto,
+  soloLectura,
+  onCerrar,
+  onGuardado,
+}: {
+  producto: ProductoAdmin
+  subproducto: SubProductoAdmin
+  soloLectura: boolean
+  onCerrar: () => void
+  onGuardado: (mensaje: string) => void
+}) {
+  const parametros = useParametrosSubProducto(subproducto.idSubProducto)
+  if (parametros.isError) return <Aviso tono="error">{mensajeErrorProducto(toApiError(parametros.error))}</Aviso>
+  if (parametros.isPending) return <Cargando texto="Cargando parámetros…" />
+  return (
+    <Formulario
+      producto={producto}
+      subproducto={subproducto}
+      inicial={parametros.data}
+      soloLectura={soloLectura}
+      onCancelar={onCerrar}
+      onGuardado={onGuardado}
+    />
   )
 }
 

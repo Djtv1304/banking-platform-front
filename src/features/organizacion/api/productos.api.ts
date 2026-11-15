@@ -4,10 +4,14 @@ import { ApiError, apiClient } from '@/shared/api'
 import {
   PRODUCTOS_ENDPOINTS,
   productoAdminSchema,
+  cupoCanalSchema,
+  restriccionesSchema,
   subProductoAdminSchema,
   subProductoParametrosSchema,
+  type CupoCanalBody,
   type ProductoCreate,
   type ProductoUpdate,
+  type RestriccionesBody,
   type SubProductoCreate,
   type SubProductoParametrosBody,
   type SubProductoUpdate,
@@ -63,4 +67,24 @@ export async function obtenerParametros(idSubProducto: number) {
 export async function guardarParametros(idSubProducto: number, body: SubProductoParametrosBody) {
   const { data, status } = await apiClient.put<unknown>(PRODUCTOS_ENDPOINTS.parametros(idSubProducto), body)
   return validar(subProductoParametrosSchema, data, status)
+}
+
+export async function obtenerCupos(idSubProducto: number) {
+  const { data, status } = await apiClient.get<unknown>(PRODUCTOS_ENDPOINTS.cupos(idSubProducto))
+  return validar(cupoCanalSchema.array(), data, status)
+}
+
+export async function guardarCupos(idSubProducto: number, cupos: CupoCanalBody[]) {
+  const { data, status } = await apiClient.put<unknown>(PRODUCTOS_ENDPOINTS.cupos(idSubProducto), { cupos })
+  return validar(cupoCanalSchema.array(), data, status)
+}
+
+export async function obtenerRestricciones(idSubProducto: number) {
+  const { data, status } = await apiClient.get<unknown>(PRODUCTOS_ENDPOINTS.restricciones(idSubProducto))
+  return validar(restriccionesSchema, data, status)
+}
+
+export async function guardarRestricciones(idSubProducto: number, body: RestriccionesBody) {
+  const { data, status } = await apiClient.put<unknown>(PRODUCTOS_ENDPOINTS.restricciones(idSubProducto), body)
+  return validar(restriccionesSchema, data, status)
 }
