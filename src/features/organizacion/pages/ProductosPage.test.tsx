@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ComponentProps } from 'react'
 
+import { DetalleProductoPage } from '@/features/organizacion/pages/DetalleProductoPage'
 import { ProductosPage } from '@/features/organizacion/pages/ProductosPage'
 import type { ProductoAdmin } from '@/features/organizacion/api/productos.contract'
 
@@ -10,16 +11,23 @@ vi.mock('@/features/auth', () => ({
   useAuthStore: (selector: (s: { user: { roles: string[] } }) => unknown) => selector({ user: { roles: estado.roles } }),
   hasAnyRole: (roles: readonly string[], permitidos: readonly string[]) => roles.some((r) => permitidos.includes(r)),
 }))
+vi.mock('react-router', () => ({
+  Link: ({ children, to, ...props }: ComponentProps<'a'> & { to: string }) => <a href={to} {...props}>{children}</a>,
+  useParams: () => ({ idProducto: '1' }),
+}))
 vi.mock('@/features/organizacion/hooks/useProductosAdmin', () => ({
   useProductosAdmin: () => ({ data: estado.data, isPending: false, isError: false, error: null }),
+  useProductoAdmin: () => ({ data: estado.data[0], isPending: false, isError: false, error: null }),
   useActualizarProducto: () => ({ isPending: false, mutate: vi.fn() }),
   useActualizarSubProducto: () => ({ isPending: false, mutate: vi.fn() }),
 }))
 vi.mock('@/features/organizacion/components/ProductoFormDialog', () => ({ ProductoFormDialog: () => null }))
 vi.mock('@/features/organizacion/components/SubProductoFormDialog', () => ({ SubProductoFormDialog: () => null }))
+vi.mock('@/features/organizacion/components/ParametrosSubProductoDialog', () => ({ ParametrosSubProductoDialog: () => null }))
 vi.mock('@/shared/ui', () => ({
   Button: ({ children, ...props }: ComponentProps<'button'>) => <button {...props}>{children}</button>,
   Badge: ({ children }: ComponentProps<'span'>) => <span>{children}</span>,
+  Input: (props: ComponentProps<'input'>) => <input {...props} />,
   Aviso: ({ children }: ComponentProps<'div'>) => <div>{children}</div>,
   Cargando: ({ texto }: { texto: string }) => <div>{texto}</div>,
 }))
@@ -43,40 +51,79 @@ const AHORRO: ProductoAdmin = {
   ],
 }
 
+const CONSUMO: ProductoAdmin = {
+  ...AHORRO,
+  idProducto: 2,
+  codigoProducto: 'CRE001',
+  nombreProducto: 'Crédito de consumo',
+  descripcion: null,
+  tipoProducto: 'Credito',
+  tipoCuenta: null,
+  montoAperturaMinimo: null,
+  idTipoCredito: 1,
+  nombreTipoCredito: 'Consumo',
+  subproductos: [
+    { idSubProducto: 5, idProducto: 2, codigoSubProducto: 'CRE001-01', nombreSubProducto: 'Consumo hasta 10000', estado: 'A', fechaRegistro: '2026-11-15T10:00:00', tipoTarjeta: null },
+  ],
+}
+
 beforeEach(() => {
   estado.roles = ['ADMIN']
   estado.data = [AHORRO]
 })
-const html = () => renderToStaticMarkup(<ProductosPage />)
+const lista = () => renderToStaticMarkup(<ProductosPage />)
+const detalle = () => renderToStaticMarkup(<DetalleProductoPage />)
 
-describe('ProductosPage', () => {
-  it('muestra productos, descripción y subproductos', () => {
-    const salida = html()
+describe('ProductosPage (listado)', () => {
+  it('solo lista los productos, con buscador y enlace al detalle', () => {
+    const salida = lista()
     expect(salida).toContain('Ahorro a la vista')
+    expect(salida).toContain('aria-label="Buscar productos"')
+    expect(salida).toContain('href="/productos/1"')
+    expect(salida).toContain('1 subproducto')
+    expect(salida).not.toContain('AHO001-PN')
+  })
+
+  it('ADMIN crea; ASESOR solo consulta', () => {
+    expect(lista()).toContain('Nuevo producto')
+    estado.roles = ['ASESOR']
+    expect(lista()).toContain('Solo consulta')
+    expect(lista()).not.toContain('Nuevo producto')
+  })
+
+  it('en la app solo se habla de clientes, nunca de socios', () => {
+    expect(lista().toLowerCase()).not.toContain('socio')
+  })
+})
+
+describe('DetalleProductoPage', () => {
+  it('muestra la descripción y los subproductos', () => {
+    const salida = detalle()
     expect(salida).toContain('Cuenta de ahorro con retiros libres')
     expect(salida).toContain('AHO001-PN')
   })
 
-  it('ADMIN ve las acciones de crear, editar y cambiar estado', () => {
-    const salida = html()
-    expect(salida).toContain('Nuevo producto')
-    expect(salida).toContain('aria-label="Editar AHO001"')
-    expect(salida).toContain('aria-label="Desactivar AHO001"')
-    expect(salida).toContain('aria-label="Agregar subproducto a AHO001"')
+  it('ADMIN edita, cambia estado y agrega subproductos', () => {
+    const salida = detalle()
+    expect(salida).toContain('Editar')
+    expect(salida).toContain('aria-label="Desactivar AHO001-PN"')
+    expect(salida).toContain('Subproducto</button>')
   })
 
-  it('ASESOR solo consulta: no hay ninguna acción', () => {
+  it('solo los subproductos de crédito se parametrizan', () => {
+    expect(detalle()).not.toContain('Parámetros de')
+    estado.data = [CONSUMO]
+    expect(detalle()).toContain('aria-label="Parámetros de CRE001-01"')
+  })
+
+  it('ASESOR consulta los parámetros pero no cambia nada', () => {
     estado.roles = ['ASESOR']
-    const salida = html()
-    expect(salida).toContain('Ahorro a la vista')
+    estado.data = [CONSUMO]
+    const salida = detalle()
     expect(salida).toContain('Solo consulta')
-    expect(salida).not.toContain('Nuevo producto')
+    expect(salida).toContain('aria-label="Parámetros de CRE001-01"')
     expect(salida).not.toContain('Editar')
     expect(salida).not.toContain('Desactivar')
     expect(salida).not.toContain('Subproducto</button>')
-  })
-
-  it('en la app solo se habla de clientes, nunca de socios', () => {
-    expect(html().toLowerCase()).not.toContain('socio')
   })
 })

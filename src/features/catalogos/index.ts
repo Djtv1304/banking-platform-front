@@ -10,7 +10,9 @@ export type {
   Pais,
   Producto,
   Red,
+  SistemaAmortizacion,
   SubProducto,
+  TasaInteres,
   TipoAntecedente,
   TipoCredito,
   TipoMovimientoCaja,
@@ -26,7 +28,11 @@ export {
   usePaises,
   useProductos,
   useRedes,
+  useSistemasAmortizacion,
+  useTasasInteres,
   useTiposAntecedente,
   useTiposCredito,
   useTiposMovimientoCaja,
 } from '@/features/catalogos/hooks/useCatalogos'
+export { CATALOGOS_ROLES } from '@/features/catalogos/api/catalogos.contract'
+export { TasasInteresPage } from '@/features/catalogos/pages/TasasInteresPage'

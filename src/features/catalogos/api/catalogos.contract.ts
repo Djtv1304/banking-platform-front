@@ -23,6 +23,14 @@ export const CATALOGOS_ENDPOINTS = {
   canales: `${BASE}/canales`,
   tiposCredito: `${BASE}/tipos-credito`,
   tiposMovimientoCaja: `${BASE}/tipos-movimiento-caja`,
+  sistemasAmortizacion: `${BASE}/sistemas-amortizacion`,
+  tasasInteres: `${BASE}/tasas-interes`,
+} as const
+
+/** Los catálogos los consulta ADMIN y ASESOR en la SPA; solo ADMIN crea tasas de interés */
+export const CATALOGOS_ROLES = {
+  consultar: ['ADMIN', 'ASESOR'],
+  administrar: ['ADMIN'],
 } as const
 
 /** CAT-01 · Ordenados por nombre. `codigoPais` es ISO 3166-1 alfa-3 (`ECU`) */
@@ -146,6 +154,43 @@ export const tipoMovimientoCajaSchema = z.object({
   naturaleza: z.enum(['I', 'E']),
 })
 
+/** Sistemas de amortización (Francés, Alemán): el cálculo es del backend; aquí solo se listan */
+export const sistemaAmortizacionSchema = z.object({
+  codigo: z.string(),
+  nombre: z.string(),
+  descripcion: z.string(),
+})
+
+/**
+ * Tasa de un tipo de crédito para un rango de monto y un plazo máximo. Incluye vigentes, futuras y
+ * vencidas; `vigente` dice si aplica hoy. Las tasas son fracciones anuales (0.16 = 16 %).
+ */
+export const tasaInteresSchema = z.object({
+  idTasaInteres: z.number(),
+  idTipoCredito: z.number(),
+  nombreTipoCredito: z.string(),
+  tasaNominalAnual: z.number(),
+  recargoMoraSobreTasa: z.number(),
+  plazoMaximoMeses: z.number(),
+  montoMinimo: z.number().nullish(),
+  montoMaximo: z.number().nullish(),
+  vigenciaDesde: z.string(),
+  vigenciaHasta: z.string().nullish(),
+  vigente: z.boolean(),
+})
+
+/** POST (solo ADMIN). No se edita: una tasa nueva con su vigencia reemplaza a la anterior */
+export interface TasaInteresCreate {
+  idTipoCredito: number
+  tasaNominalAnual: number
+  recargoMoraSobreTasa: number
+  plazoMaximoMeses: number
+  montoMinimo?: number
+  montoMaximo?: number
+  vigenciaDesde: string
+  vigenciaHasta?: string
+}
+
 export type Pais = z.infer<typeof paisSchema>
 export type Ciudad = z.infer<typeof ciudadSchema>
 export type ActividadEconomica = z.infer<typeof actividadEconomicaSchema>
@@ -160,3 +205,5 @@ export type SubProducto = z.infer<typeof subProductoSchema>
 export type Canal = z.infer<typeof canalSchema>
 export type TipoCredito = z.infer<typeof tipoCreditoSchema>
 export type TipoMovimientoCaja = z.infer<typeof tipoMovimientoCajaSchema>
+export type SistemaAmortizacion = z.infer<typeof sistemaAmortizacionSchema>
+export type TasaInteres = z.infer<typeof tasaInteresSchema>

@@ -1,6 +1,7 @@
-import { useQuery, type UseQueryOptions } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query'
 
 import {
+  crearTasaInteres,
   getActividadesEconomicas,
   getAgencias,
   getCanales,
@@ -9,6 +10,8 @@ import {
   getPaises,
   getProductos,
   getRedes,
+  getSistemasAmortizacion,
+  getTasasInteres,
   getTiposAntecedente,
   getTiposCredito,
   getTiposMovimientoCaja,
@@ -79,3 +82,27 @@ export const useTiposCredito = () =>
 
 export const useTiposMovimientoCaja = () =>
   useCatalogo({ queryKey: ['catalogos', 'tipos-movimiento-caja'], queryFn: getTiposMovimientoCaja })
+
+export const useSistemasAmortizacion = () =>
+  useCatalogo({ queryKey: ['catalogos', 'sistemas-amortizacion'], queryFn: getSistemasAmortizacion })
+
+const CLAVE_TASAS = ['catalogos', 'tasas-interes'] as const
+
+/** Las tasas sí cambian (las crea el ADMIN): no se guardan por sesión, se invalidan al crear */
+export function useTasasInteres(idTipoCredito?: number) {
+  const query = useQuery({
+    queryKey: [...CLAVE_TASAS, idTipoCredito ?? 'todas'],
+    queryFn: () => getTasasInteres(idTipoCredito),
+  })
+  return { ...query, data: query.data ?? (VACIO as Awaited<ReturnType<typeof getTasasInteres>>) }
+}
+
+/** Sin reintento: una escritura no se repite sola */
+export function useCrearTasaInteres() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: crearTasaInteres,
+    retry: false,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: CLAVE_TASAS }),
+  })
+}
