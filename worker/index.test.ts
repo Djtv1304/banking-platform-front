@@ -107,6 +107,41 @@ describe('proxy del Worker', () => {
     expect(fetchBackend).not.toHaveBeenCalled()
   })
 
+  it('con el secreto, manda la IP de CF-Connecting-IP y no la que envía el cliente (ASVS 4.1.3)', async () => {
+    const fetchBackend = vi.fn<typeof fetch>().mockResolvedValue(new Response('{}'))
+    vi.stubGlobal('fetch', fetchBackend)
+    const request = incomingRequest(`https://${PREVIEW_HOST}/api/v1/auth/me`, {
+      headers: {
+        'CF-Connecting-IP': '203.0.113.7',
+        'X-Cliente-Ip': '198.51.100.66',
+        'X-Proxy-Secreto': 'adivinado',
+        'X-Forwarded-For': '198.51.100.66',
+      },
+    })
+
+    await worker.fetch(request, { ...createEnv(), PROXY_SECRETO: 'secreto-real' })
+
+    const headers = new Headers(fetchBackend.mock.calls[0][1]?.headers)
+    expect(headers.get('X-Cliente-Ip')).toBe('203.0.113.7')
+    expect(headers.get('X-Proxy-Secreto')).toBe('secreto-real')
+    expect(headers.has('x-forwarded-for')).toBe(false)
+    expect(headers.has('cf-connecting-ip')).toBe(false)
+  })
+
+  it('sin secreto configurado no reenvía IP ni secreto, aunque el cliente los mande', async () => {
+    const fetchBackend = vi.fn<typeof fetch>().mockResolvedValue(new Response('{}'))
+    vi.stubGlobal('fetch', fetchBackend)
+    const request = incomingRequest(`https://${PREVIEW_HOST}/api/v1/auth/me`, {
+      headers: { 'CF-Connecting-IP': '203.0.113.7', 'X-Cliente-Ip': '198.51.100.66', 'X-Proxy-Secreto': 'adivinado' },
+    })
+
+    await worker.fetch(request, createEnv())
+
+    const headers = new Headers(fetchBackend.mock.calls[0][1]?.headers)
+    expect(headers.has('x-cliente-ip')).toBe(false)
+    expect(headers.has('x-proxy-secreto')).toBe(false)
+  })
+
   it('mantiene el error controlado cuando el backend no responde', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockRejectedValue(new Error('unavailable')))
 

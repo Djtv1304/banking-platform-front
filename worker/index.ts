@@ -14,6 +14,11 @@ interface Env {
   ASSETS: Fetcher
   /** Origen del backend sin "/" final (wrangler.jsonc → vars) */
   BACKEND_URL: string
+  /**
+   * Secreto compartido con el backend (`wrangler secret put PROXY_SECRETO`, nunca en el repositorio).
+   * Con él, el backend confía en la IP que manda el Worker (ASVS 4.1.3, 15.3.4)
+   */
+  PROXY_SECRETO?: string
 }
 
 const API_PREFIX = '/api/'
@@ -26,10 +31,18 @@ const METHODS_WITHOUT_BODY = new Set(['GET', 'HEAD'])
  * `host` lo pone fetch() con el host del backend.
  */
 function isHopOrSpoofableHeader(name: string) {
-  return name === 'host' || name.startsWith('x-forwarded-') || name.startsWith('cf-')
+  return (
+    name === 'host' ||
+    name.startsWith('x-forwarded-') ||
+    name.startsWith('cf-') ||
+    name === 'x-cliente-ip' ||
+    name === 'x-proxy-secreto'
+  )
 }
 
-function buildBackendHeaders(request: Request) {
+function buildBackendHeaders(request: Request, env: Env) {
+  // La fija Cloudflare en el borde y el cliente no puede cambiarla. Se lee antes de limpiar las cf-*
+  const clientIp = request.headers.get('CF-Connecting-IP')
   const headers = new Headers(request.headers)
   // Se juntan primero: borrar mientras se itera un Headers salta entradas
   const toDelete = [...headers.keys()].filter(isHopOrSpoofableHeader)
@@ -37,6 +50,11 @@ function buildBackendHeaders(request: Request) {
   // Se reconstruye desde la URL recibida por el Worker, nunca desde cabeceras del cliente.
   // El backend valida este dominio contra su lista de previews permitidas antes de usarlo.
   headers.set('X-Forwarded-Host', new URL(request.url).hostname)
+  // IP real del usuario para auditoría y límites: el backend solo la acepta junto al secreto
+  if (env.PROXY_SECRETO) {
+    headers.set('X-Proxy-Secreto', env.PROXY_SECRETO)
+    if (clientIp) headers.set('X-Cliente-Ip', clientIp)
+  }
   return headers
 }
 
@@ -49,7 +67,7 @@ async function proxyToBackend(request: Request, env: Env, url: URL): Promise<Res
     // cabeceras podría fusionar los Set-Cookie múltiples y romper la sesión)
     return await fetch(target, {
       method: request.method,
-      headers: buildBackendHeaders(request),
+      headers: buildBackendHeaders(request, env),
       body: METHODS_WITHOUT_BODY.has(request.method) ? undefined : request.body,
       // Los 302 (login → WorkOS, callback → SPA) los sigue el navegador, no el Worker
       redirect: 'manual',

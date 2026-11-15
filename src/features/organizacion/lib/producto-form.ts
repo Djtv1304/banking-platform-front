@@ -1,0 +1,198 @@
+import { z } from 'zod'
+
+import type { ApiError } from '@/shared/api'
+import type {
+  ProductoAdmin,
+  ProductoCreate,
+  ProductoUpdate,
+  SubProductoCreate,
+  TipoProductoAdmin,
+} from '@/features/organizacion/api/productos.contract'
+
+/*
+ * Formularios de productos y subproductos: mismas reglas que el backend (`/api/v1/productos`).
+ * Los campos son texto; el esquema arma los valores del body y los vacíos quedan en `undefined`.
+ */
+
+/** Sin caracteres de control: el texto termina en pantallas, reportes y la auditoría */
+const sinControl = (valor: string) =>
+  [...valor].every((caracter) => {
+    const codigo = caracter.charCodeAt(0)
+    return codigo > 0x1f && codigo !== 0x7f
+  })
+
+const nombre = z
+  .string()
+  .trim()
+  .min(3, 'Usa al menos 3 caracteres.')
+  .max(100, 'Usa 100 caracteres como máximo.')
+  .refine(sinControl, 'Escribe el nombre en una sola línea.')
+
+const descripcion = z
+  .string()
+  .trim()
+  .max(250, 'Usa 250 caracteres como máximo.')
+  .refine(sinControl, 'Escribe la descripción en una sola línea.')
+  .transform((valor) => valor || undefined)
+
+export const ETIQUETA_TIPO: Record<TipoProductoAdmin, string> = {
+  Cuenta: 'Cuenta',
+  Credito: 'Crédito',
+  Tarjeta: 'Tarjeta',
+}
+
+const camposProducto = z.object({
+  codigoProducto: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{3,10}$/, 'Usa de 3 a 10 letras o números, sin espacios.'),
+  nombreProducto: nombre,
+  descripcion,
+  tipoProducto: z.string(),
+  tipoCuenta: z.string(),
+  montoAperturaMinimo: z.string().trim(),
+  idTipoCredito: z.string(),
+  idRed: z.string(),
+  permiteOperacionesPresenciales: z.boolean(),
+})
+
+/** Lo que pide cada tipo: Cuenta (tipo de cuenta y monto), Crédito (tipo de crédito), Tarjeta (red) */
+export const productoFormSchema = camposProducto.superRefine((valor, ctx) => {
+  const falta = (path: string, message: string) => ctx.addIssue({ code: 'custom', path: [path], message })
+  if (!['Cuenta', 'Credito', 'Tarjeta'].includes(valor.tipoProducto)) falta('tipoProducto', 'Elige el tipo de producto.')
+  if (valor.tipoProducto === 'Cuenta') {
+    if (!['Ahorro', 'Corriente'].includes(valor.tipoCuenta)) falta('tipoCuenta', 'Elige el tipo de cuenta.')
+    if (valor.montoAperturaMinimo !== '' && !/^\d{1,13}(\.\d{1,2})?$/.test(valor.montoAperturaMinimo)) {
+      falta('montoAperturaMinimo', 'Usa un monto en dólares, con hasta 2 decimales.')
+    }
+  }
+  if (valor.tipoProducto === 'Credito' && !valor.idTipoCredito) falta('idTipoCredito', 'Elige el tipo de crédito.')
+  if (valor.tipoProducto === 'Tarjeta' && !valor.idRed) falta('idRed', 'Elige la red de la tarjeta.')
+})
+
+export type ProductoFormInput = z.input<typeof camposProducto>
+export type ProductoFormData = z.output<typeof camposProducto>
+export type CampoProducto = keyof ProductoFormInput
+
+export const VALORES_NUEVO: ProductoFormInput = {
+  codigoProducto: '',
+  nombreProducto: '',
+  descripcion: '',
+  tipoProducto: '',
+  tipoCuenta: '',
+  montoAperturaMinimo: '',
+  idTipoCredito: '',
+  idRed: '',
+  permiteOperacionesPresenciales: true,
+}
+
+export const valoresEdicion = (producto: ProductoAdmin): ProductoFormInput => ({
+  codigoProducto: producto.codigoProducto,
+  nombreProducto: producto.nombreProducto,
+  descripcion: producto.descripcion ?? '',
+  tipoProducto: producto.tipoProducto,
+  tipoCuenta: producto.tipoCuenta ?? '',
+  montoAperturaMinimo: producto.montoAperturaMinimo != null ? String(producto.montoAperturaMinimo) : '',
+  idTipoCredito: producto.idTipoCredito != null ? String(producto.idTipoCredito) : '',
+  idRed: producto.idRed != null ? String(producto.idRed) : '',
+  permiteOperacionesPresenciales: producto.permiteOperacionesPresenciales,
+})
+
+/** Solo los campos del tipo elegido: el backend rechaza los que no aplican */
+export function payloadCrear(datos: ProductoFormData): ProductoCreate {
+  const tipo = datos.tipoProducto as TipoProductoAdmin
+  const body: ProductoCreate = {
+    codigoProducto: datos.codigoProducto,
+    nombreProducto: datos.nombreProducto,
+    tipoProducto: tipo,
+    permiteOperacionesPresenciales: datos.permiteOperacionesPresenciales,
+  }
+  if (datos.descripcion) body.descripcion = datos.descripcion
+  if (tipo === 'Cuenta') {
+    body.tipoCuenta = datos.tipoCuenta as ProductoCreate['tipoCuenta']
+    if (datos.montoAperturaMinimo) body.montoAperturaMinimo = Number(datos.montoAperturaMinimo)
+  }
+  if (tipo === 'Credito') body.idTipoCredito = Number(datos.idTipoCredito)
+  if (tipo === 'Tarjeta') body.idRed = Number(datos.idRed)
+  return body
+}
+
+/** Solo lo que cambió. Objeto vacío = nada que enviar. Descripción vaciada = `null` (se borra) */
+export function payloadEdicion(inicial: ProductoFormInput, datos: ProductoFormData): ProductoUpdate {
+  const body: ProductoUpdate = {}
+  if (datos.nombreProducto !== inicial.nombreProducto) body.nombreProducto = datos.nombreProducto
+  if ((datos.descripcion ?? '') !== inicial.descripcion.trim()) body.descripcion = datos.descripcion ?? null
+  if (datos.permiteOperacionesPresenciales !== inicial.permiteOperacionesPresenciales) {
+    body.permiteOperacionesPresenciales = datos.permiteOperacionesPresenciales
+  }
+  if (
+    datos.tipoProducto === 'Cuenta' &&
+    datos.montoAperturaMinimo !== '' &&
+    Number(datos.montoAperturaMinimo) !== Number(inicial.montoAperturaMinimo || '0')
+  ) {
+    body.montoAperturaMinimo = Number(datos.montoAperturaMinimo)
+  }
+  return body
+}
+
+/** Prefijos que definen débito o crédito en la emisión de tarjetas */
+export const PREFIJOS_TARJETA = ['TDB', 'TCR'] as const
+
+export function subProductoFormSchema(tipoProducto: TipoProductoAdmin) {
+  return z
+    .object({
+      codigoSubProducto: z
+        .string()
+        .trim()
+        .toUpperCase()
+        .regex(/^[A-Z0-9-]{3,15}$/, 'Usa de 3 a 15 letras, números o guiones.'),
+      nombreSubProducto: nombre,
+    })
+    .superRefine((valor, ctx) => {
+      if (tipoProducto === 'Tarjeta' && !PREFIJOS_TARJETA.some((p) => valor.codigoSubProducto.startsWith(p))) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['codigoSubProducto'],
+          message: 'En tarjetas, empieza por TDB (débito) o TCR (crédito).',
+        })
+      }
+    })
+}
+
+export type SubProductoFormInput = SubProductoCreate
+export type SubProductoFormData = SubProductoCreate
+
+const MENSAJES: Record<string, string> = {
+  CODIGO_DUPLICADO: 'Ya existe un registro con ese código.',
+  PRODUCTO_SIN_SUBPRODUCTOS: 'Agrega al menos un subproducto antes de activar el producto.',
+  TIPO_CREDITO_NO_EXISTE: 'El tipo de crédito elegido no existe o está inactivo.',
+  RED_NO_EXISTE: 'La red elegida no existe o está inactiva.',
+  CODIGO_TARJETA_INVALIDO: 'En tarjetas, el código empieza por TDB (débito) o TCR (crédito).',
+  PRODUCTO_NO_ENCONTRADO: 'El producto ya no existe. Recarga la lista.',
+  SUBPRODUCTO_NO_ENCONTRADO: 'El subproducto ya no existe. Recarga la lista.',
+  DATOS_INVALIDOS: 'Revisa los datos: hay valores que no son válidos.',
+}
+
+export function mensajeErrorProducto(error: ApiError) {
+  if (error.status === 403) return 'Solo un administrador puede crear o editar productos.'
+  return MENSAJES[error.code] ?? error.message
+}
+
+const CAMPO_DEL_ERROR: Record<string, CampoProducto> = {
+  CODIGO_DUPLICADO: 'codigoProducto',
+  TIPO_CREDITO_NO_EXISTE: 'idTipoCredito',
+  RED_NO_EXISTE: 'idRed',
+}
+
+export const campoDelError = (error: ApiError): CampoProducto | null => CAMPO_DEL_ERROR[error.code] ?? null
+
+/** Texto de las condiciones según el tipo, para leer el producto de un vistazo */
+export function condicionesDe(producto: ProductoAdmin) {
+  if (producto.tipoProducto === 'Cuenta') {
+    const monto = (producto.montoAperturaMinimo ?? 0).toLocaleString('es-EC', { style: 'currency', currency: 'USD' })
+    return `Cuenta de ${(producto.tipoCuenta ?? '').toLowerCase()} · apertura mínima ${monto}`
+  }
+  if (producto.tipoProducto === 'Credito') return `Crédito ${producto.nombreTipoCredito ?? ''}`.trim()
+  return `Tarjeta ${producto.nombreRed ?? ''}`.trim()
+}

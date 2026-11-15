@@ -10,6 +10,7 @@ import {
   denominacionSchema,
   paisSchema,
   productoSchema,
+  redSchema,
   tipoAntecedenteSchema,
   tipoCreditoSchema,
   tipoMovimientoCajaSchema,
@@ -53,6 +54,8 @@ export const getProductos = (tipo?: TipoProducto, tipoTarjeta?: TipoTarjeta) => 
   if (tipoTarjeta) params.tipoTarjeta = tipoTarjeta
   return getLista(CATALOGOS_ENDPOINTS.productos, productoSchema, params)
 }
+
+export const getRedes = () => getLista(CATALOGOS_ENDPOINTS.redes, redSchema)
 
 export const getCanales = () => getLista(CATALOGOS_ENDPOINTS.canales, canalSchema)
 
