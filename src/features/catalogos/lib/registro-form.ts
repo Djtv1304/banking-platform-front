@@ -63,7 +63,7 @@ export function leerCampo(campo: CampoCatalogo, entrada: string | boolean): Resu
     case 'fecha':
       return /^\d{4}-\d{2}-\d{2}$/.test(texto) ? { valor: texto } : { error: 'Elige una fecha.' }
     case 'opcion':
-      return campo.opciones.includes(texto) ? { valor: texto } : { error: 'Elige una opción.' }
+      return (campo.opciones ?? []).includes(texto) ? { valor: texto } : { error: 'Elige una opción.' }
   }
 }
 

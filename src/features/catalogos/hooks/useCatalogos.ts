@@ -115,7 +115,7 @@ export function useCrearTasaInteres() {
 }
 
 export const useCatalogosAdministrables = () =>
-  useCatalogo({ queryKey: ['catalogos', 'administracion'], queryFn: getCatalogosAdministrables })
+  useCatalogo({ queryKey: ['catalogos', 'administracion', 'descriptores-v2'], queryFn: getCatalogosAdministrables })
 
 /** Sin caché por sesión: el ADMIN los cambia */
 export function useRegistrosCatalogo(clave: string | null) {

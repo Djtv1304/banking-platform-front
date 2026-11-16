@@ -165,6 +165,14 @@ export type DestinoVinculos = { tipo: 'producto'; id: number } | { tipo: 'subpro
 export const fichaSubProductoSchema = z.object({
   producto: productoAdminSchema,
   subproducto: subProductoAdminSchema,
+  /** Edad que rige: la mínima más alta entre subproducto, red (tarjetas) y política EDAD_MINIMA (créditos) */
+  elegibilidad: z.object({
+    edadMinima: z.number().nullish(),
+    edadMaxima: z.number().nullish(),
+    edadMinimaSubproducto: z.number().nullish(),
+    edadMinimaRed: z.number().nullish(),
+    edadMinimaPolitica: z.number().nullish(),
+  }),
   cupos: z.array(cupoCanalSchema),
   restricciones: restriccionesSchema.nullish(),
   tasas: z.array(

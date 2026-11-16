@@ -243,7 +243,10 @@ export function SeccionElegibilidad({ subproducto, soloLectura, onGuardado }: Se
   )
 
   return (
-    <Seccion titulo="Elegibilidad" descripcion="Edad del cliente para ofrecerle este subproducto. Vacío = sin límite.">
+    <Seccion
+      titulo="Elegibilidad"
+      descripcion="Edad del cliente para ofrecerle este subproducto. Vacío = sin límite. Rige la edad mínima más alta entre esta, la de la red (tarjetas) y la política de crédito EDAD_MINIMA (créditos); la ficha muestra la que rige."
+    >
       <form onSubmit={enviar} noValidate className="flex flex-col gap-3">
         <div className="grid gap-3 sm:grid-cols-2">
           {campo('eleg-min', 'Edad mínima (años)', minima, setMinima, 'Ej.: 18.')}

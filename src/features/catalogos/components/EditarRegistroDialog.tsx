@@ -73,7 +73,7 @@ function Formulario({
   onCancelar: () => void
   onGuardado: (mensaje: string) => void
 }) {
-  const campos: readonly CampoCatalogo[] = alta ? catalogo.camposAlta : catalogo.campos
+  const campos: readonly CampoCatalogo[] = alta ? (catalogo.camposAlta ?? []) : catalogo.campos
   const actualizar = useActualizarRegistroCatalogo()
   const crear = useCrearRegistroCatalogo()
   const mutacion = alta ? crear : actualizar
@@ -146,7 +146,7 @@ function Formulario({
                 {...a11y}
               >
                 <option value="">Elige…</option>
-                {campo.opciones.map((o) => (
+                {(campo.opciones ?? []).map((o) => (
                   <option key={o} value={o}>
                     {o}
                   </option>

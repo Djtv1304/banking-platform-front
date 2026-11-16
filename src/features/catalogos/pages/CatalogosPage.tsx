@@ -116,7 +116,8 @@ function TablaCatalogo({
   const [creando, setCreando] = useState(false)
   const [nuevo, setNuevo] = useState<RegistroCatalogo | null>(null)
   const [porEliminar, setPorEliminar] = useState<string | null>(null)
-  const permiteAlta = catalogo.camposAlta.length > 0
+  // Tolerante: un descriptor guardado antes de esta versión (o de un backend anterior) no trae camposAlta
+  const permiteAlta = (catalogo.camposAlta ?? []).length > 0
 
   const confirmarEliminar = (registro: RegistroCatalogo) => {
     onConfirmar(null)

@@ -26,11 +26,17 @@ export function FichaSubProductoPage() {
 
   if (ficha.isError) return <Aviso tono="error">{mensajeErrorProducto(toApiError(ficha.error))}</Aviso>
   if (ficha.isPending) return <Cargando texto="Cargando ficha…" />
-  const { producto, subproducto: sub, cupos, restricciones, tasas, comisiones, seguros, sistemasAmortizacion } = ficha.data
+  const { producto, subproducto: sub, elegibilidad: e, cupos, restricciones, tasas, comisiones, seguros, sistemasAmortizacion } = ficha.data
   const edad =
-    sub.edadMinima == null && sub.edadMaxima == null
+    e.edadMinima == null && e.edadMaxima == null
       ? 'Sin límite de edad'
-      : `${sub.edadMinima ?? 0} a ${sub.edadMaxima ?? 'sin máximo'} años`
+      : `${e.edadMinima ?? 0} a ${e.edadMaxima ?? 'sin máximo'} años`
+  // De dónde sale la edad mínima que rige (la más alta)
+  const origen = [
+    e.edadMinimaSubproducto != null && `subproducto ${e.edadMinimaSubproducto}`,
+    e.edadMinimaRed != null && `red ${e.edadMinimaRed}`,
+    e.edadMinimaPolitica != null && `política de crédito ${e.edadMinimaPolitica}`,
+  ].filter(Boolean)
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
@@ -51,6 +57,7 @@ export function FichaSubProductoPage() {
         <h1 className="text-[32px] leading-tight font-bold text-heading">{sub.nombreSubProducto}</h1>
         <p className="text-sm text-muted-foreground">
           {sub.codigoSubProducto} · {sub.estado === 'A' ? 'Activo' : 'Inactivo'} · {edad}
+          {origen.length > 0 && ` (mínima: ${origen.join(', ')})`}
         </p>
         {producto.descripcion && <p className="mt-2 text-base text-heading">{producto.descripcion}</p>}
       </header>
