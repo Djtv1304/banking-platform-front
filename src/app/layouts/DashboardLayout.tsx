@@ -29,6 +29,7 @@ import { PRODUCTOS_ROLES } from '@/features/organizacion'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
 import { CATALOGOS_ROLES, useAgencias } from '@/features/catalogos'
+import { CONTABILIDAD_ROLES } from '@/features/contabilidad'
 import { INSTITUCION } from '@/shared/config'
 import {
   Badge,
@@ -108,7 +109,7 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
         label: 'Plan de cuentas',
         Icon: Calculator,
         profiles: ROUTE_ACCESS.cuentasContables,
-        enPreparacion: true,
+        roles: CONTABILIDAD_ROLES.consultar,
       },
     ],
   },
