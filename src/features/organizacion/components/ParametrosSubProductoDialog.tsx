@@ -1,6 +1,10 @@
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui'
 import type { ProductoAdmin, SubProductoAdmin } from '@/features/organizacion/api/productos.contract'
-import { SeccionCupos, SeccionRestricciones } from '@/features/organizacion/components/SeccionesSubProducto'
+import {
+  SeccionCupos,
+  SeccionElegibilidad,
+  SeccionRestricciones,
+} from '@/features/organizacion/components/SeccionesSubProducto'
 import { SeccionVinculos } from '@/features/organizacion/components/SeccionVinculos'
 
 interface ParametrosSubProductoDialogProps {
@@ -35,6 +39,7 @@ export function ParametrosSubProductoDialog({ producto, subproducto, soloLectura
         </DialogHeader>
         {subproducto && (
           <div key={subproducto.idSubProducto} className="flex flex-col gap-6">
+            <SeccionElegibilidad subproducto={subproducto} soloLectura={soloLectura} onGuardado={onGuardado} />
             {producto.tipoProducto !== 'Credito' && (
               <SeccionCupos subproducto={subproducto} soloLectura={soloLectura} onGuardado={onGuardado} />
             )}

@@ -14,12 +14,14 @@ vi.mock('@/features/auth', () => ({
 vi.mock('react-router', () => ({
   Link: ({ children, to, ...props }: ComponentProps<'a'> & { to: string }) => <a href={to} {...props}>{children}</a>,
   useParams: () => ({ idProducto: '1' }),
+  useNavigate: () => vi.fn(),
 }))
 vi.mock('@/features/organizacion/hooks/useProductosAdmin', () => ({
   useProductosAdmin: () => ({ data: estado.data, isPending: false, isError: false, error: null }),
   useProductoAdmin: () => ({ data: estado.data[0], isPending: false, isError: false, error: null }),
   useActualizarProducto: () => ({ isPending: false, mutate: vi.fn() }),
   useActualizarSubProducto: () => ({ isPending: false, mutate: vi.fn() }),
+  useEliminarProducto: () => ({ isPending: false, mutate: vi.fn() }),
 }))
 vi.mock('@/features/organizacion/components/ProductoFormDialog', () => ({ ProductoFormDialog: () => null }))
 vi.mock('@/features/organizacion/components/SubProductoFormDialog', () => ({ SubProductoFormDialog: () => null }))

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router'
-import { ArrowLeft, Eye, Link2, Pencil, Plus, Power, SlidersHorizontal } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router'
+import { ArrowLeft, Eye, FileText, Link2, Pencil, Plus, Power, SlidersHorizontal, Trash2 } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando } from '@/shared/ui'
@@ -21,6 +21,7 @@ import { SubProductoFormDialog } from '@/features/organizacion/components/SubPro
 import {
   useActualizarProducto,
   useActualizarSubProducto,
+  useEliminarProducto,
   useProductoAdmin,
 } from '@/features/organizacion/hooks/useProductosAdmin'
 import { condicionesDe, ETIQUETA_TIPO, mensajeErrorProducto } from '@/features/organizacion/lib/producto-form'
@@ -67,6 +68,18 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
   const [nuevoSub, setNuevoSub] = useState(false)
   const [parametrizar, setParametrizar] = useState<SubProductoAdmin | null>(null)
   const [vinculos, setVinculos] = useState(false)
+  const [porEliminar, setPorEliminar] = useState(false)
+  const eliminar = useEliminarProducto()
+  const navegar = useNavigate()
+
+  const confirmarEliminar = () =>
+    eliminar.mutate(producto.idProducto, {
+      onSuccess: () => navegar('/productos'),
+      onError: (e) => {
+        setPorEliminar(false)
+        setError(mensajeErrorProducto(toApiError(e)))
+      },
+    })
   const [confirmacion, setConfirmacion] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const ocupado = actualizarProducto.isPending || actualizarSub.isPending
@@ -142,6 +155,22 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
               <Power />
               {producto.estado === 'A' ? 'Desactivar' : 'Activar'}
             </Button>
+            {producto.estado === 'I' &&
+              (porEliminar ? (
+                <>
+                  <Button variant="destructive" disabled={eliminar.isPending} onClick={confirmarEliminar}>
+                    Sí, eliminar
+                  </Button>
+                  <Button variant="ghost" onClick={() => setPorEliminar(false)}>
+                    No
+                  </Button>
+                </>
+              ) : (
+                <Button variant="ghost" onClick={() => setPorEliminar(true)} title="Solo si nunca se usó">
+                  <Trash2 />
+                  Eliminar
+                </Button>
+              ))}
           </>
         ) : (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -195,6 +224,12 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
                     </td>
                     <td className="px-3 py-2"><EstadoProductoBadge estado={sub.estado} /></td>
                       <td className="px-3 py-2 text-right whitespace-nowrap">
+                        <Button asChild variant="ghost" size="sm">
+                          <Link to={`/productos/subproductos/${sub.idSubProducto}/ficha`} aria-label={`Ficha de ${sub.codigoSubProducto}`}>
+                            <FileText />
+                            Ficha
+                          </Link>
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => setParametrizar(sub)} aria-label={`Parámetros de ${sub.codigoSubProducto}`}>
                           <SlidersHorizontal />
                           Parámetros

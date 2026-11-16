@@ -121,6 +121,7 @@ export function payloadCrear(datos: ProductoFormData): ProductoCreate {
 /** Solo lo que cambió. Objeto vacío = nada que enviar. Descripción vaciada = `null` (se borra) */
 export function payloadEdicion(inicial: ProductoFormInput, datos: ProductoFormData): ProductoUpdate {
   const body: ProductoUpdate = {}
+  if (datos.codigoProducto !== inicial.codigoProducto.trim().toUpperCase()) body.codigoProducto = datos.codigoProducto
   if (datos.nombreProducto !== inicial.nombreProducto) body.nombreProducto = datos.nombreProducto
   if ((datos.descripcion ?? '') !== inicial.descripcion.trim()) body.descripcion = datos.descripcion ?? null
   if (datos.permiteOperacionesPresenciales !== inicial.permiteOperacionesPresenciales) {
@@ -180,6 +181,11 @@ const MENSAJES: Record<string, string> = {
     'Hay cuentas con cupos personalizados mayores en ese canal. Ajústalos antes de bajar o quitar el máximo.',
   COMISION_NO_EXISTE: 'Hay comisiones que ya no existen o están inactivas. Recarga e intenta otra vez.',
   SEGURO_NO_EXISTE: 'Hay seguros que ya no existen o están inactivos. Recarga e intenta otra vez.',
+  PRODUCTO_NO_EDITABLE: 'El código solo se cambia mientras el producto está inactivo y sin uso.',
+  PRODUCTO_EN_USO: 'El producto tiene cuentas, tarjetas o créditos: no se elimina, solo se desactiva.',
+  PRODUCTO_ACTIVO: 'Desactiva el producto antes de eliminarlo.',
+  ELEGIBILIDAD_INVALIDA: 'La edad máxima no puede ser menor que la mínima.',
+  CUPOS_INCOHERENTES: 'El cupo mensual debe ser mayor o igual que el diario, y el máximo por transacción no puede superar el diario.',
   USUARIO_INTERNO_NO_VINCULADO: 'Tu usuario no está habilitado para esta operación. Pide al administrador que lo vincule.',
 }
 
