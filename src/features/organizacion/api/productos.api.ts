@@ -5,6 +5,7 @@ import {
   PRODUCTOS_ENDPOINTS,
   productoAdminSchema,
   cupoCanalSchema,
+  fichaSubProductoSchema,
   restriccionesSchema,
   subProductoAdminSchema,
   vinculosSchema,
@@ -92,4 +93,14 @@ export async function obtenerVinculos(destino: DestinoVinculos) {
 export async function guardarVinculos(destino: DestinoVinculos, body: Vinculos) {
   const { data, status } = await apiClient.put<unknown>(urlVinculos(destino), body)
   return validar(vinculosSchema, data, status)
+}
+
+/** 204; solo un producto inactivo y sin uso (409 PRODUCTO_EN_USO / PRODUCTO_ACTIVO) */
+export async function eliminarProducto(idProducto: number) {
+  await apiClient.delete(PRODUCTOS_ENDPOINTS.producto(idProducto))
+}
+
+export async function obtenerFicha(idSubProducto: number) {
+  const { data, status } = await apiClient.get<unknown>(PRODUCTOS_ENDPOINTS.ficha(idSubProducto))
+  return validar(fichaSubProductoSchema, data, status)
 }

@@ -62,6 +62,8 @@ export function leerCampo(campo: CampoCatalogo, entrada: string | boolean): Resu
       return NUMERO.test(texto) ? { valor: Number(texto) } : { error: 'Usa un número como 0.45 o 5.' }
     case 'fecha':
       return /^\d{4}-\d{2}-\d{2}$/.test(texto) ? { valor: texto } : { error: 'Elige una fecha.' }
+    case 'opcion':
+      return campo.opciones.includes(texto) ? { valor: texto } : { error: 'Elige una opción.' }
   }
 }
 
@@ -102,4 +104,19 @@ export function filtrarRegistros(registros: readonly RegistroCatalogo[], busqued
   const termino = normalizar(busqueda.trim())
   if (!termino) return [...registros]
   return registros.filter((r) => normalizar(Object.values(r).map((v) => String(v ?? '')).join(' ')).includes(termino))
+}
+
+/** Alta: todos los campos de `camposAlta` (los vacíos opcionales van en null) */
+export function altaRegistro(
+  campos: readonly CampoCatalogo[],
+  entradas: Record<string, string | boolean>,
+): { body: Record<string, ValorCampo> } | { errores: Record<string, string> } {
+  const body: Record<string, ValorCampo> = {}
+  const errores: Record<string, string> = {}
+  for (const campo of campos) {
+    const resultado = leerCampo(campo, entradas[campo.nombre] ?? (campo.tipo === 'booleano' ? false : ''))
+    if ('error' in resultado) errores[campo.nombre] = resultado.error
+    else body[campo.nombre] = resultado.valor
+  }
+  return Object.keys(errores).length > 0 ? { errores } : { body }
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { Eye, Pencil, Plus, Power, Search } from 'lucide-react'
+import { Eye, Pencil, Plus, Power, Search, Trash2 } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
@@ -16,6 +16,7 @@ import { NuevaTasaDialog } from '@/features/catalogos/components/NuevaTasaDialog
 import {
   useActualizarRegistroCatalogo,
   useCatalogosAdministrables,
+  useEliminarRegistroCatalogo,
   useRegistrosCatalogo,
 } from '@/features/catalogos/hooks/useCatalogos'
 import { mensajeErrorCatalogo } from '@/features/catalogos/lib/mensajes'
@@ -109,9 +110,31 @@ function TablaCatalogo({
 }) {
   const registros = useRegistrosCatalogo(catalogo.clave)
   const actualizar = useActualizarRegistroCatalogo()
+  const eliminar = useEliminarRegistroCatalogo()
   const [busqueda, setBusqueda] = useState('')
   const [editando, setEditando] = useState<RegistroCatalogo | null>(null)
   const [creando, setCreando] = useState(false)
+  const [nuevo, setNuevo] = useState<RegistroCatalogo | null>(null)
+  const [porEliminar, setPorEliminar] = useState<string | null>(null)
+  const permiteAlta = catalogo.camposAlta.length > 0
+
+  const confirmarEliminar = (registro: RegistroCatalogo) => {
+    onConfirmar(null)
+    setError(null)
+    eliminar.mutate(
+      { clave: catalogo.clave, id: registro.id },
+      {
+        onSuccess: () => {
+          setPorEliminar(null)
+          onConfirmar('Eliminamos el registro.')
+        },
+        onError: (e) => {
+          setPorEliminar(null)
+          setError(mensajeErrorCatalogo(toApiError(e)))
+        },
+      },
+    )
+  }
   const [error, setError] = useState<string | null>(null)
 
   const cambiarEstado = (registro: RegistroCatalogo) => {
@@ -183,6 +206,28 @@ function TablaCatalogo({
                       <Power />
                       {r.estado === 'A' ? 'Desactivar' : 'Activar'}
                     </Button>
+                    {catalogo.permiteEliminar &&
+                      (porEliminar === r.id ? (
+                        <span className="ml-1 inline-flex items-center gap-1">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={eliminar.isPending}
+                            onClick={() => confirmarEliminar(r)}
+                            aria-label={`Confirmar eliminar registro ${r.id}`}
+                          >
+                            Sí, eliminar
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setPorEliminar(null)}>
+                            No
+                          </Button>
+                        </span>
+                      ) : (
+                        <Button variant="ghost" size="sm" onClick={() => setPorEliminar(r.id)} aria-label={`Eliminar registro ${r.id}`}>
+                          <Trash2 />
+                          Eliminar
+                        </Button>
+                      ))}
                   </td>
                 )}
               </tr>
@@ -206,6 +251,12 @@ function TablaCatalogo({
             Nueva tasa
           </Button>
         )}
+        {esAdmin && permiteAlta && (
+          <Button onClick={() => setNuevo({ id: '', estado: 'A' })}>
+            <Plus />
+            Nuevo
+          </Button>
+        )}
       </div>
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -224,6 +275,18 @@ function TablaCatalogo({
       {esAdmin && (
         <>
           <EditarRegistroDialog catalogo={catalogo} registro={editando} onCerrar={() => setEditando(null)} onGuardado={guardado} />
+          {permiteAlta && (
+            <EditarRegistroDialog
+              catalogo={catalogo}
+              registro={nuevo}
+              modo="alta"
+              onCerrar={() => setNuevo(null)}
+              onGuardado={(m) => {
+                setNuevo(null)
+                guardado(m)
+              }}
+            />
+          )}
           {catalogo.permiteCrear && <NuevaTasaDialog abierto={creando} onCerrar={() => setCreando(false)} onGuardado={guardado} />}
         </>
       )}

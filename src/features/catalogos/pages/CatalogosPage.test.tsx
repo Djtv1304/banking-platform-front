@@ -20,12 +20,14 @@ vi.mock('@/features/catalogos/hooks/useCatalogos', () => ({
         nombre: 'Tasas de interés',
         descripcion: 'Tasas',
         permiteCrear: true,
+        camposAlta: [],
+        permiteEliminar: true,
         campos: [
           { nombre: 'nombreTipoCredito', etiqueta: 'Tipo de crédito', tipo: 'texto', editable: false, nulo: false },
           { nombre: 'tasaNominalAnual', etiqueta: 'Tasa anual', tipo: 'porcentaje', editable: true, nulo: false },
         ],
       },
-      { clave: 'paises', nombre: 'Países', descripcion: 'Países', permiteCrear: false, campos: [] },
+      { clave: 'paises', nombre: 'Países', descripcion: 'Países', permiteCrear: false, campos: [], camposAlta: [], permiteEliminar: false },
     ],
   }),
   useRegistrosCatalogo: () => ({
@@ -34,6 +36,7 @@ vi.mock('@/features/catalogos/hooks/useCatalogos', () => ({
     data: [{ id: '1', estado: 'A', nombreTipoCredito: 'Consumo', tasaNominalAnual: 0.16 }],
   }),
   useActualizarRegistroCatalogo: () => ({ isPending: false, mutate: vi.fn() }),
+  useEliminarRegistroCatalogo: () => ({ isPending: false, mutate: vi.fn() }),
 }))
 vi.mock('@/features/catalogos/components/EditarRegistroDialog', () => ({ EditarRegistroDialog: () => null }))
 vi.mock('@/features/catalogos/components/NuevaTasaDialog', () => ({ NuevaTasaDialog: () => null }))
@@ -64,6 +67,7 @@ describe('CatalogosPage', () => {
     expect(salida).toContain('aria-label="Editar registro 1"')
     expect(salida).toContain('aria-label="Desactivar registro 1"')
     expect(salida).toContain('Nueva tasa')
+    expect(salida).toContain('aria-label="Eliminar registro 1"')
   })
 
   it('ASESOR solo consulta', () => {
@@ -74,5 +78,6 @@ describe('CatalogosPage', () => {
     expect(salida).not.toContain('Editar')
     expect(salida).not.toContain('Desactivar')
     expect(salida).not.toContain('Nueva tasa')
+    expect(salida).not.toContain('Eliminar')
   })
 })

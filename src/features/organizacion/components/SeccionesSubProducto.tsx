@@ -6,6 +6,7 @@ import { Aviso, Button, Cargando, Checkbox, Input, Label } from '@/shared/ui'
 import type { CupoCanal, Restricciones, SubProductoAdmin } from '@/features/organizacion/api/productos.contract'
 import { CampoAgencia as Campo, inputClassName } from '@/features/organizacion/components/CampoAgencia'
 import {
+  useActualizarSubProducto,
   useCuposSubProducto,
   useGuardarCupos,
   useGuardarRestricciones,
@@ -198,5 +199,60 @@ function FormularioRestricciones({ subproducto, soloLectura, onGuardado, inicial
       {guardar.error && <Aviso tono="error">{mensajeErrorProducto(toApiError(guardar.error))}</Aviso>}
       {!soloLectura && <Guardar ocupado={guardar.isPending} />}
     </form>
+  )
+}
+
+/** Elegibilidad por edad (años cumplidos). Vacío = sin límite; menores: máxima 17 */
+export function SeccionElegibilidad({ subproducto, soloLectura, onGuardado }: SeccionProps) {
+  const actualizar = useActualizarSubProducto()
+  const texto = (v: number | null | undefined) => (v == null ? '' : String(v))
+  const [minima, setMinima] = useState(() => texto(subproducto.edadMinima))
+  const [maxima, setMaxima] = useState(() => texto(subproducto.edadMaxima))
+  const [error, setError] = useState<string | null>(null)
+
+  const leer = (v: string) => (v.trim() === '' ? null : /^\d{1,3}$/.test(v.trim()) && Number(v) <= 120 ? Number(v) : undefined)
+
+  const enviar = (evento: FormEvent) => {
+    evento.preventDefault()
+    const edadMinima = leer(minima)
+    const edadMaxima = leer(maxima)
+    if (edadMinima === undefined || edadMaxima === undefined) return setError('Usa años enteros entre 0 y 120.')
+    if (edadMinima !== null && edadMaxima !== null && edadMaxima < edadMinima) {
+      return setError('La edad máxima no puede ser menor que la mínima.')
+    }
+    setError(null)
+    actualizar.mutate(
+      { idSubProducto: subproducto.idSubProducto, body: { edadMinima, edadMaxima } },
+      { onSuccess: () => onGuardado(`Guardamos la elegibilidad de ${subproducto.codigoSubProducto}.`) },
+    )
+  }
+
+  const campo = (id: string, etiqueta: string, valor: string, cambiar: (v: string) => void, ayuda: string) => (
+    <Campo id={id} label={etiqueta} ayuda={ayuda}>
+      <Input
+        id={id}
+        inputMode="numeric"
+        autoComplete="off"
+        maxLength={3}
+        disabled={soloLectura}
+        className={inputClassName}
+        value={valor}
+        onChange={(e) => cambiar(e.target.value)}
+      />
+    </Campo>
+  )
+
+  return (
+    <Seccion titulo="Elegibilidad" descripcion="Edad del cliente para ofrecerle este subproducto. Vacío = sin límite.">
+      <form onSubmit={enviar} noValidate className="flex flex-col gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {campo('eleg-min', 'Edad mínima (años)', minima, setMinima, 'Ej.: 18.')}
+          {campo('eleg-max', 'Edad máxima (años)', maxima, setMaxima, 'Menores: 17.')}
+        </div>
+        {error && <Aviso tono="error">{error}</Aviso>}
+        {actualizar.error && <Aviso tono="error">{mensajeErrorProducto(toApiError(actualizar.error))}</Aviso>}
+        {!soloLectura && <Guardar ocupado={actualizar.isPending} />}
+      </form>
+    </Seccion>
   )
 }

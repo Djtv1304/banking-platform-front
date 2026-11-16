@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@ta
 
 import {
   actualizarRegistroCatalogo,
+  crearRegistroCatalogo,
   crearTasaInteres,
+  eliminarRegistroCatalogo,
   getActividadesEconomicas,
   getAgencias,
   getCanales,
@@ -145,4 +147,22 @@ export function useComisiones() {
 export function useSeguros() {
   const query = useQuery({ queryKey: ['catalogos', 'seguros'], queryFn: getSeguros })
   return { ...query, data: query.data ?? (VACIO as Awaited<ReturnType<typeof getSeguros>>) }
+}
+
+export function useCrearRegistroCatalogo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ clave, body }: { clave: string; body: Record<string, ValorCampo> }) => crearRegistroCatalogo(clave, body),
+    retry: false,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalogos'] }),
+  })
+}
+
+export function useEliminarRegistroCatalogo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ clave, id }: { clave: string; id: string }) => eliminarRegistroCatalogo(clave, id),
+    retry: false,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalogos'] }),
+  })
 }

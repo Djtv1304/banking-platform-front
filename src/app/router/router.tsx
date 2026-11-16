@@ -7,6 +7,7 @@ import {
   AgenciasPage,
   DatosCooperativaPage,
   DetalleProductoPage,
+  FichaSubProductoPage,
   PRODUCTOS_ROLES,
   ProductosPage,
 } from '@/features/organizacion'
@@ -97,6 +98,7 @@ export const router = createBrowserRouter([
             children: [
               { path: '/productos', element: <ProductosPage /> },
               { path: '/productos/:idProducto', element: <DetalleProductoPage /> },
+              { path: '/productos/subproductos/:idSubProducto/ficha', element: <FichaSubProductoPage /> },
             ],
           },
           {

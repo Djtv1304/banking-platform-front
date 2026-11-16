@@ -145,7 +145,7 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
             id="producto-codigo"
             autoComplete="off"
             maxLength={10}
-            disabled={editando}
+            disabled={editando && modo.producto.estado === 'A'}
             className={`${inputClassName} uppercase`}
             {...a11yCampo('producto-codigo', errors.codigoProducto?.message, AYUDA_CODIGO)}
             {...register('codigoProducto')}

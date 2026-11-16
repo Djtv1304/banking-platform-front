@@ -5,11 +5,13 @@ import {
   actualizarSubProducto,
   crearProducto,
   crearSubProducto,
+  eliminarProducto,
   guardarCupos,
   guardarRestricciones,
   guardarVinculos,
   listarProductos,
   obtenerCupos,
+  obtenerFicha,
   obtenerProducto,
   obtenerRestricciones,
   obtenerVinculos,
@@ -126,5 +128,18 @@ export function useGuardarVinculos(destino: DestinoVinculos) {
     mutationFn: (body: Vinculos) => guardarVinculos(destino, body),
     retry: false,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['organizacion', 'vinculos'] }),
+  })
+}
+
+export function useEliminarProducto() {
+  const onSuccess = useAlGuardar()
+  return useMutation({ mutationFn: eliminarProducto, retry: false, onSuccess })
+}
+
+export function useFichaSubProducto(idSubProducto: number) {
+  return useQuery({
+    queryKey: ['organizacion', 'ficha', idSubProducto],
+    queryFn: () => obtenerFicha(idSubProducto),
+    enabled: Number.isInteger(idSubProducto) && idSubProducto > 0,
   })
 }

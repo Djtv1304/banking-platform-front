@@ -15,6 +15,7 @@ export const PRODUCTOS_ENDPOINTS = {
   subproducto: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}`,
   cupos: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/cupos`,
   vinculosProducto: (idProducto: number) => `/api/v1/productos/${idProducto}/vinculos`,
+  ficha: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/ficha`,
   vinculosSubProducto: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/vinculos`,
   restricciones: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/restricciones`,
 } as const
@@ -37,6 +38,9 @@ export const subProductoAdminSchema = z.object({
   fechaRegistro: z.string(),
   /** Solo en subproductos de tarjeta: lo define el prefijo del código (TDB débito, TCR crédito) */
   tipoTarjeta: z.enum(['Debito', 'Credito']).nullish(),
+  /** Elegibilidad por edad; null = sin límite (menores: edadMaxima 17) */
+  edadMinima: z.number().nullish(),
+  edadMaxima: z.number().nullish(),
 })
 
 export const productoAdminSchema = z.object({
@@ -75,8 +79,9 @@ export interface ProductoCreate {
   permiteOperacionesPresenciales: boolean
 }
 
-/** PATCH · Parcial. Código y tipo no cambian. `descripcion: null` la borra */
+/** PATCH · Parcial. El tipo no cambia; el código solo en un producto inactivo y sin uso. `descripcion: null` la borra */
 export interface ProductoUpdate {
+  codigoProducto?: string
   nombreProducto?: string
   descripcion?: string | null
   montoAperturaMinimo?: number
@@ -87,11 +92,16 @@ export interface ProductoUpdate {
 export interface SubProductoCreate {
   codigoSubProducto: string
   nombreSubProducto: string
+  edadMinima?: number
+  edadMaxima?: number
 }
 
 export interface SubProductoUpdate {
   nombreSubProducto?: string
   estado?: EstadoProducto
+  /** null quita el límite */
+  edadMinima?: number | null
+  edadMaxima?: number | null
 }
 
 /** Cuentas y tarjetas: máximos por canal. Los cupos que personaliza el cliente no los superan */
@@ -150,3 +160,47 @@ export const vinculosSchema = vinculosBaseSchema.extend({
 export type Vinculos = z.infer<typeof vinculosBaseSchema>
 export type VinculosVista = z.infer<typeof vinculosSchema>
 export type DestinoVinculos = { tipo: 'producto'; id: number } | { tipo: 'subproducto'; id: number }
+
+/** Lo que el asesor lee al cliente: lo vigente del subproducto con lo que hereda del producto */
+export const fichaSubProductoSchema = z.object({
+  producto: productoAdminSchema,
+  subproducto: subProductoAdminSchema,
+  cupos: z.array(cupoCanalSchema),
+  restricciones: restriccionesSchema.nullish(),
+  tasas: z.array(
+    z.object({
+      idTasaInteres: z.number(),
+      tipoTasa: z.string(),
+      tasaNominalAnual: z.number(),
+      montoMinimo: z.number().nullish(),
+      montoMaximo: z.number().nullish(),
+      plazoMaximoMeses: z.number().nullish(),
+      vigente: z.boolean(),
+      delProducto: z.boolean(),
+    }),
+  ),
+  comisiones: z.array(
+    z.object({
+      idComision: z.number(),
+      codigoComision: z.string(),
+      descripcion: z.string(),
+      tipoCalculo: z.string(),
+      valor: z.number(),
+      nombreCanal: z.string(),
+      delProducto: z.boolean(),
+    }),
+  ),
+  seguros: z.array(
+    z.object({
+      idSeguro: z.number(),
+      nombre: z.string(),
+      tipoCalculo: z.string(),
+      valor: z.number(),
+      esObligatorio: z.boolean(),
+      delProducto: z.boolean(),
+    }),
+  ),
+  sistemasAmortizacion: z.array(z.string()),
+})
+
+export type FichaSubProducto = z.infer<typeof fichaSubProductoSchema>
