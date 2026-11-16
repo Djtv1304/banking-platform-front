@@ -95,7 +95,7 @@ function Detalle({ idAsiento, agencias, onAbrir }: Pick<DetalleAsientoDialogProp
         <Dato label="Reversión">
           {data.idAsientoReversion !== null ? (
             <Button variant="link" onClick={() => onAbrir(data.idAsientoReversion as number)} className="h-auto p-0">
-              Revertido por el asiento n.º {data.idAsientoReversion}
+              Revertido: ver el asiento de reversión
             </Button>
           ) : esReversado(data) ? (
             'Reversado'

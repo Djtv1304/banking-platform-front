@@ -140,6 +140,7 @@ describe('presentación', () => {
     expect(etiquetaEstadoAsiento('PENDIENTE_APROBACION')).toBe('Pendiente de aprobación')
     expect(etiquetaOrigenAsiento('NOMINA')).toBe('Nómina')
     expect(etiquetaOrigenAsiento('CAJA')).toBe('Caja')
+    expect(etiquetaOrigenAsiento('ATM')).toBe('ATM')
     expect(etiquetaEstadoAsiento('EN_CURSO')).toBe('En curso')
     expect(etiquetaTexto(' ')).toBe('—')
   })

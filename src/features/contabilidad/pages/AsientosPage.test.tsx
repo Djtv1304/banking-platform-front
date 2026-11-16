@@ -73,7 +73,7 @@ describe('AsientosPage', () => {
     expect(salida).toContain('001 · Matriz')
     expect(salida).toContain('1.250,50')
     expect(salida).toContain('Contabilizado')
-    expect(salida).toContain('Revertido por el asiento n.º 9')
+    expect(salida).toContain('Revertido por otro asiento')
     expect(salida).toContain('Página 1 de 1 · 2 asientos')
   })
 

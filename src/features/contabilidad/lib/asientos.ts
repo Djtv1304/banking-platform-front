@@ -138,6 +138,7 @@ const ETIQUETAS_ESTADO: Record<string, string> = {
 }
 
 const ETIQUETAS_ORIGEN: Record<string, string> = {
+  ATM: 'ATM',
   BOVEDA: 'Bóveda',
   CREDITO: 'Crédito',
   NOMINA: 'Nómina',

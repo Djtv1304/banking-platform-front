@@ -106,7 +106,7 @@ export function TablaAsientos({ asientos, orden, agencias, onOrdenar, onSeleccio
                 <div className="flex flex-col items-start gap-1">
                   <Badge variant={tonoEstadoAsiento(asiento.estado)}>{etiquetaEstadoAsiento(asiento.estado)}</Badge>
                   {asiento.idAsientoReversion !== null && (
-                    <span className="text-xs text-muted-foreground">Revertido por el asiento n.º {asiento.idAsientoReversion}</span>
+                    <span className="text-xs text-muted-foreground">Revertido por otro asiento</span>
                   )}
                 </div>
               </td>

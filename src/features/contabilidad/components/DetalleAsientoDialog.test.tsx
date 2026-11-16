@@ -112,7 +112,7 @@ describe('DetalleAsientoDialog', () => {
 
   it('enlaza al asiento que lo revirtió', () => {
     estado.asiento = { isPending: false, isError: false, data: { ...ASIENTO, estado: 'REVERSADO', idAsientoReversion: 9 } }
-    expect(html()).toContain('Revertido por el asiento n.º 9')
+    expect(html()).toContain('Revertido: ver el asiento de reversión')
   })
 
   it('muestra los estados de carga, sin líneas y error', () => {
