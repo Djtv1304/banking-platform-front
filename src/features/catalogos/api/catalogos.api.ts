@@ -112,3 +112,18 @@ export async function actualizarRegistroCatalogo(clave: string, id: string, body
 export const getComisiones = () => getLista(CATALOGOS_ENDPOINTS.comisiones, comisionSchema)
 
 export const getSeguros = () => getLista(CATALOGOS_ENDPOINTS.seguros, seguroSchema)
+
+/** POST (solo ADMIN): 201 con la fila creada */
+export async function crearRegistroCatalogo(clave: string, body: Record<string, ValorCampo>) {
+  const { data, status } = await apiClient.post<unknown>(CATALOGOS_ENDPOINTS.registros(clave), body)
+  const result = registroCatalogoSchema.safeParse(data)
+  if (!result.success) {
+    throw new ApiError('No pudimos leer la respuesta del servidor. Inténtalo más tarde.', status, 'respuesta_invalida')
+  }
+  return result.data
+}
+
+/** DELETE (solo ADMIN): 204; si alguien lo usa, 409 ITEM_EN_USO */
+export async function eliminarRegistroCatalogo(clave: string, id: string) {
+  await apiClient.delete(CATALOGOS_ENDPOINTS.registro(clave, id))
+}

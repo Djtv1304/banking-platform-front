@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { CampoCatalogo, RegistroCatalogo } from '@/features/catalogos/api/catalogos.contract'
-import { aTexto, cambiosRegistro, filtrarRegistros, leerCampo, mostrar } from '@/features/catalogos/lib/registro-form'
+import { altaRegistro, aTexto, cambiosRegistro, filtrarRegistros, leerCampo, mostrar } from '@/features/catalogos/lib/registro-form'
 
 const campo = (c: Partial<CampoCatalogo>): CampoCatalogo => ({
   nombre: 'x',
@@ -9,6 +9,7 @@ const campo = (c: Partial<CampoCatalogo>): CampoCatalogo => ({
   tipo: 'texto',
   editable: true,
   nulo: false,
+  opciones: [],
   ...c,
 })
 
@@ -58,4 +59,15 @@ it('valor de comisión o seguro: número >= 0 con hasta 6 decimales', () => {
   expect(leerCampo(valor, '0.050000')).toEqual({ valor: 0.05 })
   expect(leerCampo(valor, '-1')).toHaveProperty('error')
   expect(mostrar(valor, 0.45)).toBe('0,45')
+})
+
+it('opción y alta completa', () => {
+  const pieza = campo({ nombre: 'tipoPieza', tipo: 'opcion', opciones: ['Billete', 'Moneda'] })
+  expect(leerCampo(pieza, 'Moneda')).toEqual({ valor: 'Moneda' })
+  expect(leerCampo(pieza, 'Cheque')).toHaveProperty('error')
+  const aseguradora = campo({ nombre: 'aseguradora', nulo: true })
+  expect(altaRegistro([pieza, aseguradora], { tipoPieza: 'Billete', aseguradora: '' })).toEqual({
+    body: { tipoPieza: 'Billete', aseguradora: null },
+  })
+  expect(altaRegistro([pieza], {})).toHaveProperty('errores')
 })

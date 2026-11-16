@@ -247,11 +247,13 @@ export const campoCatalogoSchema = z.object({
   nombre: z.string(),
   etiqueta: z.string(),
   /** Mismos tipos que TipoCampo en catalogos/administracion.py; un tipo desconocido rechaza toda la lista */
-  tipo: z.enum(['texto', 'entero', 'dinero', 'porcentaje', 'numero', 'booleano', 'fecha']),
+  tipo: z.enum(['texto', 'entero', 'dinero', 'porcentaje', 'numero', 'booleano', 'fecha', 'opcion']),
   editable: z.boolean(),
   nulo: z.boolean(),
   maximo: z.number().nullish(),
   minimo: z.number().nullish(),
+  /** Solo en tipo `opcion` */
+  opciones: z.array(z.string()).default([]),
 })
 
 export const catalogoAdministrableSchema = z.object({
@@ -260,6 +262,10 @@ export const catalogoAdministrableSchema = z.object({
   descripcion: z.string(),
   permiteCrear: z.boolean(),
   campos: z.array(campoCatalogoSchema),
+  /** Alta genérica; vacío = sin alta desde esta pantalla */
+  camposAlta: z.array(campoCatalogoSchema).default([]),
+  /** Eliminar solo procede si nadie usa el registro (409 ITEM_EN_USO) */
+  permiteEliminar: z.boolean().default(false),
 })
 
 /** Una fila: `id` y `estado` (A/I) siempre; el resto según los campos del catálogo */

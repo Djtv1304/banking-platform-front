@@ -73,3 +73,17 @@ export default defineConfig([
 ])
 
 ```
+
+## Proxy al backend (Worker de Cloudflare)
+
+El Worker reenvía `/api/*` al backend y agrega `X-Proxy-Secreto`; con `PROXY_EXIGIDO=true`
+el backend rechaza (403 `ORIGEN_NO_PERMITIDO`) lo que no traiga ese secreto.
+
+- Un solo Worker (`banking-platform-front`) sirve producción, `develop` y las preview URLs de cada PR.
+- `develop` y las previews usan `previews.vars` de `wrangler.jsonc` (backend de desarrollo); producción, `vars`.
+- `PROXY_SECRETO` es un **secreto del Worker** (Settings › Variables and Secrets, tipo Secret) y debe ser
+  idéntico, byte a byte, al App Setting `PROXY_SECRETO` del App Service.
+- Cada versión guarda los secretos del momento en que se construye: si se agrega o rota el secreto,
+  hay que volver a construir `develop` y las previews abiertas.
+- Comprobación: `GET <url>/api/v1/auth/me` responde 401 `NO_AUTENTICADO` (pasó el proxy); 403
+  `ORIGEN_NO_PERMITIDO` indica que esa versión no tiene el secreto correcto.
