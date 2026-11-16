@@ -17,7 +17,7 @@ import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/fe
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
 import { AbrirCuentaPage } from '@/features/cuenta'
-import { CONTABILIDAD_ROLES, PlanCuentasPage } from '@/features/contabilidad'
+import { AsientosPage, CONTABILIDAD_ROLES, PlanCuentasPage } from '@/features/contabilidad'
 import { GuestOnly, RequireAuth, RequireProfile, RequireRoles } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { ModuloEnPreparacion } from '@/shared/ui'
@@ -112,7 +112,11 @@ export const router = createBrowserRouter([
               {
                 // CON-03: CONTADOR, AUDITOR y ADMIN (las acciones se deciden por rol dentro de la página)
                 element: <RequireRoles allowed={CONTABILIDAD_ROLES.consultar} />,
-                children: [{ path: '/contabilidad', element: <PlanCuentasPage /> }],
+                children: [
+                  { path: '/contabilidad', element: <PlanCuentasPage /> },
+                  // CON-04: mismos roles que el plan de cuentas, solo consulta
+                  { path: '/contabilidad/asientos', element: <AsientosPage /> },
+                ],
               },
             ],
           },

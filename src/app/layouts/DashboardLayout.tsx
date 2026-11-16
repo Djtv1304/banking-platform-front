@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router'
 import {
   Bell,
   Building2,
+  BookOpenText,
   Calculator,
   CircleHelp,
   CreditCard,
@@ -108,6 +109,13 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
         to: '/contabilidad',
         label: 'Plan de cuentas',
         Icon: Calculator,
+        profiles: ROUTE_ACCESS.cuentasContables,
+        roles: CONTABILIDAD_ROLES.consultar,
+      },
+      {
+        to: '/contabilidad/asientos',
+        label: 'Asientos contables',
+        Icon: BookOpenText,
         profiles: ROUTE_ACCESS.cuentasContables,
         roles: CONTABILIDAD_ROLES.consultar,
       },

@@ -4,3 +4,4 @@
 export { CONTABILIDAD_ROLES } from '@/features/contabilidad/api/contabilidad.contract'
 export type { CuentaContable } from '@/features/contabilidad/api/contabilidad.contract'
 export { PlanCuentasPage } from '@/features/contabilidad/pages/PlanCuentasPage'
+export { AsientosPage } from '@/features/contabilidad/pages/AsientosPage'
