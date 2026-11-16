@@ -7,9 +7,14 @@ import { useAuthStore } from '@/features/auth/store/auth.store'
 let sessionCache: Pick<QueryClient, 'clear'> | null = null
 let pending: { user: MeResponse; promise: Promise<void> } | null = null
 
+function compareAccessValues(a: string, b: string) {
+  if (a === b) return 0
+  return a < b ? -1 : 1
+}
+
 function accessKey(user: MeResponse) {
-  const roles = [...new Set(user.roles.map((role) => role.trim().toUpperCase()))].sort()
-  const permissions = [...new Set(user.permisos)].sort()
+  const roles = [...new Set(user.roles.map((role) => role.trim().toUpperCase()))].sort(compareAccessValues)
+  const permissions = [...new Set(user.permisos)].sort(compareAccessValues)
   return JSON.stringify([
     user.idUsuario,
     user.idOrganizacion,
