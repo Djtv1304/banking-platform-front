@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { ApiError } from '@/shared/api'
-import { MENSAJE_NO_DISPONIBLE, erroresDeCampo, esNoDisponible, mensajeErrorPlanCuentas } from '@/features/contabilidad/lib/mensajes'
+import { MENSAJE_NO_DISPONIBLE, erroresDeCampo, esNoDisponible, mensajeErrorPlanCuentas, mensajeResultado } from '@/features/contabilidad/lib/mensajes'
 
 describe('mensajeErrorPlanCuentas', () => {
   it('un endpoint que todavía no existe se explica como no disponible', () => {
@@ -46,5 +46,12 @@ describe('erroresDeCampo', () => {
     const error = new ApiError('x', 422, 'CODIGO_NO_CORRESPONDE_AL_PADRE')
     expect(erroresDeCampo(error, ['codigoCuenta', 'nombreCuenta']).get('codigoCuenta')).toMatch(/cuenta superior/)
     expect(erroresDeCampo(error, ['nombreCuenta']).size).toBe(0)
+  })
+})
+
+describe('mensajeResultado', () => {
+  it('un 202 avisa que quedó pendiente de aprobación', () => {
+    expect(mensajeResultado(true, 'Listo')).toMatch(/aprobación/)
+    expect(mensajeResultado(false, 'Listo')).toBe('Listo')
   })
 })
