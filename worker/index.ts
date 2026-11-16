@@ -58,14 +58,63 @@ function buildBackendHeaders(request: Request, env: Env) {
   return headers
 }
 
+/**
+ * Cabeceras de seguridad de toda respuesta de /api/* (PCI SSS Módulo C §3.9, ASVS V14). Las de
+ * `public/_headers` solo aplican a los assets, no a lo que genera el Worker. Son respuestas JSON o
+ * redirecciones, no páginas: la CSP lo prohíbe todo y `no-store` sobrescribe lo que mande el back
+ * (datos de clientes: nada se guarda en cachés intermedias ni del navegador).
+ */
+const API_SECURITY_HEADERS: Record<string, string> = {
+  'Cache-Control': 'no-store',
+  'X-Content-Type-Options': 'nosniff',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Referrer-Policy': 'no-referrer',
+  'X-Frame-Options': 'DENY',
+  'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'",
+}
+
+/**
+ * Swagger del backend (`/api/docs`, sólo fuera de producción: en prod FastAPI lo desactiva). Es la
+ * única respuesta de /api/* que es una página: carga Swagger UI desde jsDelivr con un <script>
+ * inline, así que con `default-src 'none'` sale en blanco. Se le da una CSP a su medida, que sigue
+ * sin dejarla incrustar en iframes ni conectarse a otro origen que no sea éste.
+ */
+const DOCS_PATH = '/api/docs'
+const DOCS_CSP =
+  "default-src 'none'; script-src https://cdn.jsdelivr.net 'unsafe-inline'; " +
+  "style-src https://cdn.jsdelivr.net 'unsafe-inline'; img-src https://fastapi.tiangolo.com data:; " +
+  "connect-src 'self'; frame-ancestors 'none'"
+
+/** Cabeceras del backend que delatan su stack y no deben llegar al navegador */
+const LEAKY_BACKEND_HEADERS = ['X-Powered-By', 'Server']
+
+/**
+ * Devuelve la respuesta del backend con las cabeceras de seguridad aplicadas.
+ *
+ * Las cabeceras de una respuesta de fetch() son inmutables, así que se crea otra con
+ * `new Response(body, res)`: copia status, statusText y TODAS las cabeceras, y mantiene cada
+ * Set-Cookie por separado (no se fusionan en una sola cabecera) y el Location de los 302. El cuerpo
+ * se pasa como stream, sin leerlo.
+ *
+ * Nota: Cloudflare añade después su propio `Server: cloudflare` en el borde; aquí solo se quita el
+ * del backend (Azure/uvicorn).
+ */
+function withApiSecurityHeaders(res: Response, pathname = ''): Response {
+  const secured = new Response(res.body, res)
+  for (const name of LEAKY_BACKEND_HEADERS) secured.headers.delete(name)
+  for (const [name, value] of Object.entries(API_SECURITY_HEADERS)) secured.headers.set(name, value)
+  if (pathname === DOCS_PATH) secured.headers.set('Content-Security-Policy', DOCS_CSP)
+  return secured
+}
+
 async function proxyToBackend(request: Request, env: Env, url: URL): Promise<Response> {
   // Base fija desde la configuración: el host de destino NUNCA sale de la petición
   const target = `${env.BACKEND_URL}${url.pathname}${url.search}`
 
   try {
-    // La respuesta se devuelve tal cual: status, Location y todos los Set-Cookie (reconstruir las
-    // cabeceras podría fusionar los Set-Cookie múltiples y romper la sesión)
-    return await fetch(target, {
+    // Status, Location y todos los Set-Cookie pasan intactos (withApiSecurityHeaders no fusiona los
+    // Set-Cookie múltiples, que romperían la sesión); solo se añaden/quitan cabeceras de seguridad
+    const res = await fetch(target, {
       method: request.method,
       headers: buildBackendHeaders(request, env),
       body: METHODS_WITHOUT_BODY.has(request.method) ? undefined : request.body,
@@ -73,11 +122,14 @@ async function proxyToBackend(request: Request, env: Env, url: URL): Promise<Res
       redirect: 'manual',
       cache: 'no-store',
     })
+    return withApiSecurityHeaders(res, url.pathname)
   } catch {
     // Backend caído o inaccesible: error con la forma que entiende `toApiError` de la SPA
-    return Response.json(
-      { detail: { code: 'BACKEND_NO_DISPONIBLE', message: 'El servicio no está disponible. Inténtalo más tarde.' } },
-      { status: 502, headers: { 'Cache-Control': 'no-store' } },
+    return withApiSecurityHeaders(
+      Response.json(
+        { detail: { code: 'BACKEND_NO_DISPONIBLE', message: 'El servicio no está disponible. Inténtalo más tarde.' } },
+        { status: 502 },
+      ),
     )
   }
 }
