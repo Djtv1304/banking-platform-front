@@ -31,7 +31,7 @@ const deshabilitados = (salida: string) => salida.match(/disabled=""/g)?.length 
 
 describe('AccionesCuenta', () => {
   it('en un nivel del regulador solo deja crear subcuentas y explica el motivo', () => {
-    const salida = html(nodo('2101'))
+    const salida = html(nodo('210140'))
     expect(deshabilitados(salida)).toBe(3)
     expect(salida).toContain('catálogo del regulador')
     expect(salida).toContain('aria-describedby="accion-nombre-motivo"')
@@ -41,9 +41,10 @@ describe('AccionesCuenta', () => {
     expect(deshabilitados(html(nodo('21014001')))).toBe(0)
   })
 
-  it('con saldo no deja desactivar ni eliminar', () => {
+  it('con saldo no deja crear subcuentas, desactivar ni eliminar', () => {
     const salida = html(nodo('21014001', 50))
-    expect(deshabilitados(salida)).toBe(2)
+    expect(deshabilitados(salida)).toBe(3)
     expect(salida).toContain('saldo distinto de cero')
+    expect(salida).toContain('no se divide en subcuentas')
   })
 })
