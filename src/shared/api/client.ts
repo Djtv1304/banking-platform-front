@@ -7,9 +7,14 @@ import { toApiError } from '@/shared/api/errors'
  * responde 401 (ver `registerAuthHandlers` en features/auth).
  */
 let onUnauthorized: (() => void) | null = null
+let onForbidden: ((url?: string) => Promise<void>) | null = null
 
 export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler
+}
+
+export function setForbiddenHandler(handler: (url?: string) => Promise<void>) {
+  onForbidden = handler
 }
 
 /**
@@ -23,10 +28,12 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     // No hay refresh en el cliente: el backend renueva la sesión sellada por su cuenta.
     // Si aun así responde 401, la sesión terminó.
     if (error.response?.status === 401) onUnauthorized?.()
+    // Releer el acceso no repite la petición que falló (podría ser una escritura).
+    if (error.response?.status === 403) await onForbidden?.(error.config?.url)
     return Promise.reject(toApiError(error))
   },
 )

@@ -72,7 +72,7 @@ export async function crearUsuario(usuario: CrearUsuario) {
 /** Mensaje general de un error de AUT-05 */
 export function mensajeErrorListado(error: unknown) {
   const e = toApiError(error)
-  if (e.status === 403) return 'No tienes permiso para consultar los usuarios. Se requiere el rol ADMIN o SUPERVISOR.'
+  if (e.status === 403) return 'No tienes permiso para consultar los usuarios. Se requiere el rol ADMIN.'
   if (e.status === 429) return 'Hiciste demasiadas consultas seguidas. Espera un momento y vuelve a intentarlo.'
   if (e.status === 503) return 'El servicio de accesos no está disponible en este momento. Inténtalo en unos minutos.'
   return e.message
@@ -81,7 +81,7 @@ export function mensajeErrorListado(error: unknown) {
 /** Mensaje general de un error de AUT-06; los errores por campo se muestran junto a cada campo */
 export function mensajeErrorCreacion(error: unknown) {
   const e = toApiError(error)
-  if (e.status === 403) return 'No tienes permiso para crear usuarios. Se requiere el rol ADMIN o SUPERVISOR.'
+  if (e.status === 403) return 'No tienes permiso para crear usuarios. Se requiere el rol ADMIN.'
   if (e.status === 429) return 'Hiciste demasiados intentos seguidos. Espera un momento y vuelve a intentarlo.'
   if (e.status === 503) {
     return 'El servicio de invitaciones (WorkOS) no está disponible. Revisa el listado antes de reintentar; tus datos siguen en el formulario.'
@@ -106,7 +106,7 @@ export function mensajeErrorDetalle(error: unknown) {
  */
 export function mensajeErrorCambio(error: unknown) {
   const e = toApiError(error)
-  if (e.status === 403) return 'No tienes permiso para cambiar este usuario. Se requiere el rol ADMIN o SUPERVISOR.'
+  if (e.status === 403) return 'No tienes permiso para cambiar este usuario. Se requiere el rol ADMIN.'
   if (e.status === 404) return 'Este usuario ya no existe. Vuelve al listado.'
   if (e.status === 429) return 'Hiciste demasiados cambios seguidos. Espera un momento y vuelve a intentarlo.'
   if (e.status === 503) {

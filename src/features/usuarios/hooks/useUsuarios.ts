@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 
 import { ApiError } from '@/shared/api'
+import { refreshSession } from '@/features/auth'
 import {
   cambiarRolUsuario,
   cambioSinConfirmar,
@@ -66,7 +67,10 @@ function useCambioUsuario<T>(idUsuario: number, enviar: (valor: T) => Promise<Us
   return useMutation({
     mutationFn: enviar,
     retry: false,
-    onSuccess: (usuario) => confirmar(cache, usuario),
+    onSuccess: async (usuario) => {
+      await confirmar(cache, usuario)
+      await refreshSession()
+    },
     onError: (error) => {
       if (cambioSinConfirmar(error)) void cache.invalidateQueries({ queryKey: detalleKey(idUsuario) })
     },

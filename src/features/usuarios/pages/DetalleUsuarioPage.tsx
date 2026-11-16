@@ -27,7 +27,7 @@ export function DetalleUsuarioPage() {
 
   const contenido = (() => {
     if (!acceso.consulta) {
-      return <Aviso tono="error">No tienes permiso para gestionar usuarios. Se requiere el rol ADMIN o SUPERVISOR.</Aviso>
+      return <Aviso tono="error">No tienes permiso para gestionar usuarios. Se requiere el rol ADMIN.</Aviso>
     }
     if (idUsuario === null) return <Aviso>No existe un usuario con ese ID. Puede que el enlace esté incompleto.</Aviso>
     if (usuario.isPending) return <Cargando texto="Cargando la ficha del usuario…" />

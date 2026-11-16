@@ -2,35 +2,18 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
   Bell,
-  Building2,
-  BookOpenText,
-  Calculator,
   CircleHelp,
-  CreditCard,
-  HandCoins,
-  House,
-  Landmark,
   LogOut,
   Moon,
-  Package,
   PanelLeft,
-  ShieldCheck,
-  Library,
   Sun,
-  UserPlus,
-  UserSearch,
-  WalletCards,
-  type LucideIcon,
 } from 'lucide-react'
 
-import { canAccess, CLIENTES_ROLES, hasAnyRole, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
-import { ROUTE_ACCESS } from '@/app/router/route-access'
-import { ROLES_GESTION_USUARIOS } from '@/features/usuarios'
-import { PRODUCTOS_ROLES } from '@/features/organizacion'
+import { formatRol, formatRoles, signOut, useAccessProfile, useAuthStore } from '@/features/auth'
+import { getVisibleSections, type NavItem } from '@/app/navigation/navigation'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
-import { CATALOGOS_ROLES, useAgencias } from '@/features/catalogos'
-import { CONTABILIDAD_ROLES } from '@/features/contabilidad'
+import { useAgencias } from '@/features/catalogos'
 import { INSTITUCION } from '@/shared/config'
 import {
   Badge,
@@ -42,107 +25,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui'
-
-interface NavItem {
-  to: string
-  label: string
-  Icon: LucideIcon
-  end?: boolean
-  /** Perfiles que ven la opción. Sin valor = todos. El admin ve todas. */
-  profiles?: readonly AccessProfile[]
-  roles?: readonly string[]
-  /** Módulo sin pantallas todavía: abre «Módulo en preparación» y muestra la etiqueta «Pronto» */
-  enPreparacion?: boolean
-}
-
-const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
-  { items: [{ to: '/', label: 'Inicio', Icon: House, end: true }] },
-  {
-    title: 'Organización',
-    items: [
-      { to: '/organizacion/entidad', label: 'Datos de la cooperativa', Icon: Building2, profiles: ROUTE_ACCESS.datosCooperativa, roles: ['ADMIN', 'ASESOR'] },
-      { to: '/organizacion/agencias', label: 'Agencias', Icon: Building2, profiles: ROUTE_ACCESS.agencias },
-    ],
-  },
-  {
-    title: 'Productos y Catálogos',
-    // ADMIN administra; ASESOR solo consulta (las páginas ocultan las acciones)
-    items: [
-      { to: '/productos', label: 'Productos', Icon: Package, roles: PRODUCTOS_ROLES.consultar },
-      { to: '/catalogos', label: 'Catálogos', Icon: Library, roles: CATALOGOS_ROLES.consultar },
-    ],
-  },
-  {
-    title: 'Clientes',
-    items: [
-      { to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente, roles: CLIENTES_ROLES.registrar },
-      { to: '/clientes-busqueda', label: 'Consultar clientes', Icon: UserSearch, profiles: ROUTE_ACCESS.consultarClientes, roles: CLIENTES_ROLES.consultar },
-    ],
-  },
-  {
-    title: 'Cuentas',
-    items: [
-      { to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas },
-      { to: '/cuentas/abrir', label: 'Abrir cuenta', Icon: WalletCards, profiles: ROUTE_ACCESS.abrirCuenta },
-    ],
-  },
-  {
-    title: 'Créditos',
-    items: [
-      {
-        to: '/creditos',
-        label: 'Solicitudes de crédito',
-        Icon: HandCoins,
-        profiles: ROUTE_ACCESS.creditos,
-        enPreparacion: true,
-      },
-    ],
-  },
-  {
-    title: 'Tarjetas',
-    items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas }],
-  },
-  {
-    title: 'Cuentas contables',
-    items: [
-      {
-        to: '/contabilidad',
-        label: 'Plan de cuentas',
-        Icon: Calculator,
-        profiles: ROUTE_ACCESS.cuentasContables,
-        roles: CONTABILIDAD_ROLES.consultar,
-      },
-      {
-        to: '/contabilidad/asientos',
-        label: 'Asientos contables',
-        Icon: BookOpenText,
-        profiles: ROUTE_ACCESS.cuentasContables,
-        roles: CONTABILIDAD_ROLES.consultar,
-      },
-    ],
-  },
-  {
-    title: 'Accesos y roles',
-    items: [
-      {
-        to: '/usuarios',
-        label: 'Usuarios del sistema',
-        Icon: ShieldCheck,
-        profiles: ROUTE_ACCESS.gestionUsuarios,
-        roles: ROLES_GESTION_USUARIOS,
-      },
-    ],
-  },
-]
-
-/** Solo las opciones (y secciones con al menos una opción) que el perfil puede ver */
-function getVisibleSections(profile: AccessProfile | null, roles: readonly string[]) {
-  if (!profile) return []
-  return NAV_SECTIONS.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => canAccess(profile, item.profiles) && (!item.roles || hasAnyRole(roles, item.roles))),
-  })).filter((section) => section.items.length > 0)
-}
 
 const SIDEBAR_STORAGE_KEY = 'enquocoop-sidebar-collapsed'
 
