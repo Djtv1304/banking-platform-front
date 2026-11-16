@@ -73,6 +73,18 @@ const API_SECURITY_HEADERS: Record<string, string> = {
   'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'",
 }
 
+/**
+ * Swagger del backend (`/api/docs`, sólo fuera de producción: en prod FastAPI lo desactiva). Es la
+ * única respuesta de /api/* que es una página: carga Swagger UI desde jsDelivr con un <script>
+ * inline, así que con `default-src 'none'` sale en blanco. Se le da una CSP a su medida, que sigue
+ * sin dejarla incrustar en iframes ni conectarse a otro origen que no sea éste.
+ */
+const DOCS_PATH = '/api/docs'
+const DOCS_CSP =
+  "default-src 'none'; script-src https://cdn.jsdelivr.net 'unsafe-inline'; " +
+  "style-src https://cdn.jsdelivr.net 'unsafe-inline'; img-src https://fastapi.tiangolo.com data:; " +
+  "connect-src 'self'; frame-ancestors 'none'"
+
 /** Cabeceras del backend que delatan su stack y no deben llegar al navegador */
 const LEAKY_BACKEND_HEADERS = ['X-Powered-By', 'Server']
 
@@ -87,10 +99,11 @@ const LEAKY_BACKEND_HEADERS = ['X-Powered-By', 'Server']
  * Nota: Cloudflare añade después su propio `Server: cloudflare` en el borde; aquí solo se quita el
  * del backend (Azure/uvicorn).
  */
-function withApiSecurityHeaders(res: Response): Response {
+function withApiSecurityHeaders(res: Response, pathname = ''): Response {
   const secured = new Response(res.body, res)
   for (const name of LEAKY_BACKEND_HEADERS) secured.headers.delete(name)
   for (const [name, value] of Object.entries(API_SECURITY_HEADERS)) secured.headers.set(name, value)
+  if (pathname === DOCS_PATH) secured.headers.set('Content-Security-Policy', DOCS_CSP)
   return secured
 }
 
@@ -109,7 +122,7 @@ async function proxyToBackend(request: Request, env: Env, url: URL): Promise<Res
       redirect: 'manual',
       cache: 'no-store',
     })
-    return withApiSecurityHeaders(res)
+    return withApiSecurityHeaders(res, url.pathname)
   } catch {
     // Backend caído o inaccesible: error con la forma que entiende `toApiError` de la SPA
     return withApiSecurityHeaders(

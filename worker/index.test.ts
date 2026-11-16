@@ -223,5 +223,21 @@ describe('proxy del Worker', () => {
       expect(response.headers.has('X-Powered-By')).toBe(false)
       expect(response.headers.get('X-Request-Id')).toBe('r-1')
     })
+
+    it('al Swagger de /api/docs le da una CSP que permite Swagger UI, y al resto no', async () => {
+      vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockImplementation(async () => new Response('<html></html>')))
+
+      const docs = await worker.fetch(incomingRequest(`https://${PREVIEW_HOST}/api/docs`), createEnv())
+      const csp = docs.headers.get('Content-Security-Policy') ?? ''
+      expect(csp).toContain('script-src https://cdn.jsdelivr.net')
+      expect(csp).toContain("connect-src 'self'")
+      expect(csp).toContain("frame-ancestors 'none'")
+      expect(docs.headers.get('Cache-Control')).toBe('no-store')
+
+      const json = await worker.fetch(incomingRequest(`https://${PREVIEW_HOST}/api/openapi.json`), createEnv())
+      expectSecurityHeaders(json)
+      const parecida = await worker.fetch(incomingRequest(`https://${PREVIEW_HOST}/api/docs/../v1/auth/me`), createEnv())
+      expectSecurityHeaders(parecida)
+    })
   })
 })
