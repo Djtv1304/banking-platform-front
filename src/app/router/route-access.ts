@@ -25,6 +25,7 @@ export const ROUTE_ACCESS = {
   gestionUsuarios: ['staff'],
   // F-05: módulos del menú todavía en preparación (parámetros son de administración)
   creditos: ['staff'],
+  // E2-02 / CON-03: CONTADOR, AUDITOR y ADMIN (el rol exacto se comprueba en el menú y en el router)
   cuentasContables: ['staff'],
   // ORG-01/02: solo ADMIN
   agencias: ['admin'],
