@@ -1,9 +1,9 @@
 /** Roles que gestionan usuarios (AUT-05 a AUT-09) */
-export const ROLES_GESTION_USUARIOS = ['ADMIN', 'SUPERVISOR'] as const
+export const ROLES_GESTION_USUARIOS = ['ADMIN'] as const
 
 /**
  * Solo decide qué se MUESTRA: el backend valida el permiso en cada endpoint (403 si no lo tiene).
- * Por ahora ambos roles pueden consultar y crear.
+ * AUT-05..09 exige ADMIN en backend.
  */
 export function accesoUsuarios(roles: readonly string[]) {
   const lista = roles.map((rol) => rol.trim().toUpperCase())

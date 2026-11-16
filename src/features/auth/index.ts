@@ -6,7 +6,7 @@ export { useAccessProfile, useAuthStatus, useAuthStore } from '@/features/auth/s
 export { canAccess, CLIENTES_ROLES, getAccessProfile, hasAnyRole, ROLES } from '@/features/auth/lib/access';
 export type { AccessProfile } from '@/features/auth/lib/access';
 export type { AuthStatus } from '@/features/auth/store/auth.store';
-export { registerAuthHandlers, restoreSession, signOut } from '@/features/auth/session';
+export { registerAuthHandlers, restoreSession, refreshSession, startSessionSync, signOut } from '@/features/auth/session';
 export { sanitizeReturnTo } from '@/features/auth/lib/return-to';
 export type { MeResponse } from '@/features/auth/api/auth.contract';
 export { formatRol, formatRoles } from '@/features/auth/lib/roles';

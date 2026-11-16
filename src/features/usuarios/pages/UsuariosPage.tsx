@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { CircleCheck, UserPlus, X } from 'lucide-react'
 
 import { Aviso, Button, Cargando, Paginacion } from '@/shared/ui'
@@ -13,8 +13,8 @@ import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios'
 import { accesoUsuarios } from '@/features/usuarios/lib/acceso'
 import {
   armarParametros,
-  FILTROS_VACIOS,
   filtrosActivos,
+  filtrosDesdeRol,
   ORDEN_INICIAL,
   resumenPaginacion,
   siguienteOrden,
@@ -28,9 +28,10 @@ import { nombreCompleto } from '@/features/usuarios/lib/formato'
 export function UsuariosPage() {
   const roles = useAuthStore((state) => state.user?.roles)
   const acceso = accesoUsuarios(roles ?? [])
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  // En memoria, no en la URL: nombres y correos no deben quedar en el historial
-  const [filtros, setFiltros] = useState<Filtros>(FILTROS_VACIOS)
+  // Solo el rol puede precargarse por URL; nombres y correos permanecen en memoria.
+  const [filtros, setFiltros] = useState<Filtros>(() => filtrosDesdeRol(searchParams.get('rol')))
   const [orden, setOrden] = useState<Orden>(ORDEN_INICIAL)
   const [page, setPage] = useState(1)
   const [creando, setCreando] = useState(false)
@@ -42,6 +43,11 @@ export function UsuariosPage() {
   const buscar = (nuevos: Filtros) => {
     setFiltros(nuevos)
     setPage(1)
+    if (searchParams.has('rol') && searchParams.get('rol') !== nuevos.rol) {
+      const actualizados = new URLSearchParams(searchParams)
+      actualizados.delete('rol')
+      setSearchParams(actualizados, { replace: true })
+    }
   }
 
   const ordenar = (campo: CampoOrden) => {
@@ -52,7 +58,7 @@ export function UsuariosPage() {
   if (!acceso.consulta) {
     return (
       <div className="mx-auto w-full max-w-6xl">
-        <Aviso tono="error">No tienes permiso para gestionar usuarios. Se requiere el rol ADMIN o SUPERVISOR.</Aviso>
+        <Aviso tono="error">No tienes permiso para gestionar usuarios. Se requiere el rol ADMIN.</Aviso>
       </div>
     )
   }
@@ -132,7 +138,7 @@ export function UsuariosPage() {
       )}
 
       <section className="rounded-3xl border border-border bg-card p-6 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-8">
-        <FiltrosUsuarios buscando={usuarios.isFetching} aplicados={aplicados} onBuscar={buscar} />
+        <FiltrosUsuarios buscando={usuarios.isFetching} aplicados={aplicados} onBuscar={buscar} iniciales={filtros} />
       </section>
 
       <section aria-label="Usuarios" className="rounded-3xl border border-border bg-card p-6 sm:p-8">

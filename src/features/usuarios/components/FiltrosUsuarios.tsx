@@ -25,10 +25,11 @@ interface FiltrosUsuariosProps {
   /** Hay búsqueda o filtros aplicados en la tabla (muestra «Limpiar») */
   aplicados: boolean
   onBuscar: (filtros: Filtros) => void
+  iniciales?: FiltrosUsuariosInput
 }
 
 /** Búsqueda libre (username, nombres, apellidos o correo) y filtros combinables de AUT-05 */
-export function FiltrosUsuarios({ buscando, aplicados, onBuscar }: FiltrosUsuariosProps) {
+export function FiltrosUsuarios({ buscando, aplicados, onBuscar, iniciales = FILTROS_VACIOS }: FiltrosUsuariosProps) {
   const {
     register,
     handleSubmit,
@@ -36,7 +37,7 @@ export function FiltrosUsuarios({ buscando, aplicados, onBuscar }: FiltrosUsuari
     formState: { errors },
   } = useForm<FiltrosUsuariosInput, unknown, Filtros>({
     resolver: zodResolver(filtrosUsuariosSchema),
-    defaultValues: FILTROS_VACIOS,
+    defaultValues: iniciales,
   })
   const agencias = useAgencias()
   const errorBusqueda = errors.q?.message
