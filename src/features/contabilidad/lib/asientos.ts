@@ -1,4 +1,5 @@
 import type { ApiError } from '@/shared/api'
+import type { Agencia } from '@/features/catalogos'
 import {
   ASIENTOS_PAGE_SIZE,
   type Asiento,
@@ -146,6 +147,10 @@ export function tonoEstadoAsiento(estado: string): TonoEstadoAsiento {
 
 export const esReversado = (asiento: Pick<Asiento, 'estado' | 'idAsientoReversion'>) =>
   asiento.idAsientoReversion !== null || asiento.estado.trim().toUpperCase() === 'REVERSADO'
+
+/** «001 · Matriz»; hoy CAT-06 puede usar el código como nombre: entonces solo el código */
+export const etiquetaAgencia = ({ idAgencia, nombre }: Pick<Agencia, 'idAgencia' | 'nombre'>) =>
+  nombre && nombre !== idAgencia ? `${idAgencia} · ${nombre}` : idAgencia
 
 export const MENSAJE_ASIENTOS_NO_DISPONIBLE = 'La consulta de asientos todavía no está disponible en el servidor.'
 
