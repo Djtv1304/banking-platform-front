@@ -28,6 +28,9 @@ export const esNivelRegulador = (codigoCuenta: string) => LARGOS_REGULADOR.inclu
 
 export const LARGO_MAXIMO_CODIGO = 30
 
+/** Las subcuentas propias cuelgan de una cuenta de 6 dígitos o más, para no ocupar códigos del regulador */
+const LARGO_MINIMO_PADRE = 6
+
 const MOTIVO_REGULADOR = 'Es un nivel del catálogo del regulador (códigos de 1, 2, 4 y 6 dígitos): no se modifica.'
 
 /** Motivo por el que una acción no está disponible; null = disponible */
@@ -49,9 +52,13 @@ export function bloqueosCuenta(cuenta: CuentaContable, tieneSubcuentas: boolean)
 
   const nuevaSubcuenta = !activa
     ? 'La cuenta está inactiva: actívala para crearle subcuentas.'
-    : cuenta.codigoCuenta.length >= LARGO_MAXIMO_CODIGO
+    : cuenta.codigoCuenta.length < LARGO_MINIMO_PADRE
+      ? 'Debajo de este nivel solo van cuentas del catálogo del regulador: crea la subcuenta bajo una cuenta de 6 dígitos.'
+      : cuenta.codigoCuenta.length >= LARGO_MAXIMO_CODIGO
       ? `El código ya tiene ${LARGO_MAXIMO_CODIGO} dígitos, el máximo.`
-      : null
+      : cuenta.esImputable && conSaldo
+        ? 'Recibe movimientos y tiene saldo: una cuenta con saldo no se divide en subcuentas.'
+        : null
 
   const cambiarEstado = regulador
     ? MOTIVO_REGULADOR

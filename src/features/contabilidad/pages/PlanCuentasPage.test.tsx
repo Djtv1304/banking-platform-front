@@ -27,6 +27,9 @@ vi.mock('@/features/auth', () => ({
   hasAnyRole: (roles: readonly string[], permitidos: readonly string[]) => roles.some((r) => permitidos.includes(r)),
 }))
 vi.mock('@/features/contabilidad/hooks/usePlanCuentas', () => ({ usePlanCuentas: () => estado.plan }))
+vi.mock('@/features/contabilidad/components/NuevaSubcuentaDialog', () => ({ NuevaSubcuentaDialog: () => <div>dialogo-subcuenta</div> }))
+vi.mock('@/features/contabilidad/components/EditarNombreCuentaDialog', () => ({ EditarNombreCuentaDialog: () => null }))
+vi.mock('@/features/contabilidad/components/ConfirmarCuentaDialog', () => ({ ConfirmarCuentaDialog: () => null }))
 vi.mock('@/shared/ui', () => ({
   Button: ({ children, ...props }: ComponentProps<'button'>) => <button {...props}>{children}</button>,
   Badge: ({ children }: ComponentProps<'span'>) => <span>{children}</span>,
@@ -62,9 +65,12 @@ describe('PlanCuentasPage', () => {
     expect(html().match(/tabindex="0"/g)).toHaveLength(1)
   })
 
-  it('el auditor ve que su acceso es de solo consulta', () => {
+  it('el auditor ve que su acceso es de solo consulta y no monta los diálogos de mantenimiento', () => {
     estado.roles = ['AUDITOR']
     expect(html()).toContain('solo consulta')
+    expect(html()).not.toContain('dialogo-subcuenta')
+    estado.roles = ['CONTADOR']
+    expect(html()).toContain('dialogo-subcuenta')
   })
 
   it('muestra los estados de carga, vacío y error', () => {

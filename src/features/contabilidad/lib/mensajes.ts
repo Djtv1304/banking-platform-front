@@ -4,6 +4,10 @@ import type { ApiError } from '@/shared/api'
 
 export const MENSAJE_NO_DISPONIBLE = 'Esta acción todavía no está disponible en el servidor.'
 
+/** Confirmación tras una operación: 202 = quedó pendiente de aprobación, aún no se aplica */
+export const mensajeResultado = (pendiente: boolean, hecho: string) =>
+  pendiente ? 'Solicitud enviada a aprobación: el cambio se verá en el plan cuando la aprueben.' : hecho
+
 const MENSAJES: Record<string, string> = {
   CODIGO_NO_CORRESPONDE_AL_PADRE: 'El código debe empezar por el código de la cuenta superior y tener más dígitos.',
   CODIGO_DUPLICADO: 'Ya existe una cuenta con ese código.',

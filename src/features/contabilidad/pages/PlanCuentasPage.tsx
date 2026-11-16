@@ -5,10 +5,14 @@ import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando, Checkbox, Input, Label } from '@/shared/ui'
 import { hasAnyRole, useAuthStore } from '@/features/auth'
 import { CONTABILIDAD_ROLES } from '@/features/contabilidad/api/contabilidad.contract'
+import { AccionesCuenta, type TipoAccion } from '@/features/contabilidad/components/AccionesCuenta'
 import { ArbolCuentas } from '@/features/contabilidad/components/ArbolCuentas'
+import { ConfirmarCuentaDialog, type Confirmacion } from '@/features/contabilidad/components/ConfirmarCuentaDialog'
 import { DetalleCuenta } from '@/features/contabilidad/components/DetalleCuenta'
+import { EditarNombreCuentaDialog } from '@/features/contabilidad/components/EditarNombreCuentaDialog'
+import { NuevaSubcuentaDialog } from '@/features/contabilidad/components/NuevaSubcuentaDialog'
 import { usePlanCuentas } from '@/features/contabilidad/hooks/usePlanCuentas'
-import { construirArbol, filtrarArbol, idsPrimerNivel, normalizar } from '@/features/contabilidad/lib/arbol'
+import { construirArbol, filtrarArbol, idsPrimerNivel, normalizar, type NodoCuenta } from '@/features/contabilidad/lib/arbol'
 import { mensajeErrorPlanCuentas } from '@/features/contabilidad/lib/mensajes'
 
 /** Ramas abiertas a mano para un filtro concreto; al cambiar el filtro se vuelve a lo de partida */
@@ -17,7 +21,7 @@ interface Abiertos {
   ids: ReadonlySet<number>
 }
 
-/** E2-02 · Plan de cuentas (CON-03): CONTADOR, AUDITOR y ADMIN consultan */
+/** E2-02 · Plan de cuentas (CON-03): CONTADOR, AUDITOR y ADMIN consultan; CONTADOR y ADMIN mantienen */
 export function PlanCuentasPage() {
   const roles = useAuthStore((state) => state.user?.roles) ?? []
   const puedeMantener = hasAnyRole(roles, CONTABILIDAD_ROLES.mantener)
@@ -48,6 +52,28 @@ export function PlanCuentasPage() {
   const [seleccionada, setSeleccionada] = useState<number | null>(null)
   const nodo = seleccionada === null ? undefined : arbol.porId.get(seleccionada)
   const padre = nodo?.idPadre == null ? undefined : arbol.porId.get(nodo.idPadre)
+
+  // Los diálogos guardan la cuenta tal como estaba al abrirlos
+  const [subcuentaDe, setSubcuentaDe] = useState<NodoCuenta | null>(null)
+  const [renombrando, setRenombrando] = useState<NodoCuenta | null>(null)
+  const [confirmacion, setConfirmacion] = useState<Confirmacion | null>(null)
+  const [resultado, setResultado] = useState<string | null>(null)
+
+  const abrirAccion = (tipo: TipoAccion) => {
+    if (!nodo) return
+    setResultado(null)
+    if (tipo === 'subcuenta') setSubcuentaDe(nodo)
+    else if (tipo === 'nombre') setRenombrando(nodo)
+    else setConfirmacion({ tipo, nodo })
+  }
+
+  const alTerminar = (mensaje: string, eliminada = false) => {
+    setSubcuentaDe(null)
+    setRenombrando(null)
+    setConfirmacion(null)
+    if (eliminada) setSeleccionada(null)
+    setResultado(mensaje)
+  }
 
   const contenido = (() => {
     if (plan.isError) {
@@ -88,6 +114,8 @@ export function PlanCuentasPage() {
         </p>
       </header>
 
+      {resultado && <Aviso>{resultado}</Aviso>}
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section aria-label="Cuentas" className="flex min-w-0 flex-col gap-5 rounded-3xl border border-border bg-card p-4 sm:p-6">
           <div className="flex flex-wrap items-center gap-4">
@@ -119,12 +147,24 @@ export function PlanCuentasPage() {
 
         <aside aria-label="Detalle de la cuenta" className="h-fit rounded-3xl border border-border bg-card p-6 lg:sticky lg:top-6">
           {nodo ? (
-            <DetalleCuenta nodo={nodo} padre={padre} />
+            <DetalleCuenta
+              nodo={nodo}
+              padre={padre}
+              acciones={puedeMantener && <AccionesCuenta nodo={nodo} onAccion={abrirAccion} />}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">Elige una cuenta del árbol para ver su detalle.</p>
           )}
         </aside>
       </div>
+
+      {puedeMantener && (
+        <>
+          <NuevaSubcuentaDialog padre={subcuentaDe} onCerrar={() => setSubcuentaDe(null)} onHecho={alTerminar} />
+          <EditarNombreCuentaDialog nodo={renombrando} onCerrar={() => setRenombrando(null)} onHecho={alTerminar} />
+          <ConfirmarCuentaDialog confirmacion={confirmacion} onCerrar={() => setConfirmacion(null)} onHecho={alTerminar} />
+        </>
+      )}
     </div>
   )
 }

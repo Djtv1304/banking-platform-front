@@ -41,11 +41,17 @@ describe('formato de una cuenta contable', () => {
 
 describe('bloqueosCuenta', () => {
   it('un nivel del regulador no se renombra, desactiva ni elimina, pero admite subcuentas', () => {
-    const b = bloqueosCuenta(cuenta('2101'), true)
+    const b = bloqueosCuenta(cuenta('210140', { saldo: 0 }), true)
     expect(b.renombrar).toMatch(/regulador/)
     expect(b.cambiarEstado).toMatch(/regulador/)
     expect(b.eliminar).toMatch(/regulador/)
     expect(b.nuevaSubcuenta).toBeNull()
+  })
+
+  it('bajo los niveles de 1, 2 y 4 dígitos no se crean subcuentas propias', () => {
+    for (const codigo of ['2', '21', '2101']) {
+      expect(bloqueosCuenta(cuenta(codigo, { saldo: 0 }), true).nuevaSubcuenta).toMatch(/6 dígitos/)
+    }
   })
 
   it('una cuenta propia sin saldo ni subcuentas admite todo', () => {
@@ -62,6 +68,13 @@ describe('bloqueosCuenta', () => {
     expect(conSaldo.cambiarEstado).toMatch(/saldo/)
     expect(conSaldo.eliminar).toMatch(/saldo/)
     expect(bloqueosCuenta(cuenta('21014001'), true).eliminar).toMatch(/subcuentas/)
+  })
+
+  it('una imputable con saldo no recibe subcuentas; sin saldo, sí', () => {
+    expect(bloqueosCuenta(cuenta('210135', { esImputable: true, saldo: 162646.76 }), false).nuevaSubcuenta).toMatch(
+      /saldo/,
+    )
+    expect(bloqueosCuenta(cuenta('210110', { esImputable: true, saldo: 0 }), false).nuevaSubcuenta).toBeNull()
   })
 
   it('una inactiva con saldo se puede activar, pero no recibe subcuentas', () => {
