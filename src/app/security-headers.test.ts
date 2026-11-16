@@ -38,6 +38,10 @@ describe('public/_headers', () => {
     expect(directive(csp, 'frame-ancestors')).toBe("frame-ancestors 'none'")
     expect(headers).toMatch(/^\s*X-Frame-Options: DENY$/m)
     expect(headers).toMatch(/^\s*X-Content-Type-Options: nosniff$/m)
-    expect(headers).toMatch(/^\s*Referrer-Policy: strict-origin-when-cross-origin$/m)
+    expect(headers).toMatch(/^\s*Referrer-Policy: no-referrer$/m)
+  })
+
+  it('fuerza HTTPS en el dominio y sus subdominios (HSTS)', () => {
+    expect(headers).toMatch(/^\s*Strict-Transport-Security: max-age=31536000; includeSubDomains$/m)
   })
 })
