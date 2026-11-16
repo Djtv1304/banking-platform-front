@@ -16,6 +16,16 @@ function createEnv() {
   }
 }
 
+/** Cabeceras que debe llevar toda respuesta de /api/* (PCI SSS Módulo C §3.9) */
+function expectSecurityHeaders(response: Response) {
+  expect(response.headers.get('Cache-Control')).toBe('no-store')
+  expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff')
+  expect(response.headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains')
+  expect(response.headers.get('Referrer-Policy')).toBe('no-referrer')
+  expect(response.headers.get('X-Frame-Options')).toBe('DENY')
+  expect(response.headers.get('Content-Security-Policy')).toBe("default-src 'none'; frame-ancestors 'none'")
+}
+
 afterEach(() => vi.unstubAllGlobals())
 
 describe('proxy del Worker', () => {
@@ -37,7 +47,8 @@ describe('proxy del Worker', () => {
 
     const response = await worker.fetch(request, createEnv())
 
-    expect(response).toBe(upstream)
+    expect(response.status).toBe(302)
+    expect(response.headers.get('Location')).toBe('https://api.workos.com/')
     expect(fetchBackend).toHaveBeenCalledOnce()
     const [target, options] = fetchBackend.mock.calls[0]
     expect(target).toBe(`${BACKEND_URL}/api/v1/auth/login?return_to=/organizacion/entidad`)
@@ -72,8 +83,11 @@ describe('proxy del Worker', () => {
 
     const response = await worker.fetch(incomingRequest(`https://${PREVIEW_HOST}/api/v1/auth/callback`), createEnv())
 
-    expect(response).toBe(upstream)
-    expect(response.headers.getSetCookie()).toHaveLength(2)
+    expect(response.status).toBe(302)
+    expect(response.headers.getSetCookie()).toEqual([
+      'session=test; HttpOnly; Secure; Path=/',
+      'oauth_state=; Max-Age=0; Path=/',
+    ])
     expect(response.headers.get('Location')).toBe(`https://${PREVIEW_HOST}/organizacion/entidad`)
   })
 
@@ -148,7 +162,66 @@ describe('proxy del Worker', () => {
     const response = await worker.fetch(incomingRequest(`https://${PREVIEW_HOST}/api/v1/auth/me`), createEnv())
 
     expect(response.status).toBe(502)
-    expect(response.headers.get('Cache-Control')).toBe('no-store')
+    expectSecurityHeaders(response)
     expect(await response.json()).toMatchObject({ detail: { code: 'BACKEND_NO_DISPONIBLE' } })
+  })
+
+  describe('cabeceras de seguridad de /api/*', () => {
+    const API_URL = `https://${PREVIEW_HOST}/api/v1/auth/me`
+
+    it('aplican en un 200 y sobrescriben el Cache-Control del backend', async () => {
+      const upstream = new Response('{"ok":true}', {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+      })
+      vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(upstream))
+
+      const response = await worker.fetch(incomingRequest(API_URL), createEnv())
+
+      expect(response.status).toBe(200)
+      expectSecurityHeaders(response)
+      expect(response.headers.get('Content-Type')).toBe('application/json')
+      expect(await response.json()).toEqual({ ok: true })
+    })
+
+    it('aplican en un 302 sin perder status, Location ni los dos Set-Cookie', async () => {
+      const upstream = new Response(null, { status: 302 })
+      upstream.headers.set('Location', 'https://api.workos.com/authorize')
+      upstream.headers.append('Set-Cookie', '__Host-session=abc; HttpOnly; Secure; Path=/; SameSite=Lax')
+      upstream.headers.append('Set-Cookie', 'oauth_state=xyz; HttpOnly; Secure; Path=/')
+      vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(upstream))
+
+      const response = await worker.fetch(incomingRequest(`https://${PREVIEW_HOST}/api/v1/auth/login`), createEnv())
+
+      expect(response.status).toBe(302)
+      expect(response.headers.get('Location')).toBe('https://api.workos.com/authorize')
+      expect(response.headers.getSetCookie()).toEqual([
+        '__Host-session=abc; HttpOnly; Secure; Path=/; SameSite=Lax',
+        'oauth_state=xyz; HttpOnly; Secure; Path=/',
+      ])
+      expectSecurityHeaders(response)
+    })
+
+    it('aplican en el 502 de backend caído', async () => {
+      vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockRejectedValue(new Error('unavailable')))
+
+      const response = await worker.fetch(incomingRequest(API_URL), createEnv())
+
+      expect(response.status).toBe(502)
+      expectSecurityHeaders(response)
+    })
+
+    it('quitan Server y X-Powered-By del backend', async () => {
+      const upstream = new Response('{}', {
+        headers: { Server: 'uvicorn', 'X-Powered-By': 'FastAPI', 'X-Request-Id': 'r-1' },
+      })
+      vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(upstream))
+
+      const response = await worker.fetch(incomingRequest(API_URL), createEnv())
+
+      expect(response.headers.has('Server')).toBe(false)
+      expect(response.headers.has('X-Powered-By')).toBe(false)
+      expect(response.headers.get('X-Request-Id')).toBe('r-1')
+    })
   })
 })
