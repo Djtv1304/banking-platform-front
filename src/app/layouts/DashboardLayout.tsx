@@ -18,6 +18,7 @@ import {
   Sun,
   UserPlus,
   UserSearch,
+  Vault,
   WalletCards,
   type LucideIcon,
 } from 'lucide-react'
@@ -26,6 +27,7 @@ import { canAccess, CLIENTES_ROLES, hasAnyRole, formatRol, formatRoles, signOut,
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { ROLES_GESTION_USUARIOS } from '@/features/usuarios'
 import { PRODUCTOS_ROLES } from '@/features/organizacion'
+import { BOVEDA_ROLES } from '@/features/boveda'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
 import { CATALOGOS_ROLES, useAgencias } from '@/features/catalogos'
@@ -99,6 +101,11 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Tarjetas',
     items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas }],
+  },
+  {
+    title: 'Tesorería',
+    // SUPERVISOR, CONTADOR, AUDITOR y ADMIN; la página muestra a cada rol solo lo que puede consultar
+    items: [{ to: '/bovedas', label: 'Bóvedas', Icon: Vault, roles: BOVEDA_ROLES.acceso }],
   },
   {
     title: 'Cuentas contables',
@@ -273,7 +280,8 @@ export function DashboardLayout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-8">
+        {/* `relative`: lo absoluto sin ancestro posicionado (p. ej. `sr-only`) queda dentro del scroll y no alarga el documento */}
+        <main className="relative flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           <Outlet />
         </main>
       </div>
