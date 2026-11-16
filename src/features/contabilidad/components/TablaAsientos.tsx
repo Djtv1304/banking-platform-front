@@ -36,9 +36,10 @@ interface TablaAsientosProps {
   /** Nombre de la agencia por id; si falta, se muestra el id */
   agencias: ReadonlyMap<string, string>
   onOrdenar: (campo: CampoOrdenAsiento) => void
+  onSeleccionar: (idAsiento: number) => void
 }
 
-export function TablaAsientos({ asientos, orden, agencias, onOrdenar }: TablaAsientosProps) {
+export function TablaAsientos({ asientos, orden, agencias, onOrdenar, onSeleccionar }: TablaAsientosProps) {
   return (
     <div className="overflow-x-auto">
       <table aria-label="Asientos contables" className="w-full min-w-[960px] text-left text-sm">
@@ -82,7 +83,14 @@ export function TablaAsientos({ asientos, orden, agencias, onOrdenar }: TablaAsi
           {asientos.map((asiento) => (
             <tr key={asiento.idAsientoContable} className="border-b border-border">
               <th scope="row" className="px-3 py-3 text-left font-medium whitespace-nowrap text-heading">
-                {asiento.numeroAsiento}
+                <button
+                  type="button"
+                  onClick={() => onSeleccionar(asiento.idAsientoContable)}
+                  aria-label={`Ver el asiento ${asiento.numeroAsiento}`}
+                  className="rounded-md text-link underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                >
+                  {asiento.numeroAsiento}
+                </button>
               </th>
               <td className="px-3 py-3 whitespace-nowrap text-heading">{formatearFechaAsiento(asiento.fechaAsiento)}</td>
               <td className="max-w-72 px-3 py-3 text-heading">

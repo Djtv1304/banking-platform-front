@@ -10,11 +10,13 @@ import {
   cuadreAsiento,
   esFechaIsoValida,
   esReversado,
+  etiquetaCuenta,
   etiquetaEstadoAsiento,
   etiquetaOrigenAsiento,
   etiquetaTexto,
   formatearFechaAsiento,
   mensajeErrorAsientos,
+  motivoDescuadre,
   resumenPaginacionAsientos,
   tonoEstadoAsiento,
   totalesDeLineas,
@@ -102,10 +104,36 @@ describe('totales y cuadre', () => {
   })
 })
 
+describe('motivoDescuadre', () => {
+  const lineas = [
+    { tipoMovimiento: 'DEBITO', monto: 50 },
+    { tipoMovimiento: 'CREDITO', monto: 50 },
+  ]
+
+  it('no hay motivo si cuadra', () => {
+    expect(motivoDescuadre({ detalle: lineas, totalDebito: 50, totalCredito: 50 })).toBeNull()
+  })
+
+  it('explica si las líneas no cuadran entre sí', () => {
+    const motivo = motivoDescuadre({ detalle: [lineas[0]], totalDebito: 50, totalCredito: 50 })
+    expect(motivo).toMatch(/débitos .*50,00.* créditos .*0,00.* no son iguales/)
+  })
+
+  it('explica si la cabecera no cuadra o no coincide con las líneas', () => {
+    expect(motivoDescuadre({ detalle: lineas, totalDebito: 50, totalCredito: 60 })).toMatch(/cabecera no son iguales/)
+    expect(motivoDescuadre({ detalle: lineas, totalDebito: 60, totalCredito: 60 })).toMatch(/no suman lo mismo/)
+  })
+})
+
 describe('presentación', () => {
   it('formatea la fecha sin pasar por zona horaria', () => {
     expect(formatearFechaAsiento('2026-01-05')).toBe('05/01/2026')
     expect(formatearFechaAsiento('texto')).toBe('texto')
+  })
+
+  it('muestra el nombre de la cuenta solo si el plan ya lo trae', () => {
+    expect(etiquetaCuenta('110105', 'Caja general')).toBe('110105 · Caja general')
+    expect(etiquetaCuenta('110105', undefined)).toBe('110105')
   })
 
   it('hace legibles los textos del backend', () => {

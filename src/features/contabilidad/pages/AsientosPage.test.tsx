@@ -27,7 +27,7 @@ const estado = vi.hoisted(() => ({
   asientos: {} as Record<string, unknown>,
 }))
 
-vi.mock('@/features/contabilidad/hooks/useAsientos', () => ({ useAsientos: () => estado.asientos }))
+vi.mock('@/features/contabilidad/hooks/useAsientos', () => ({ useAsientos: () => estado.asientos, useAsiento: () => ({ isPending: true }) }))
 vi.mock('@/features/catalogos', () => ({
   useAgencias: () => ({
     data: [{ idAgencia: '001', codigo: '001', nombre: 'Matriz', tipoAgencia: 'Matriz', provincia: 'Pichincha', ciudad: 'Quito', estado: 'A' }],
@@ -43,6 +43,11 @@ vi.mock('@/shared/ui', () => ({
   Label: ({ children }: ComponentProps<'label'>) => <label>{children}</label>,
   Aviso: ({ children }: ComponentProps<'div'>) => <div>{children}</div>,
   Cargando: ({ texto }: { texto: string }) => <div>{texto}</div>,
+  Dialog: ({ children }: ComponentProps<'div'>) => <div>{children}</div>,
+  DialogContent: ({ children }: ComponentProps<'div'>) => <div>{children}</div>,
+  DialogHeader: ({ children }: ComponentProps<'div'>) => <div>{children}</div>,
+  DialogTitle: ({ children }: ComponentProps<'h2'>) => <h2>{children}</h2>,
+  DialogDescription: ({ children }: ComponentProps<'p'>) => <p>{children}</p>,
   Paginacion: ({ resumen }: { resumen: string }) => <p>{resumen}</p>,
 }))
 
@@ -70,6 +75,10 @@ describe('AsientosPage', () => {
     expect(salida).toContain('Contabilizado')
     expect(salida).toContain('Revertido por el asiento n.º 9')
     expect(salida).toContain('Página 1 de 1 · 2 asientos')
+  })
+
+  it('cada número de asiento abre su detalle', () => {
+    expect(html()).toContain('aria-label="Ver el asiento AS-000001"')
   })
 
   it('las columnas tienen scope y la fecha viene ordenada de más reciente a más antigua', () => {

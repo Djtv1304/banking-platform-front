@@ -6,6 +6,7 @@ import {
   type CampoOrdenAsiento,
   type MovimientoAsiento,
 } from '@/features/contabilidad/api/asientos.contract'
+import { formatearSaldo } from '@/features/contabilidad/lib/cuenta-contable'
 import { esNoDisponible } from '@/features/contabilidad/lib/mensajes'
 
 /* Filtros, orden, paginación, cuadre y mensajes de la consulta de asientos (sin UI) */
@@ -97,6 +98,23 @@ export function cuadreAsiento(asiento: Pick<Asiento, 'totalDebito' | 'totalCredi
     aCentavos(lineas.creditos) === aCentavos(asiento.totalCredito)
   return { ...lineas, cuadra: lineas.cuadra && cabeceraCuadra && lineasCoinciden }
 }
+
+/** Por qué no cuadra un asiento, para el aviso del detalle; null si cuadra */
+export function motivoDescuadre(asiento: Pick<Asiento, 'totalDebito' | 'totalCredito'> & { detalle: readonly LineaMonto[] }) {
+  const cuadre = cuadreAsiento(asiento)
+  if (cuadre.cuadra) return null
+  if (!totalesDeLineas(asiento.detalle).cuadra) {
+    return `Los débitos (${formatearSaldo(cuadre.debitos)}) y los créditos (${formatearSaldo(cuadre.creditos)}) de las líneas no son iguales.`
+  }
+  if (aCentavos(asiento.totalDebito) !== aCentavos(asiento.totalCredito)) {
+    return `El total de débito (${formatearSaldo(asiento.totalDebito)}) y el de crédito (${formatearSaldo(asiento.totalCredito)}) de la cabecera no son iguales.`
+  }
+  return 'Las líneas no suman lo mismo que los totales de la cabecera.'
+}
+
+/** Código de cuenta y, si el plan ya está cargado, su nombre: «110105 · Caja general» */
+export const etiquetaCuenta = (codigoCuenta: string, nombre: string | undefined) =>
+  nombre ? `${codigoCuenta} · ${nombre}` : codigoCuenta
 
 /** «2026-11-16» → «16/11/2026» sin pasar por Date (no hay zona horaria que lo corra un día) */
 export function formatearFechaAsiento(iso: string) {

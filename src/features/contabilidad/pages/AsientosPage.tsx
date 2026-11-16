@@ -4,6 +4,7 @@ import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando, Paginacion } from '@/shared/ui'
 import { useAgencias } from '@/features/catalogos'
 import type { CampoOrdenAsiento } from '@/features/contabilidad/api/asientos.contract'
+import { DetalleAsientoDialog } from '@/features/contabilidad/components/DetalleAsientoDialog'
 import { FiltrosAsientos } from '@/features/contabilidad/components/FiltrosAsientos'
 import { TablaAsientos } from '@/features/contabilidad/components/TablaAsientos'
 import { useAsientos } from '@/features/contabilidad/hooks/useAsientos'
@@ -26,6 +27,7 @@ export function AsientosPage() {
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_ASIENTOS_VACIOS)
   const [orden, setOrden] = useState<OrdenAsientos>(ORDEN_ASIENTOS_INICIAL)
   const [page, setPage] = useState(1)
+  const [seleccionado, setSeleccionado] = useState<number | null>(null)
   const asientos = useAsientos(armarParametrosAsientos(filtros, page, orden))
 
   const agencias = useAgencias()
@@ -62,7 +64,7 @@ export function AsientosPage() {
 
     return (
       <div className="flex flex-col gap-4">
-        <TablaAsientos asientos={items} orden={orden} agencias={nombresAgencia} onOrdenar={ordenar} />
+        <TablaAsientos asientos={items} orden={orden} agencias={nombresAgencia} onOrdenar={ordenar} onSeleccionar={setSeleccionado} />
         <Paginacion
           resumen={resumenPaginacionAsientos(page, total, pageSize)}
           page={page}
@@ -91,6 +93,13 @@ export function AsientosPage() {
       <section aria-label="Resultados" className="rounded-3xl border border-border bg-card p-4 sm:p-6">
         {resultado}
       </section>
+
+      <DetalleAsientoDialog
+        idAsiento={seleccionado}
+        agencias={nombresAgencia}
+        onCerrar={() => setSeleccionado(null)}
+        onAbrir={setSeleccionado}
+      />
     </div>
   )
 }
