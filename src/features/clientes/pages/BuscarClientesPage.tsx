@@ -46,6 +46,12 @@ export function BuscarClientesPage() {
 
       <form
         onSubmit={(event) => { event.preventDefault(); buscar() }}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+          if ((event.target as HTMLElement).tagName !== 'INPUT') return
+          event.preventDefault()
+          buscar()
+        }}
         noValidate
         role="search"
         aria-label="Filtros de clientes"
@@ -120,16 +126,12 @@ export function BuscarClientesPage() {
         </Field>
 
         <p id="clientes-busqueda-ayuda" className="text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">
-          La lista se actualiza al dejar de escribir o cambiar un filtro. Buscar o Enter aplica la búsqueda inmediatamente.
+          La lista se actualiza al dejar de escribir o cambiar un filtro. Enter aplica la búsqueda inmediatamente.
         </p>
         <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row sm:justify-end lg:col-span-3">
           <Button type="button" variant="outline" onClick={limpiar} className="h-[52px] rounded-xl px-6 text-base">
             <RotateCcw />
             Limpiar
-          </Button>
-          <Button type="submit" className="h-[52px] rounded-xl px-8 text-base font-semibold hover:bg-primary/90">
-            <Search />
-            Buscar
           </Button>
         </div>
       </form>

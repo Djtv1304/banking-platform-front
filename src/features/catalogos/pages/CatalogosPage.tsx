@@ -9,8 +9,10 @@ import { hasAnyRole, useAuthStore } from '@/features/auth'
 import {
   CATALOGOS_ROLES,
   type CatalogoAdministrable,
+  type Confirmacion,
   type RegistroCatalogo,
 } from '@/features/catalogos/api/catalogos.contract'
+import { ConfirmacionDialog } from '@/features/catalogos/components/ConfirmacionDialog'
 import { EditarRegistroDialog } from '@/features/catalogos/components/EditarRegistroDialog'
 import { NuevaTasaDialog } from '@/features/catalogos/components/NuevaTasaDialog'
 import {
@@ -119,11 +121,19 @@ function TablaCatalogo({
   // Tolerante: un descriptor guardado antes de esta versión (o de un backend anterior) no trae camposAlta
   const permiteAlta = (catalogo.camposAlta ?? []).length > 0
 
-  const confirmarEliminar = (registro: RegistroCatalogo) => {
+  // Catálogos sensibles: primero el código de confirmación
+  const [pidiendoCodigo, setPidiendoCodigo] = useState<RegistroCatalogo | null>(null)
+
+  const confirmarEliminar = (registro: RegistroCatalogo, confirmacion?: Confirmacion) => {
+    if (catalogo.requiereConfirmacion && !confirmacion) {
+      setPidiendoCodigo(registro)
+      return
+    }
+    setPidiendoCodigo(null)
     onConfirmar(null)
     setError(null)
     eliminar.mutate(
-      { clave: catalogo.clave, id: registro.id },
+      { clave: catalogo.clave, id: registro.id, confirmacion },
       {
         onSuccess: () => {
           setPorEliminar(null)
@@ -276,6 +286,16 @@ function TablaCatalogo({
       {esAdmin && (
         <>
           <EditarRegistroDialog catalogo={catalogo} registro={editando} onCerrar={() => setEditando(null)} onGuardado={guardado} />
+          <ConfirmacionDialog
+            clave={catalogo.clave}
+            abierto={pidiendoCodigo !== null}
+            accion={`Eliminar en ${catalogo.nombre.toLowerCase()}`}
+            onCancelar={() => {
+              setPidiendoCodigo(null)
+              setPorEliminar(null)
+            }}
+            onConfirmado={(c) => pidiendoCodigo && confirmarEliminar(pidiendoCodigo, c)}
+          />
           {permiteAlta && (
             <EditarRegistroDialog
               catalogo={catalogo}

@@ -6,6 +6,7 @@ import {
   actividadEconomicaSchema,
   agenciaSchema,
   canalSchema,
+  confirmacionSchema,
   comisionSchema,
   catalogoAdministrableSchema,
   ciudadSchema,
@@ -20,6 +21,7 @@ import {
   tipoAntecedenteSchema,
   tipoCreditoSchema,
   tipoMovimientoCajaSchema,
+  type Confirmacion,
   type TasaInteresCreate,
   type ValorCampo,
   type TipoProducto,
@@ -115,8 +117,20 @@ export const getComisiones = () => getLista(CATALOGOS_ENDPOINTS.comisiones, comi
 export const getSeguros = () => getLista(CATALOGOS_ENDPOINTS.seguros, seguroSchema)
 
 /** POST (solo ADMIN): 201 con la fila creada */
-export async function crearRegistroCatalogo(clave: string, body: Record<string, ValorCampo>) {
-  const { data, status } = await apiClient.post<unknown>(CATALOGOS_ENDPOINTS.registros(clave), body)
+const cabecerasConfirmacion = (c?: Confirmacion) =>
+  c ? { headers: { 'X-Confirmacion-Token': c.token, 'X-Confirmacion-Codigo': c.codigo } } : undefined
+
+export async function pedirConfirmacion(clave: string) {
+  const { data, status } = await apiClient.post<unknown>(CATALOGOS_ENDPOINTS.confirmacion(clave))
+  const result = confirmacionSchema.safeParse(data)
+  if (!result.success) {
+    throw new ApiError('No pudimos leer la respuesta del servidor. Inténtalo más tarde.', status, 'respuesta_invalida')
+  }
+  return result.data
+}
+
+export async function crearRegistroCatalogo(clave: string, body: Record<string, ValorCampo>, confirmacion?: Confirmacion) {
+  const { data, status } = await apiClient.post<unknown>(CATALOGOS_ENDPOINTS.registros(clave), body, cabecerasConfirmacion(confirmacion))
   const result = registroCatalogoSchema.safeParse(data)
   if (!result.success) {
     throw new ApiError('No pudimos leer la respuesta del servidor. Inténtalo más tarde.', status, 'respuesta_invalida')
@@ -125,6 +139,6 @@ export async function crearRegistroCatalogo(clave: string, body: Record<string, 
 }
 
 /** DELETE (solo ADMIN): 204; si alguien lo usa, 409 ITEM_EN_USO */
-export async function eliminarRegistroCatalogo(clave: string, id: string) {
-  await apiClient.delete(CATALOGOS_ENDPOINTS.registro(clave, id))
+export async function eliminarRegistroCatalogo(clave: string, id: string, confirmacion?: Confirmacion) {
+  await apiClient.delete(CATALOGOS_ENDPOINTS.registro(clave, id), cabecerasConfirmacion(confirmacion))
 }

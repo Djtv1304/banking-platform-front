@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react'
-import { useForm } from 'react-hook-form'
+import type { FormEvent, ReactNode } from 'react'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { LoaderCircle, Search } from 'lucide-react'
 
-import { Button, Input, Label } from '@/shared/ui'
+import { Button, FechaInput, Input, Label } from '@/shared/ui'
+import { useBusquedaAutomatica } from '@/shared/lib/useBusquedaAutomatica'
 import { TIPO_TRANSACCION_MAX } from '@/features/cuenta/api/movimientos.contract'
 import {
   filtrosMovimientosSchema,
@@ -42,44 +42,77 @@ export function FiltrosMovimientos({ inicial, consultando, onConsultar }: Filtro
   const {
     register,
     handleSubmit,
+    getValues,
+    reset,
+    control,
     formState: { errors },
   } = useForm<FiltrosMovimientosInput, unknown, Filtros>({
     resolver: zodResolver(filtrosMovimientosSchema),
+    mode: 'onChange',
     defaultValues: inicial,
   })
-  const errorDesde = errors.desde?.message
-  const errorHasta = errors.hasta?.message
+  const consultar = () => {
+    const resultado = filtrosMovimientosSchema.safeParse(getValues())
+    if (resultado.success) onConsultar(resultado.data)
+  }
+  const busqueda = useBusquedaAutomatica(consultar)
   const errorTipo = errors.tipoTransaccion?.message
+
+  const limpiar = () => {
+    busqueda.cancelar()
+    reset(inicial)
+    onConsultar(inicial)
+  }
+
+  const enviar = (evento: FormEvent<HTMLFormElement>) => {
+    busqueda.cancelar()
+    void handleSubmit(onConsultar)(evento)
+  }
 
   return (
     <form
-      onSubmit={handleSubmit(onConsultar)}
+      onSubmit={enviar}
+      {...busqueda.eventos}
       noValidate
       aria-label="Filtros de movimientos"
       className="flex flex-col gap-5"
     >
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        <Campo id="desde" label="Desde" error={errorDesde}>
-          <Input
-            id="desde"
-            type="date"
-            className={campoClassName}
-            aria-invalid={!!errorDesde}
-            aria-describedby={errorDesde ? 'desde-error' : undefined}
-            {...register('desde')}
-          />
-        </Campo>
-
-        <Campo id="hasta" label="Hasta" error={errorHasta}>
-          <Input
-            id="hasta"
-            type="date"
-            className={campoClassName}
-            aria-invalid={!!errorHasta}
-            aria-describedby={errorHasta ? 'hasta-error' : undefined}
-            {...register('hasta')}
-          />
-        </Campo>
+        {(['desde', 'hasta'] as const).map((campo) => (
+          <div
+            key={campo}
+            className="flex min-w-0 flex-col gap-2.5"
+            // FechaInput notifica también al completar el día al salir del campo.
+            // La fecha se consulta aquí una sola vez, sin el temporizador del texto libre.
+            onChange={(evento) => evento.stopPropagation()}
+          >
+            <Controller
+              name={campo}
+              control={control}
+              render={({ field }) => (
+                <FechaInput
+                  id={campo}
+                  label={campo === 'desde' ? 'Desde' : 'Hasta'}
+                  value={field.value}
+                  onChange={(valor) => {
+                    field.onChange(valor)
+                    busqueda.cancelar()
+                    consultar()
+                  }}
+                  onBlur={field.onBlur}
+                  inputRef={field.ref}
+                  invalid={!!errors[campo]}
+                  errorId={errors[campo] ? `${campo}-error` : undefined}
+                  inputClassName={campoClassName}
+                  required
+                />
+              )}
+            />
+            {errors[campo] && (
+              <p id={`${campo}-error`} className="text-sm text-destructive">{errors[campo]?.message}</p>
+            )}
+          </div>
+        ))}
 
         <Campo id="tipoTransaccion" label="Tipo de transacción (opcional)" error={errorTipo}>
           <Input
@@ -96,11 +129,17 @@ export function FiltrosMovimientos({ inicial, consultando, onConsultar }: Filtro
       </div>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={consultando} className="h-[52px] rounded-xl px-8 text-base font-semibold">
-          {consultando ? <LoaderCircle className="animate-spin" /> : <Search />}
-          Consultar
+        <Button type="button" variant="outline" onClick={limpiar} className="h-[52px] rounded-xl px-6 text-base">
+          Limpiar
         </Button>
       </div>
+      <p role="status" className="text-sm text-muted-foreground">
+        {Object.keys(errors).length > 0
+          ? 'Corrige los filtros indicados para actualizar los resultados.'
+          : consultando
+            ? 'Actualizando resultados…'
+            : 'La lista se actualiza al dejar de escribir o cambiar un filtro. Enter busca inmediatamente.'}
+      </p>
     </form>
   )
 }

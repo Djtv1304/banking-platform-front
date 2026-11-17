@@ -191,6 +191,7 @@ const MENSAJES: Record<string, string> = {
   CANAL_NO_EXISTE: 'Hay canales que ya no existen o están inactivos. Recarga e intenta otra vez.',
   CUPO_MENOR_QUE_PERSONALIZADO:
     'Hay cuentas con cupos personalizados mayores en ese canal. Ajústalos antes de bajar o quitar el máximo.',
+  TASAS_SOLAPADAS: 'Dos tasas de crédito vinculadas se cruzan en monto y fechas: deja solo una para cada rango.',
   COMISION_NO_EXISTE: 'Hay comisiones que ya no existen o están inactivas. Recarga e intenta otra vez.',
   SEGURO_NO_EXISTE: 'Hay seguros que ya no existen o están inactivos. Recarga e intenta otra vez.',
   TIPO_PRODUCTO_INVALIDO: 'El tipo seleccionado no corresponde al producto.',
@@ -200,6 +201,7 @@ const MENSAJES: Record<string, string> = {
   PRODUCTO_ACTIVO: 'Desactiva el producto antes de eliminarlo.',
   ELEGIBILIDAD_INVALIDA: 'La edad máxima no puede ser menor que la mínima.',
   CUPOS_INCOHERENTES: 'El cupo mensual debe ser mayor o igual que el diario, y el máximo por transacción no puede superar el diario.',
+  ORIGEN_NO_PERMITIDO: 'La solicitud no llegó por el canal autorizado. Recarga la página e inténtalo otra vez.',
   USUARIO_INTERNO_NO_VINCULADO: 'Tu usuario no está habilitado para esta operación. Pide al administrador que lo vincule.',
 }
 

@@ -15,7 +15,13 @@ import {
   Input,
   Label,
 } from '@/shared/ui'
-import type { CampoCatalogo, CatalogoAdministrable, RegistroCatalogo } from '@/features/catalogos/api/catalogos.contract'
+import type {
+  CampoCatalogo,
+  CatalogoAdministrable,
+  RegistroCatalogo,
+  ValorCampo,
+} from '@/features/catalogos/api/catalogos.contract'
+import { ConfirmacionDialog } from '@/features/catalogos/components/ConfirmacionDialog'
 import { Campo, inputClassName } from '@/features/catalogos/components/CampoCatalogo'
 import { useActualizarRegistroCatalogo, useCrearRegistroCatalogo } from '@/features/catalogos/hooks/useCatalogos'
 import { mensajeErrorCatalogo } from '@/features/catalogos/lib/mensajes'
@@ -82,6 +88,8 @@ function Formulario({
   )
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [sinCambios, setSinCambios] = useState(false)
+  // Alta en un catálogo sensible: el cuerpo espera el código de confirmación
+  const [pendiente, setPendiente] = useState<Record<string, ValorCampo> | null>(null)
   const nombre = catalogo.nombre.toLowerCase()
 
   const guardar = (evento: FormEvent) => {
@@ -93,6 +101,10 @@ function Formulario({
     }
     setErrores({})
     if (alta) {
+      if (catalogo.requiereConfirmacion) {
+        setPendiente(resultado.body)
+        return
+      }
       crear.mutate({ clave: catalogo.clave, body: resultado.body }, { onSuccess: () => onGuardado(`Agregamos el registro en ${nombre}.`) })
       return
     }
@@ -174,6 +186,22 @@ function Formulario({
       })}
       {sinCambios && <Aviso>No cambiaste ningún dato.</Aviso>}
       {mutacion.error && <Aviso tono="error">{mensajeErrorCatalogo(toApiError(mutacion.error))}</Aviso>}
+      <ConfirmacionDialog
+        clave={catalogo.clave}
+        abierto={pendiente !== null}
+        accion={`Crear en ${nombre}`}
+        onCancelar={() => setPendiente(null)}
+        onConfirmado={(confirmacion) => {
+          const body = pendiente
+          setPendiente(null)
+          if (body) {
+            crear.mutate(
+              { clave: catalogo.clave, body, confirmacion },
+              { onSuccess: () => onGuardado(`Agregamos el registro en ${nombre}.`) },
+            )
+          }
+        }}
+      />
       <DialogFooter className="-mx-6 -mb-6 px-6">
         <Button type="button" variant="outline" size="lg" onClick={onCancelar} className="rounded-lg px-4">
           Cancelar
