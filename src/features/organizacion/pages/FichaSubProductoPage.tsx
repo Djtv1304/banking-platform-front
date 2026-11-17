@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router'
 import { ArrowLeft, Printer } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
-import { useAuthStore } from '@/features/auth'
+import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import { Aviso, Button, Cargando } from '@/shared/ui'
 import { ETIQUETA_TIPO_TASA, type TipoTasa } from '@/features/catalogos'
 import { useFichaSubProducto, useImprimirFicha } from '@/features/organizacion/hooks/useProductosAdmin'
@@ -25,7 +25,7 @@ export function FichaSubProductoPage() {
   const { idSubProducto } = useParams()
   const ficha = useFichaSubProducto(Number(idSubProducto))
   const imprimir = useImprimirFicha(Number(idSubProducto))
-  const puedeImprimir = useAuthStore((state) => state.user?.permisos.includes('PRD-EXPORTAR') ?? false)
+  const puedeImprimir = hasPermission(usePermisos(), PERMISOS.productosExportar)
 
   if (ficha.isError) return <Aviso tono="error">{mensajeErrorProducto(toApiError(ficha.error))}</Aviso>
   if (ficha.isPending) return <Cargando texto="Cargando ficha…" />

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ApiError, apiClient } from '@/shared/api'
+import { hasPermission, PERMISOS } from '@/shared/lib'
 
 export const NIVELES_LAFT = ['Bajo', 'Medio', 'Alto'] as const
 export const RESULTADOS_RIESGO = ['Aprobado', 'Observado', 'Rechazado'] as const
@@ -62,10 +63,13 @@ export async function listarTiposAntecedente(signal?: AbortSignal) {
   return validar(z.array(tipoAntecedenteSchema), data, status)
 }
 
-export function accesoRiesgo(roles: readonly string[]) {
+/** Ver el historial por rol; registrar una evaluación exige clientes:riesgo */
+export function accesoRiesgo(roles: readonly string[], permisos: readonly string[] = []) {
   const normalizados = roles.map((rol) => rol.trim().toUpperCase())
-  const registro = normalizados.some((rol) => ['ASESOR', 'SUPERVISOR', 'ADMIN'].includes(rol))
-  return { registro, historial: registro || normalizados.includes('AUDITOR') }
+  return {
+    registro: hasPermission(permisos, PERMISOS.clientesRiesgo),
+    historial: normalizados.some((rol) => ['ASESOR', 'SUPERVISOR', 'ADMIN', 'AUDITOR'].includes(rol)),
+  }
 }
 
 export function fechaRiesgoVisible(fecha: string) {

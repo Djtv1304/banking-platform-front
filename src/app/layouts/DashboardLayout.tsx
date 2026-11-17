@@ -9,7 +9,7 @@ import {
   Sun,
 } from 'lucide-react'
 
-import { formatRol, formatRoles, signOut, useAccessProfile, useAuthStore } from '@/features/auth'
+import { formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, usePermisos } from '@/features/auth'
 import { getVisibleSections, type NavItem } from '@/app/navigation/navigation'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
@@ -44,7 +44,8 @@ export function DashboardLayout() {
   const [collapsed, toggleCollapsed] = useSidebarCollapsed()
   const { pathname } = useLocation()
   const roles = useAuthStore((state) => state.user?.roles)
-  const sections = getVisibleSections(useAccessProfile(), roles ?? [])
+  const permisos = usePermisos()
+  const sections = getVisibleSections(useAccessProfile(), roles ?? [], permisos)
   const currentPage = sections
     .flatMap((section) => section.items.map((item) => ({ ...item, sectionTitle: section.title })))
     .filter(({ to, end }) => (end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)))

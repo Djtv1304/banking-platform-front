@@ -5,8 +5,7 @@ import { ChevronDown, ChevronRight, Eye, Plus, Search } from 'lucide-react'
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
 import { Aviso, Button, Cargando, Input } from '@/shared/ui'
-import { hasAnyRole, useAuthStore } from '@/features/auth'
-import { PRODUCTOS_ROLES } from '@/features/organizacion/api/productos.contract'
+import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import { EstadoProductoBadge } from '@/features/organizacion/components/EstadoProductoBadge'
 import { ProductoFormDialog, type ModoProducto } from '@/features/organizacion/components/ProductoFormDialog'
 import { useProductosAdmin, useTiposProducto } from '@/features/organizacion/hooks/useProductosAdmin'
@@ -23,9 +22,7 @@ import {
  * ADMIN y ASESOR consultan; solo ADMIN crea. El backend repite la regla en cada ruta.
  */
 export function ProductosPage() {
-  const roles = useAuthStore((state) => state.user?.roles)
-  const permisos = useAuthStore((state) => state.user?.permisos ?? [])
-  const esAdmin = hasAnyRole(roles ?? [], PRODUCTOS_ROLES.administrar) && permisos.includes('PRD-EDITAR')
+  const esAdmin = hasPermission(usePermisos(), PERMISOS.productosEditar)
   const productos = useProductosAdmin()
   const tipos = useTiposProducto()
   const [busqueda, setBusqueda] = useState('')
@@ -44,7 +41,6 @@ export function ProductosPage() {
     })
 
   const contenido = (() => {
-    if (!permisos.includes('PRD-CONSULTAR')) return <Aviso tono="error">No tienes permiso para consultar productos.</Aviso>
     if (productos.isError) return <Aviso tono="error">{mensajeErrorProducto(toApiError(productos.error))}</Aviso>
     if (productos.isPending) return <Cargando texto="Cargando productos…" />
     if (productos.data.length === 0) return <Aviso>Todavía no hay productos registrados.</Aviso>

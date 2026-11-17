@@ -4,7 +4,7 @@ import { ArrowLeft, CircleCheck, RefreshCw, X } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
 import { Aviso, Button, Cargando } from '@/shared/ui'
-import { useAuthStore } from '@/features/auth'
+import { useAuthStore, usePermisos } from '@/features/auth'
 import { mensajeErrorDetalle } from '@/features/usuarios/api/usuarios.api'
 import type { UsuarioDetalle } from '@/features/usuarios/api/usuarios.contract'
 import { AccesoUsuario } from '@/features/usuarios/components/detalle/AccesoUsuario'
@@ -22,7 +22,7 @@ export function DetalleUsuarioPage() {
   const idUsuario = leerIdUsuario(param)
   const roles = useAuthStore((state) => state.user?.roles)
   const emailSesion = useAuthStore((state) => state.user?.email)
-  const acceso = accesoUsuarios(roles ?? [])
+  const acceso = accesoUsuarios(roles ?? [], usePermisos())
   const usuario = useUsuario(idUsuario, acceso.consulta)
 
   const contenido = (() => {

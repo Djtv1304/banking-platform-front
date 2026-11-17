@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import type { ApiError } from '@/shared/api'
+import { hasPermission, PERMISOS } from '@/shared/lib'
 import type { CupoEfectivo } from '@/features/cuenta/api/cupos.contract'
 
 /* Reglas de pantalla de los cupos por canal (A-06), sin UI para poder probarlas aparte */
@@ -17,23 +18,22 @@ export const disponibleCupo = (cupo: Pick<CupoEfectivo, 'cupoDiario' | 'cupoMens
   mensual: disponible(cupo.cupoMensual, cupo.consumidoMes),
 })
 
-/** Roles de cada endpoint (x-roles del OpenAPI): CTA-07, CTA-08 y CTA-09 */
+/** Roles que ven (CTA-07, CTA-09); editar (CTA-08) depende del permiso cuentas:cupos */
 const ROLES_CUPOS = {
   ver: ['ASESOR', 'SUPERVISOR', 'ADMIN'],
-  editar: ['SUPERVISOR', 'ADMIN'],
   historial: ['SUPERVISOR', 'AUDITOR', 'ADMIN'],
 } as const
 
-export type AccionCupos = keyof typeof ROLES_CUPOS
+export type AccionCupos = keyof typeof ROLES_CUPOS | 'editar'
 
 /**
  * Qué acciones se muestran según los roles de /auth/me (llegan en mayúsculas). Solo decide qué se
  * ve: cada endpoint valida sus propios permisos.
  */
-export function permisosCupos(roles: readonly string[]): Record<AccionCupos, boolean> {
+export function permisosCupos(roles: readonly string[], permisos: readonly string[] = []): Record<AccionCupos, boolean> {
   const propios = new Set(roles.map((rol) => rol.trim().toUpperCase()))
   const alguno = (permitidos: readonly string[]) => permitidos.some((rol) => propios.has(rol))
-  return { ver: alguno(ROLES_CUPOS.ver), editar: alguno(ROLES_CUPOS.editar), historial: alguno(ROLES_CUPOS.historial) }
+  return { ver: alguno(ROLES_CUPOS.ver), editar: hasPermission(permisos, PERMISOS.cuentasCupos), historial: alguno(ROLES_CUPOS.historial) }
 }
 
 const FECHA_VIGENCIA = new Intl.DateTimeFormat('es-EC', { dateStyle: 'long', timeZone: 'UTC' })

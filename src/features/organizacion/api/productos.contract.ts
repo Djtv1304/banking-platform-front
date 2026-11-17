@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 /* Productos y subproductos: tipos del catalogo E3-01, altas en Borrador,
  * datos editables solo en Borrador sin uso y eliminacion del producto nunca activado.
- * WorkOS exige los permisos PRD-CONSULTAR, PRD-EDITAR y PRD-EXPORTAR segun la accion.
+ * Consultar depende del rol; crear y editar exigen productos:editar e imprimir la ficha productos:exportar.
  * Estado A/I se conserva por compatibilidad; estadoCatalogo expresa el ciclo de vida.
  */
 
@@ -19,9 +19,9 @@ export const PRODUCTOS_ENDPOINTS = {
   restricciones: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/restricciones`,
 } as const
 
+/** Quién ve Productos; crear y editar dependen del permiso productos:editar */
 export const PRODUCTOS_ROLES = {
-  consultar: ['ADMIN', 'ASESOR'],
-  administrar: ['ADMIN'],
+  consultar: ['ADMIN', 'SUPERVISOR', 'ASESOR'],
 } as const
 
 export const tipoProductoSchema = z.enum(['Cuenta', 'Credito', 'Tarjeta'])

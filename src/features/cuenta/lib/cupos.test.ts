@@ -39,9 +39,9 @@ describe('permisosCupos', () => {
     expect(permisosCupos(['ASESOR'])).toEqual({ ver: true, editar: false, historial: false })
   })
 
-  it('SUPERVISOR y ADMIN ven, editan y consultan el historial', () => {
-    expect(permisosCupos(['SUPERVISOR'])).toEqual({ ver: true, editar: true, historial: true })
-    expect(permisosCupos(['ADMIN'])).toEqual({ ver: true, editar: true, historial: true })
+  it('SUPERVISOR y ADMIN ven y consultan el historial; editar exige cuentas:cupos', () => {
+    expect(permisosCupos(['SUPERVISOR'])).toEqual({ ver: true, editar: false, historial: true })
+    expect(permisosCupos(['ADMIN'], ['cuentas:cupos'])).toEqual({ ver: true, editar: true, historial: true })
   })
 
   it('AUDITOR solo consulta el historial', () => {
@@ -55,7 +55,7 @@ describe('permisosCupos', () => {
 
   it('suma los permisos de varios roles y tolera minúsculas y espacios', () => {
     expect(permisosCupos(['ASESOR', 'AUDITOR'])).toEqual({ ver: true, editar: false, historial: true })
-    expect(permisosCupos([' supervisor '])).toEqual({ ver: true, editar: true, historial: true })
+    expect(permisosCupos([' supervisor '], ['cuentas:cupos'])).toEqual({ ver: true, editar: true, historial: true })
   })
 })
 

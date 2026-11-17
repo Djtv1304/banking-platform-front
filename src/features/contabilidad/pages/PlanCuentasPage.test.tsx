@@ -22,10 +22,14 @@ const estado = vi.hoisted(() => ({
   plan: { isPending: false, isError: false, data: [] as CuentaContable[] } as Record<string, unknown>,
 }))
 
-vi.mock('@/features/auth', () => ({
-  useAuthStore: (selector: (s: { user: { roles: string[] } }) => unknown) => selector({ user: { roles: estado.roles } }),
-  hasAnyRole: (roles: readonly string[], permitidos: readonly string[]) => roles.some((r) => permitidos.includes(r)),
-}))
+vi.mock('@/features/auth', async () => {
+  const { hasPermission, PERMISOS } = await import('@/shared/lib')
+  return {
+    hasPermission,
+    PERMISOS,
+    usePermisos: () => (estado.roles.includes('CONTADOR') ? ['contabilidad:editar'] : []),
+  }
+})
 vi.mock('@/features/contabilidad/hooks/usePlanCuentas', () => ({ usePlanCuentas: () => estado.plan }))
 vi.mock('@/features/contabilidad/components/NuevaSubcuentaDialog', () => ({ NuevaSubcuentaDialog: () => <div>dialogo-subcuenta</div> }))
 vi.mock('@/features/contabilidad/components/EditarNombreCuentaDialog', () => ({ EditarNombreCuentaDialog: () => null }))

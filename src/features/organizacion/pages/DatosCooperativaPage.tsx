@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Building2, CircleAlert, LoaderCircle, Pencil, Plus } from 'lucide-react'
 
-import { useAuthStore } from '@/features/auth'
+import { useAuthStore, usePermisos } from '@/features/auth'
 import { Button } from '@/shared/ui'
 import {
   accesoEntidad,
@@ -20,7 +20,7 @@ import { datosCrearEntidad, fechaEntidad, type EntidadForm as Valores } from '@/
 
 export function DatosCooperativaPage() {
   const roles = useAuthStore((store) => store.user?.roles)
-  const acceso = accesoEntidad(roles ?? [])
+  const acceso = accesoEntidad(roles ?? [], usePermisos())
   const cache = useQueryClient()
   const [baseEdicion, setBaseEdicion] = useState<Entidad | null>(null)
   const editando = baseEdicion !== null

@@ -1,6 +1,6 @@
 import { Building2, BookOpenText, Calculator, CreditCard, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, WalletCards, type LucideIcon } from 'lucide-react'
 
-import { canAccess, CLIENTES_ROLES, getAccessProfile, hasAnyRole, type AccessProfile } from '@/features/auth'
+import { canAccess, CLIENTES_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
 import { ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
 import { PRODUCTOS_ROLES } from '@/features/organizacion'
 import { CATALOGOS_ROLES } from '@/features/catalogos'
@@ -16,6 +16,8 @@ export interface NavItem {
   /** Perfiles que ven la opción. Sin valor = todos. El admin ve todas. */
   profiles?: readonly AccessProfile[]
   roles?: readonly string[]
+  /** Opción que solo sirve para escribir: se muestra con este permiso de WorkOS */
+  permiso?: Permiso
   /** Módulo sin pantallas todavía: abre «Módulo en preparación» y muestra la etiqueta «Pronto» */
   enPreparacion?: boolean
 }
@@ -31,7 +33,7 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   },
   {
     title: 'Productos y Catálogos',
-    // ADMIN administra; ASESOR solo consulta (las páginas ocultan las acciones)
+    // ADMIN, SUPERVISOR y ASESOR consultan; editar depende del permiso (las páginas ocultan las acciones)
     items: [
       { to: '/productos', label: 'Productos', Icon: Package, roles: PRODUCTOS_ROLES.consultar },
       { to: '/catalogos', label: 'Catálogos', Icon: Library, roles: CATALOGOS_ROLES.consultar },
@@ -40,7 +42,7 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Clientes',
     items: [
-      { to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente, roles: CLIENTES_ROLES.registrar },
+      { to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente, permiso: PERMISOS.clientesEditar },
       { to: '/clientes-busqueda', label: 'Consultar clientes', Icon: UserSearch, profiles: ROUTE_ACCESS.consultarClientes, roles: CLIENTES_ROLES.consultar },
     ],
   },
@@ -48,7 +50,7 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     title: 'Cuentas',
     items: [
       { to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas },
-      { to: '/cuentas/abrir', label: 'Abrir cuenta', Icon: WalletCards, profiles: ROUTE_ACCESS.abrirCuenta },
+      { to: '/cuentas/abrir', label: 'Abrir cuenta', Icon: WalletCards, profiles: ROUTE_ACCESS.abrirCuenta, permiso: PERMISOS.cuentasAbrir },
     ],
   },
   {
@@ -101,12 +103,20 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   },
 ]
 
-/** Solo las opciones (y secciones con al menos una opción) que el perfil puede ver */
-export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[]) {
+/**
+ * Solo las opciones (y secciones con al menos una opción) que el perfil puede ver. Sin `permisos`
+ * (vista de un rol en «Roles y accesos») no se filtra por permiso: eso se configura en WorkOS.
+ */
+export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[]) {
   if (!profile) return []
   return NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => canAccess(profile, item.profiles) && (!item.roles || hasAnyRole(roles, item.roles))),
+    items: section.items.filter(
+      (item) =>
+        canAccess(profile, item.profiles) &&
+        (!item.roles || hasAnyRole(roles, item.roles)) &&
+        (!item.permiso || !permisos || permisos.includes(item.permiso)),
+    ),
   })).filter((section) => section.items.length > 0)
 }
 

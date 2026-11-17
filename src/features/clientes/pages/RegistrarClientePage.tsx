@@ -1,10 +1,11 @@
 import { RegistroClienteWizard } from '@/features/clientes/components/RegistroClienteWizard'
-import { useAuthStore } from '@/features/auth'
+import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import { Aviso } from '@/shared/ui'
 
 export function RegistrarClientePage() {
-  const roles = useAuthStore((state) => state.user?.roles)
-  if (!roles?.some((rol) => ['ASESOR', 'ADMIN'].includes(rol.toUpperCase()))) return <Aviso tono="error">No tienes permiso para registrar clientes. Se requiere ASESOR o ADMIN.</Aviso>
+  if (!hasPermission(usePermisos(), PERMISOS.clientesEditar)) {
+    return <Aviso tono="error">No tienes permiso para registrar clientes. Pide el permiso «clientes:editar» al administrador.</Aviso>
+  }
   return (
     <div className="relative mx-auto w-full max-w-4xl">
       <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">Registrar cliente</h1>

@@ -4,9 +4,8 @@ import { ArrowLeft, Eye, FileText, Link2, Pencil, Plus, Power, SlidersHorizontal
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando } from '@/shared/ui'
-import { hasAnyRole, useAuthStore } from '@/features/auth'
+import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import {
-  PRODUCTOS_ROLES,
   type EstadoProducto,
   type ProductoAdmin,
   type SubProductoAdmin,
@@ -60,9 +59,7 @@ export function DetalleProductoPage() {
 }
 
 function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactNode }) {
-  const roles = useAuthStore((state) => state.user?.roles)
-  const permisos = useAuthStore((state) => state.user?.permisos ?? [])
-  const esAdmin = hasAnyRole(roles ?? [], PRODUCTOS_ROLES.administrar) && permisos.includes('PRD-EDITAR')
+  const esAdmin = hasPermission(usePermisos(), PERMISOS.productosEditar)
   const actualizarProducto = useActualizarProducto()
   const actualizarSub = useActualizarSubProducto()
   const [formulario, setFormulario] = useState<ModoProducto | null>(null)
