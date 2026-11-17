@@ -98,9 +98,10 @@ jobs:
         run: npm audit --omit=dev --audit-level=moderate
 
       # Herramientas de desarrollo: solo bloquea vulnerabilidades altas o críticas, salvo las
-      # excepciones revisadas de audit-ci.jsonc (avisos sin parche disponible)
+      # excepciones revisadas de audit-ci.jsonc (avisos sin parche disponible). audit-ci es una
+      # devDependency fijada en el lockfile e instalada por `npm ci --ignore-scripts`: no se descarga aparte
       - name: npm audit (todo el árbol)
-        run: npx --yes audit-ci@7.1.0 --config audit-ci.jsonc
+        run: npm run audit:ci
 
       # Verifica firmas y procedencia de los paquetes descargados del registro npm
       - name: npm audit signatures
