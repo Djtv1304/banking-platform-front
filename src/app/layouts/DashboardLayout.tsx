@@ -10,7 +10,7 @@ import {
   Sun,
 } from 'lucide-react'
 
-import { obtenerContextoAgencias, SelectorAgencia, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, usePermisos } from '@/features/auth'
+import { AvisoInactividad, obtenerContextoAgencias, SelectorAgencia, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, usePermisos } from '@/features/auth'
 import { getVisibleSections, type NavItem } from '@/app/navigation/navigation'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
@@ -171,6 +171,7 @@ export function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+      <AvisoInactividad />
     </div>
   )
 }

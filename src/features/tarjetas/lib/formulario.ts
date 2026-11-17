@@ -19,6 +19,13 @@ export const opcionClassName = cn(
   'has-disabled:cursor-not-allowed has-disabled:opacity-60 has-disabled:hover:border-border',
 )
 
+/** Texto largo (motivos) con el mismo estilo que los campos */
+export const textareaClassName = cn(
+  'min-h-28 w-full resize-y rounded-xl border border-border bg-field px-4 py-3 text-base text-foreground outline-none',
+  'placeholder:text-muted-foreground/80 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
+  'aria-invalid:border-destructive dark:bg-field',
+)
+
 /**
  * CTA-02 devuelve el estado de la cuenta en mayúsculas (`ACTIVA`); se compara sin distinguir
  * mayúsculas para no depender de cómo lo escriba cada versión del backend.

@@ -23,7 +23,7 @@ describe('vista de roles y menú comparten la configuración', () => {
     }
   })
   it('conserva contabilidad y no presenta roles desconocidos como roles del sistema', () => {
-    expect(opciones('CONTADOR')).toEqual(expect.arrayContaining(['Plan de cuentas', 'Asientos contables']))
+    expect(opciones('CONTADOR')).toEqual(expect.arrayContaining(['Plan de cuentas', 'Asientos contables', 'Fecha contable']))
     expect(opciones('NO_EXISTE')).toEqual([])
   })
 })
@@ -40,7 +40,7 @@ it('consultar cuentas conserva los roles del backend y no aparece para contador'
 describe('contratos de consulta por rol', () => {
   it('contador y auditor solo reciben consultas contables del menu disponible', () => {
     for (const rol of ['CONTADOR', 'AUDITOR']) {
-      expect(opciones(rol)).toEqual(['Inicio', 'Plan de cuentas', 'Asientos contables'])
+      expect(opciones(rol)).toEqual(['Inicio', 'Plan de cuentas', 'Asientos contables', 'Fecha contable'])
     }
   })
 
@@ -74,13 +74,13 @@ describe('contratos de consulta por rol', () => {
 
 describe('matriz completa de consultas del menu por rol', () => {
   const rutas: Record<string, string[]> = {
-    ADMIN: ['/', '/organizacion/entidad', '/organizacion/agencias', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/contabilidad', '/contabilidad/asientos', '/usuarios', '/seguridad/roles'],
+    ADMIN: ['/', '/organizacion/entidad', '/organizacion/agencias', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/roles'],
     ASESOR: ['/', '/organizacion/entidad', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas'],
     CAJERO: ['/', '/clientes-busqueda', '/cuentas'],
     SUPERVISOR: ['/', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas'],
     APROBADOR_CREDITO: ['/'],
-    CONTADOR: ['/', '/contabilidad', '/contabilidad/asientos'],
-    AUDITOR: ['/', '/contabilidad', '/contabilidad/asientos'],
+    CONTADOR: ['/', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
+    AUDITOR: ['/', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
   }
   it.each(Object.entries(rutas))('%s respeta todos los contratos de consulta disponibles', (rol, esperadas) => {
     const actuales = getVisibleSections(getAccessProfile([rol]), [rol], []).flatMap((s) => s.items.map((i) => i.to))

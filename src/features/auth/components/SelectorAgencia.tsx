@@ -1,3 +1,4 @@
+import { escuchar, publicar } from '@/features/auth/lib/canal-sesion'
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { obtenerContextoAgencias, seleccionarAgencia } from '@/features/auth/api/auth.api'
@@ -17,7 +18,13 @@ export function SelectorAgencia() {
     }
   }, [agenciaSesion, cache])
   const contexto = useQuery({ queryKey: ['auth', 'agencias'], queryFn: ({ signal }) => obtenerContextoAgencias(signal), retry: false })
+  useEffect(() => escuchar((mensaje) => {
+    if (mensaje.tipo === 'agencia-cambiada') {
+      void cache.cancelQueries().then(() => { cache.clear(); window.location.assign('/') })
+    }
+  }), [cache])
   const cambio = useMutation({ mutationFn: (id: string | null) => seleccionarAgencia(id), retry: false, onSuccess: async () => {
+    publicar({ tipo: "agencia-cambiada" })
     await cache.cancelQueries()
     cache.clear()
     window.location.assign('/')

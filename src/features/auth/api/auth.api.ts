@@ -40,3 +40,8 @@ export async function seleccionarAgencia(idAgencia: string | null) {
   const { data } = await apiClient.post<unknown>('/api/v1/auth/agencia-activa', { idAgencia })
   return contextoAgenciasSchema.parse(data)
 }
+
+/** Renueva la sesión en WorkOS (204). Solo por una acción del usuario: cuenta como actividad. */
+export async function refresh() {
+  await apiClient.post(AUTH_ENDPOINTS.refresh)
+}

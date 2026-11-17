@@ -1,30 +1,84 @@
 import { describe, expect, it } from 'vitest'
 
-import { nombreFormSchema, subcuentaFormSchema } from '@/features/contabilidad/lib/cuenta-form'
+import { nombreFormSchema, siguienteCodigoLibre, subcuentaFormSchema } from '@/features/contabilidad/lib/cuenta-form'
 
 const errorDe = (resultado: { success: boolean; error?: { issues: { message: string }[] } }) => resultado.error?.issues[0]?.message
 
 describe('subcuentaFormSchema', () => {
-  const schema = subcuentaFormSchema('2101')
-  const valido = { codigoCuenta: '210140', nombreCuenta: 'Depósitos de ahorro', esImputable: true }
+  const schema = subcuentaFormSchema('210105')
+  const valido = { codigoCuenta: '21010501', nombreCuenta: 'Depósitos de ahorro', esImputable: true }
+  const error = (codigoCuenta: string, esquema = schema) => errorDe(esquema.safeParse({ ...valido, codigoCuenta }))
+  const formato = /El código es el de la cuenta superior más 2 dígitos: de 21010501 a 21010599\./
 
-  it('acepta un código que empieza por el del padre y es más largo', () => {
+  it('acepta el código del padre más 2 dígitos, del 01 al 99', () => {
     expect(schema.safeParse(valido).success).toBe(true)
-    expect(schema.parse({ ...valido, codigoCuenta: ' 21014001 ', nombreCuenta: '  Ahorro ' })).toMatchObject({
-      codigoCuenta: '21014001',
+    expect(schema.safeParse({ ...valido, codigoCuenta: '21010599' }).success).toBe(true)
+    expect(schema.parse({ ...valido, codigoCuenta: ' 21010510 ', nombreCuenta: '  Ahorro ' })).toMatchObject({
+      codigoCuenta: '21010510',
       nombreCuenta: 'Ahorro',
     })
   })
 
-  it('rechaza puntos, otro prefijo o el mismo código del padre', () => {
-    expect(errorDe(schema.safeParse({ ...valido, codigoCuenta: '2101.40' }))).toMatch(/solo dígitos/)
-    expect(errorDe(schema.safeParse({ ...valido, codigoCuenta: '210240' }))).toMatch(/Debe empezar por 2101/)
-    expect(errorDe(schema.safeParse({ ...valido, codigoCuenta: '2101' }))).toMatch(/Agrega dígitos/)
+  it('rechaza un dígito de más o de menos', () => {
+    expect(error('2101050')).toMatch(formato)
+    expect(error('210105001')).toMatch(formato)
+    expect(error('2101050101')).toMatch(formato)
+  })
+
+  it('rechaza el sufijo 00', () => {
+    expect(error('21010500')).toMatch(formato)
+  })
+
+  it('rechaza el mismo código del padre y otro prefijo', () => {
+    expect(error('210105')).toMatch(formato)
+    expect(error('21020501')).toMatch(formato)
+  })
+
+  it('rechaza letras, puntos y espacios', () => {
+    expect(error('2101050A')).toMatch(/solo dígitos/)
+    expect(error('210105.1')).toMatch(/solo dígitos/)
+    expect(error('2101 0501')).toMatch(/solo dígitos/)
+  })
+
+  it('rechaza más de 30 dígitos', () => {
+    expect(error('1'.repeat(31))).toMatch(/30 dígitos como máximo/)
+  })
+
+  it('rechaza un código que ya existe entre las hijas', () => {
+    const conHijas = subcuentaFormSchema('210105', ['21010501', '21010503'])
+    expect(error('21010501', conHijas)).toBe('Ya existe la cuenta 21010501.')
+    expect(conHijas.safeParse({ ...valido, codigoCuenta: '21010502' }).success).toBe(true)
   })
 
   it('el nombre es obligatorio y de 100 caracteres como máximo', () => {
     expect(errorDe(schema.safeParse({ ...valido, nombreCuenta: '   ' }))).toMatch(/Escribe el nombre/)
     expect(schema.safeParse({ ...valido, nombreCuenta: 'a'.repeat(101) }).success).toBe(false)
     expect(nombreFormSchema.safeParse({ nombreCuenta: 'a'.repeat(100) }).success).toBe(true)
+  })
+})
+
+describe('siguienteCodigoLibre', () => {
+  it('sin hijas sugiere el 01', () => {
+    expect(siguienteCodigoLibre('110105', [])).toBe('11010501')
+  })
+
+  it('toma el menor hueco, no el siguiente al mayor', () => {
+    expect(siguienteCodigoLibre('110105', ['11010501', '11010502', '11010504'])).toBe('11010503')
+    expect(siguienteCodigoLibre('110105', ['11010502', '11010503'])).toBe('11010501')
+  })
+
+  it('ignora códigos de otros padres', () => {
+    expect(siguienteCodigoLibre('110105', ['11010601', '11010501'])).toBe('11010502')
+  })
+
+  it('devuelve null con los 99 ocupados', () => {
+    const lleno = Array.from({ length: 99 }, (_, i) => `110105${String(i + 1).padStart(2, '0')}`)
+    expect(siguienteCodigoLibre('110105', lleno)).toBeNull()
+    expect(siguienteCodigoLibre('110105', lleno.slice(1))).toBe('11010501')
+  })
+
+  it('devuelve null si el código pasaría de 30 dígitos', () => {
+    expect(siguienteCodigoLibre('1'.repeat(28), [])).toBe(`${'1'.repeat(28)}01`)
+    expect(siguienteCodigoLibre('1'.repeat(29), [])).toBeNull()
   })
 })

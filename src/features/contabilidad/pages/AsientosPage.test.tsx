@@ -66,7 +66,7 @@ const pagina = (items: Asiento[], total = items.length) => ({
 
 beforeEach(() => {
   estado.contexto = { idAgencia: "001", alcanceGlobal: false, accesoTodasAgencias: false }
-  estado.asientos = pagina([asiento(1), asiento(2, { estado: 'REVERSADO', idAsientoReversion: 9 })])
+  estado.asientos = pagina([asiento(1), asiento(2, { estado: 'REVERSADO' }), asiento(3, { idAsientoReversion: 2 }), asiento(4, { estado: 'ANULADO' })])
 })
 
 describe('AsientosPage', () => {
@@ -76,7 +76,7 @@ describe('AsientosPage', () => {
     expect(salida).toContain('11 · Noviembre')
     expect(salida).not.toContain('type="date"')
   })
-  it('pinta la tabla con montos, agencia y estado, y marca el asiento revertido', () => {
+  it('pinta la tabla con montos, agencia y estado, y marca el asiento de reverso', () => {
     const salida = html()
     expect(salida).toContain('aria-label="Asientos contables"')
     expect(salida).toContain('AS-000001')
@@ -84,8 +84,11 @@ describe('AsientosPage', () => {
     expect(salida).toContain('001 · Matriz')
     expect(salida).toContain('1.250,50')
     expect(salida).toContain('Contabilizado')
-    expect(salida).toContain('Revertido por otro asiento')
-    expect(salida).toContain('Página 1 de 1 · 2 asientos')
+    expect(salida).toContain('Reversado')
+    expect(salida).toContain('Anulado')
+    // Solo el asiento de reverso (id 3) se marca; el reversado (id 2) no
+    expect(salida.match(/Reverso de otro asiento/g)).toHaveLength(1)
+    expect(salida).toContain('Página 1 de 1 · 4 asientos')
   })
 
   it('cada número de asiento abre su detalle', () => {

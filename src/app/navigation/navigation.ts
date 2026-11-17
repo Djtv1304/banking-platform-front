@@ -1,4 +1,4 @@
-import { Building2, BookOpenText, Calculator, CreditCard, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, WalletCards, type LucideIcon } from 'lucide-react'
+import { Building2, BookOpenText, Calculator, CalendarDays, CreditCard, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, WalletCards, type LucideIcon } from 'lucide-react'
 
 import { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
 import { ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
@@ -84,6 +84,13 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
         to: '/contabilidad/asientos',
         label: 'Asientos contables',
         Icon: BookOpenText,
+        profiles: ROUTE_ACCESS.cuentasContables,
+        roles: CONTABILIDAD_ROLES.consultar,
+      },
+      {
+        to: '/contabilidad/fecha-contable',
+        label: 'Fecha contable',
+        Icon: CalendarDays,
         profiles: ROUTE_ACCESS.cuentasContables,
         roles: CONTABILIDAD_ROLES.consultar,
       },

@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-import { toApiError } from '@/shared/api/errors'
+import { toApiError, type ApiError } from '@/shared/api/errors'
 
 /**
  * `shared` no conoce la feature de autenticación: ella registra aquí qué hacer cuando la API
@@ -14,10 +14,10 @@ export function fijarContextoAgencia(id: string | null) {
 }
 export function limpiarContextoAgencia() { agenciaPagina = undefined }
 
-let onUnauthorized: (() => void) | null = null
+let onUnauthorized: ((error: ApiError) => void) | null = null
 let onForbidden: ((url?: string) => Promise<void>) | null = null
 
-export function setUnauthorizedHandler(handler: () => void) {
+export function setUnauthorizedHandler(handler: (error: ApiError) => void) {
   onUnauthorized = handler
 }
 
@@ -44,11 +44,12 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
+    const apiError = toApiError(error)
     // No hay refresh en el cliente: el backend renueva la sesión sellada por su cuenta.
-    // Si aun así responde 401, la sesión terminó.
-    if (error.response?.status === 401) onUnauthorized?.()
+    // Si aun así responde 401, la sesión terminó; el motivo viene en `code`.
+    if (apiError.status === 401) onUnauthorized?.(apiError)
     // Releer el acceso no repite la petición que falló (podría ser una escritura).
-    if (error.response?.status === 403) await onForbidden?.(error.config?.url)
-    return Promise.reject(toApiError(error))
+    if (apiError.status === 403) await onForbidden?.(error.config?.url)
+    return Promise.reject(apiError)
   },
 )

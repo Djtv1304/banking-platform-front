@@ -7,7 +7,16 @@ import { z } from 'zod'
  * recibe el callback, sella la sesión y la guarda en la cookie httpOnly `__Host-session`.
  * También renueva el token por su cuenta (en /me y en cualquier ruta protegida), así que la SPA
  * solo navega a /login, consulta /me y llama a /logout.
+ *
+ * Duración e inactividad las impone WorkOS (8 h y 15 min). Cualquier petición renueva la sesión,
+ * así que la SPA no hace peticiones en segundo plano: solo las que provoca el usuario.
+ * Una sola sesión abierta por usuario (otro dispositivo → /login?error=SESION_ABIERTA).
  */
+
+/** Tiempo de inactividad configurado en WorkOS (PCI DSS 8.2.8) */
+export const INACTIVIDAD_SESION_MS = 15 * 60_000
+/** Duración del access token en WorkOS: lo que puede tardar la cookie en reflejar una renovación */
+export const DURACION_ACCESS_TOKEN_MS = 5 * 60_000
 
 /**
  * Rutas del backend, siempre relativas (mismo origen que la SPA): en desarrollo las reenvía el proxy
@@ -25,9 +34,9 @@ export const AUTH_ENDPOINTS = {
    * Éxito → 302 a `return_to` con la cookie de sesión. Error → 302 a `/login?error=<LoginErrorCode>`.
    */
   callback: '/api/v1/auth/callback',
-  /** GET · 200 → MeResponse · 401 → sin sesión. Si el token venció, lo renueva y reescribe la cookie. */
+  /** GET · 200 → MeResponse · 401 → sin sesión (motivo en `code`). Si el token venció, lo renueva y reescribe la cookie. */
   me: '/api/v1/auth/me',
-  /** POST · Opcional: fuerza la renovación y responde 204. La SPA no lo necesita. */
+  /** POST · Fuerza la renovación y responde 204 (o 401 con el motivo). Lo usa «Seguir conectado». */
   refresh: '/api/v1/auth/refresh',
   /** POST · Borra la cookie y devuelve LogoutResponse. Es idempotente. */
   logout: '/api/v1/auth/logout',
@@ -64,6 +73,24 @@ export type LoginErrorCode =
   | 'SOLICITUD_INVALIDA'
   | 'CREDENCIALES_INVALIDAS'
   | 'AUTENTICACION_NO_DISPONIBLE'
+  | 'USUARIO_NO_HABILITADO'
+  /** El usuario ya tiene una sesión abierta en otro dispositivo; esa sesión sigue */
+  | 'SESION_ABIERTA'
+
+/**
+ * `code` de un 401 de cualquier endpoint. La cookie ya viene borrada: no hace falta llamar a /logout.
+ * NO_AUTENTICADO es un login normal (sin aviso); los demás explican por qué terminó la sesión.
+ */
+export type MotivoSesion = 'NO_AUTENTICADO' | 'SESION_EXPIRADA' | 'SESION_INACTIVA' | 'SESION_REVOCADA'
+
+/** Motivos que se explican en /login */
+export type MotivoCierre = Exclude<MotivoSesion, 'NO_AUTENTICADO'>
+
+const MOTIVOS_CIERRE: readonly string[] = ['SESION_EXPIRADA', 'SESION_INACTIVA', 'SESION_REVOCADA'] satisfies MotivoCierre[]
+
+export function esMotivoCierre(code: unknown): code is MotivoCierre {
+  return typeof code === 'string' && MOTIVOS_CIERRE.includes(code)
+}
 
 
 export const agenciaAsignadaSchema = z.object({ idAgencia: z.string(), codigo: z.string(), estado: z.string(), principal: z.boolean().optional().default(false) })

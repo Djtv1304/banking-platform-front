@@ -3,21 +3,38 @@ import { TriangleAlert } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
-import { Aviso, Badge, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
+import { Aviso, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
 import { useAsiento } from '@/features/contabilidad/hooks/useAsientos'
+import { EstadoAsientoBadge } from '@/features/contabilidad/components/EstadoAsientoBadge'
 import { usePlanCuentas } from '@/features/contabilidad/hooks/usePlanCuentas'
 import {
   cuadreAsiento,
-  esReversado,
+  esAsientoAnulado,
+  esAsientoReversado,
+  esReverso,
   etiquetaCuenta,
-  etiquetaEstadoAsiento,
   etiquetaOrigenAsiento,
   formatearFechaAsiento,
+  hayLineasEnCuentasDeGrupo,
+  idsCuentasDeGrupo,
+  lineaEnCuentaDeGrupo,
+  MENSAJE_ASIENTO_ANULADO,
+  MENSAJE_ASIENTO_REVERSADO,
+  MENSAJE_CUENTA_DE_GRUPO,
   mensajeErrorAsientos,
   motivoDescuadre,
-  tonoEstadoAsiento,
 } from '@/features/contabilidad/lib/asientos'
 import { formatearSaldo } from '@/features/contabilidad/lib/cuenta-contable'
+
+/** Aviso que no es error: algo a tener en cuenta (mismo tratamiento ámbar que otras confirmaciones) */
+function AvisoAdvertencia({ children }: { children: ReactNode }) {
+  return (
+    <div role="status" className="flex items-start gap-3 rounded-xl border border-brand-amber/40 bg-brand-amber/10 px-4 py-3 text-sm text-heading">
+      <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-link" />
+      <div className="flex flex-col gap-2">{children}</div>
+    </div>
+  )
+}
 
 interface DetalleAsientoDialogProps {
   /** Asiento abierto; null = cerrado */
@@ -53,6 +70,26 @@ function Dato({ label, children, className }: { label: string; children: ReactNo
   )
 }
 
+/** Este asiento es el reverso de otro: muestra el número del original (el id mientras carga) y lo abre */
+function ReversoDe({ idOriginal, onAbrir }: { idOriginal: number; onAbrir: (idAsiento: number) => void }) {
+  const original = useAsiento(idOriginal)
+  const numero = original.data?.numeroAsiento
+  return (
+    <Aviso>
+      <p>Reverso del asiento {numero ?? `n.º ${idOriginal}`}</p>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onAbrir(idOriginal)}
+        aria-label={`Abrir el asiento original ${numero ?? `n.º ${idOriginal}`}`}
+        className="w-fit"
+      >
+        Ver el asiento original
+      </Button>
+    </Aviso>
+  )
+}
+
 function Detalle({ idAsiento, agencias, onAbrir }: Pick<DetalleAsientoDialogProps, 'agencias' | 'onAbrir'> & { idAsiento: number }) {
   const asiento = useAsiento(idAsiento)
   // El nombre es un extra: si el plan aún carga o falla, las líneas se muestran solo con el código
@@ -61,6 +98,7 @@ function Detalle({ idAsiento, agencias, onAbrir }: Pick<DetalleAsientoDialogProp
     () => new Map((plan.data ?? []).map((cuenta) => [cuenta.idCuentaContable, cuenta.nombreCuenta])),
     [plan.data],
   )
+  const cuentasDeGrupo = useMemo(() => idsCuentasDeGrupo(plan.data ?? []), [plan.data])
 
   if (asiento.isError) {
     return (
@@ -88,25 +126,18 @@ function Detalle({ idAsiento, agencias, onAbrir }: Pick<DetalleAsientoDialogProp
         </Dato>
         <Dato label="Fecha">{formatearFechaAsiento(data.fechaAsiento)}</Dato>
         <Dato label="Estado">
-          <Badge variant={tonoEstadoAsiento(data.estado)}>{etiquetaEstadoAsiento(data.estado)}</Badge>
+          <EstadoAsientoBadge estado={data.estado} />
         </Dato>
         <Dato label="Origen">{etiquetaOrigenAsiento(data.origen)}</Dato>
         <Dato label="Agencia">{agencias.get(data.idAgencia) ?? data.idAgencia}</Dato>
-        <Dato label="Reversión">
-          {data.idAsientoReversion !== null ? (
-            <Button variant="link" onClick={() => onAbrir(data.idAsientoReversion as number)} className="h-auto p-0">
-              Revertido: ver el asiento de reversión
-            </Button>
-          ) : esReversado(data) ? (
-            'Reversado'
-          ) : (
-            'No está revertido'
-          )}
-        </Dato>
         <Dato label="Concepto" className="sm:col-span-3">
           {data.concepto}
         </Dato>
       </dl>
+
+      {esAsientoAnulado(data.estado) && <Aviso>{MENSAJE_ASIENTO_ANULADO}</Aviso>}
+      {esAsientoReversado(data.estado) && <AvisoAdvertencia>{MENSAJE_ASIENTO_REVERSADO}</AvisoAdvertencia>}
+      {esReverso(data) && <ReversoDe idOriginal={data.idAsientoReversion as number} onAbrir={onAbrir} />}
 
       {motivo && (
         <Aviso tono="error">
@@ -116,6 +147,12 @@ function Detalle({ idAsiento, agencias, onAbrir }: Pick<DetalleAsientoDialogProp
           </p>
           <p>{motivo}</p>
         </Aviso>
+      )}
+
+      {hayLineasEnCuentasDeGrupo(data.detalle, cuentasDeGrupo) && (
+        <AvisoAdvertencia>
+          <p>Hay líneas en cuentas de grupo. {MENSAJE_CUENTA_DE_GRUPO}</p>
+        </AvisoAdvertencia>
       )}
 
       {data.detalle.length === 0 ? (
@@ -141,6 +178,13 @@ function Detalle({ idAsiento, agencias, onAbrir }: Pick<DetalleAsientoDialogProp
                 <tr key={linea.idMovimientoContable} className="border-b border-border">
                   <th scope="row" className="px-3 py-3 text-left font-normal text-heading">
                     <span className="block">{etiquetaCuenta(linea.codigoCuenta, nombres.get(linea.idCuentaContable))}</span>
+                    {lineaEnCuentaDeGrupo(linea, cuentasDeGrupo) && (
+                      <span title={MENSAJE_CUENTA_DE_GRUPO} className="mt-0.5 flex items-center gap-1 text-xs font-medium text-link">
+                        <TriangleAlert aria-hidden="true" className="size-3.5" />
+                        Cuenta de grupo
+                        <span className="sr-only">. {MENSAJE_CUENTA_DE_GRUPO}</span>
+                      </span>
+                    )}
                     {linea.idTransaccion !== null && (
                       <span className="text-xs text-muted-foreground">Transacción n.º {linea.idTransaccion}</span>
                     )}

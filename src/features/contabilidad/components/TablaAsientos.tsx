@@ -1,14 +1,13 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
-import { Badge } from '@/shared/ui'
 import type { Asiento, CampoOrdenAsiento } from '@/features/contabilidad/api/asientos.contract'
+import { EstadoAsientoBadge } from '@/features/contabilidad/components/EstadoAsientoBadge'
 import { formatearSaldo } from '@/features/contabilidad/lib/cuenta-contable'
 import {
-  etiquetaEstadoAsiento,
   etiquetaOrigenAsiento,
+  esReverso,
   formatearFechaAsiento,
-  tonoEstadoAsiento,
   type OrdenAsientos,
 } from '@/features/contabilidad/lib/asientos'
 
@@ -104,10 +103,8 @@ export function TablaAsientos({ asientos, orden, agencias, onOrdenar, onSeleccio
               <td className="px-3 py-3 text-right text-heading tabular-nums">{formatearSaldo(asiento.totalCredito)}</td>
               <td className="px-3 py-3">
                 <div className="flex flex-col items-start gap-1">
-                  <Badge variant={tonoEstadoAsiento(asiento.estado)}>{etiquetaEstadoAsiento(asiento.estado)}</Badge>
-                  {asiento.idAsientoReversion !== null && (
-                    <span className="text-xs text-muted-foreground">Revertido por otro asiento</span>
-                  )}
+                  <EstadoAsientoBadge estado={asiento.estado} />
+                  {esReverso(asiento) && <span className="text-xs text-muted-foreground">Reverso de otro asiento</span>}
                 </div>
               </td>
             </tr>

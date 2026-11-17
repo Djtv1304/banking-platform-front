@@ -65,7 +65,10 @@ export const asientoSchema = z.object({
   totalDebito: z.number(),
   totalCredito: z.number(),
   estado: z.string(),
-  /** Id del asiento que lo reversó; null si no está reversado */
+  /**
+   * Solo el asiento de REVERSO lo trae: es el id del asiento original que reversa. El original
+   * (estado REVERSADO) y el resto lo traen en null.
+   */
   idAsientoReversion: z.number().nullable(),
   idAgencia: z.string(),
   detalle: z.array(movimientoAsientoSchema),
