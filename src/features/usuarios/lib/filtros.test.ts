@@ -4,10 +4,21 @@ import {
   armarParametros,
   FILTROS_VACIOS,
   filtrosUsuariosSchema,
+  filtrosDesdeRol,
   ORDEN_INICIAL,
   resumenPaginacion,
   siguienteOrden,
 } from '@/features/usuarios/lib/filtros'
+
+describe('filtro inicial desde Roles y accesos', () => {
+  it('precarga solo el rol reconocido, sin nombres ni correos', () => {
+    expect(filtrosDesdeRol('ASESOR')).toEqual({ ...FILTROS_VACIOS, rol: 'ASESOR' })
+    expect(armarParametros(filtrosDesdeRol('ASESOR'), ORDEN_INICIAL, 1)).toEqual({ page: '1', pageSize: '20', rol: 'ASESOR' })
+  })
+  it.each([null, '', 'NO_EXISTE', 'ASESOR&estado=Activo'])('descarta un rol inválido: %s', (rol) => {
+    expect(filtrosDesdeRol(rol)).toEqual(FILTROS_VACIOS)
+  })
+})
 
 describe('armarParametros', () => {
   it('sin filtros envía solo la página y el tamaño, sin el orden por defecto', () => {

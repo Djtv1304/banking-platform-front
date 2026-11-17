@@ -1,10 +1,12 @@
 import { z } from 'zod'
+import { hasPermission, PERMISOS } from '@/shared/lib'
 import {
   TIPOS_DIRECCION_GESTION, type DireccionGestion, type DireccionNueva, type DireccionCambio,
 } from '@/features/clientes/api/direcciones.contract'
 
-export function puedeGestionarDirecciones(roles: readonly string[]) {
-  return roles.some((rol) => ['ASESOR', 'ADMIN'].includes(rol.trim().toUpperCase()))
+/** Agregar, editar o quitar direcciones exige clientes:editar */
+export function puedeGestionarDirecciones(permisos: readonly string[]) {
+  return hasPermission(permisos, PERMISOS.clientesEditar)
 }
 
 export const direccionFormSchema = z.object({

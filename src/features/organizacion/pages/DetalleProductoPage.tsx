@@ -4,9 +4,8 @@ import { ArrowLeft, Eye, FileText, Link2, Pencil, Plus, Power, SlidersHorizontal
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando } from '@/shared/ui'
-import { hasAnyRole, useAuthStore } from '@/features/auth'
+import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import {
-  PRODUCTOS_ROLES,
   type EstadoProducto,
   type ProductoAdmin,
   type SubProductoAdmin,
@@ -60,8 +59,7 @@ export function DetalleProductoPage() {
 }
 
 function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactNode }) {
-  const roles = useAuthStore((state) => state.user?.roles)
-  const esAdmin = hasAnyRole(roles ?? [], PRODUCTOS_ROLES.administrar)
+  const esAdmin = hasPermission(usePermisos(), PERMISOS.productosEditar)
   const actualizarProducto = useActualizarProducto()
   const actualizarSub = useActualizarSubProducto()
   const [formulario, setFormulario] = useState<ModoProducto | null>(null)
@@ -130,7 +128,7 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-[36px] leading-tight font-bold tracking-tight text-heading">{producto.nombreProducto}</h1>
-            <EstadoProductoBadge estado={producto.estado} />
+            <EstadoProductoBadge estado={producto.estado} estadoCatalogo={producto.estadoCatalogo} />
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {producto.codigoProducto} · {ETIQUETA_TIPO[producto.tipoProducto]} · {condicionesDe(producto)}
@@ -147,15 +145,15 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
           </Button>
         {esAdmin ? (
           <>
-            <Button variant="ghost" onClick={() => setFormulario({ tipo: 'editar', producto })}>
+            <Button variant="ghost" disabled={producto.estadoCatalogo !== 'Borrador'} onClick={() => setFormulario({ tipo: 'editar', producto })}>
               <Pencil />
               Editar
             </Button>
-            <Button variant={producto.estado === 'A' ? 'destructive' : 'outline'} disabled={ocupado} onClick={cambiarEstadoProducto}>
+            <Button variant={producto.estado === 'A' ? 'destructive' : 'outline'} disabled={ocupado || producto.estadoCatalogo === 'Retirado'} onClick={cambiarEstadoProducto}>
               <Power />
               {producto.estado === 'A' ? 'Desactivar' : 'Activar'}
             </Button>
-            {producto.estado === 'I' &&
+            {producto.estadoCatalogo === 'Borrador' &&
               (porEliminar ? (
                 <>
                   <Button variant="destructive" disabled={eliminar.isPending} onClick={confirmarEliminar}>
@@ -222,7 +220,7 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
                         <span className="ml-2 text-xs text-muted-foreground">({sub.tipoTarjeta === 'Debito' ? 'débito' : 'crédito'})</span>
                       )}
                     </td>
-                    <td className="px-3 py-2"><EstadoProductoBadge estado={sub.estado} /></td>
+                    <td className="px-3 py-2"><EstadoProductoBadge estado={sub.estado} estadoCatalogo={sub.estadoCatalogo} /></td>
                       <td className="px-3 py-2 text-right whitespace-nowrap">
                         <Button asChild variant="ghost" size="sm">
                           <Link to={`/productos/subproductos/${sub.idSubProducto}/ficha`} aria-label={`Ficha de ${sub.codigoSubProducto}`}>
@@ -238,7 +236,7 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
                           <Button
                             variant="ghost"
                             size="sm"
-                            disabled={ocupado}
+                            disabled={ocupado || sub.estadoCatalogo === 'Retirado'}
                             onClick={() => cambiarEstadoSub(sub)}
                             aria-label={`${sub.estado === 'A' ? 'Desactivar' : 'Activar'} ${sub.codigoSubProducto}`}
                           >

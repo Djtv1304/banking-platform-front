@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 
 import { DashboardLayout } from '@/app/layouts/DashboardLayout'
-import { CLIENTES_ROLES, LoginPage } from '@/features/auth'
+import { CLIENTES_ROLES, LoginPage, PERMISOS } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
 import {
   AgenciasPage,
@@ -12,13 +12,15 @@ import {
   ProductosPage,
 } from '@/features/organizacion'
 import { CATALOGOS_ROLES, CatalogosPage } from '@/features/catalogos'
-import { DetalleUsuarioPage, UsuariosPage } from '@/features/usuarios'
-import { BOVEDA_ROLES, BovedasPage, DetalleBovedaPage } from '@/features/boveda'
+import { DetalleUsuarioPage, UsuariosPage, ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
+import { RolesAccesosPage, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
+import { getRoleNavigation } from '@/app/navigation/navigation'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
 import { AbrirCuentaPage } from '@/features/cuenta'
-import { GuestOnly, RequireAuth, RequireProfile, RequireRoles } from '@/app/router/guards'
+import { AsientosPage, CONTABILIDAD_ROLES, PlanCuentasPage } from '@/features/contabilidad'
+import { GuestOnly, RequireAuth, RequirePermiso, RequireProfile, RequireRoles } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { ModuloEnPreparacion } from '@/shared/ui'
 
@@ -39,11 +41,11 @@ export const router = createBrowserRouter([
             children: [{ path: '/organizacion/entidad', element: <DatosCooperativaPage /> }],
           },
           {
-            element: <RequireRoles allowed={CLIENTES_ROLES.registrar} />,
+            element: <RequirePermiso permiso={PERMISOS.clientesEditar} />,
             children: [{ path: '/registrar-cliente', element: <RegistrarClientePage /> }],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.solicitarTarjeta} />,
+            element: <RequirePermiso permiso={PERMISOS.tarjetasEmitir} />,
             children: [{ path: '/solicitar-tarjeta', element: <SolicitarTarjetaPage /> }],
           },
           {
@@ -110,34 +112,32 @@ export const router = createBrowserRouter([
             element: <RequireProfile allowed={ROUTE_ACCESS.cuentasContables} />,
             children: [
               {
-                path: '/contabilidad',
-                element: (
-                  <ModuloEnPreparacion
-                    modulo="Cuentas contables"
-                    descripcion="Aquí se administrará el plan de cuentas contables de la cooperativa."
-                  />
-                ),
+                // CON-03: CONTADOR, AUDITOR y ADMIN (las acciones se deciden por rol dentro de la página)
+                element: <RequireRoles allowed={CONTABILIDAD_ROLES.consultar} />,
+                children: [
+                  { path: '/contabilidad', element: <PlanCuentasPage /> },
+                  // CON-04: mismos roles que el plan de cuentas, solo consulta
+                  { path: '/contabilidad/asientos', element: <AsientosPage /> },
+                ],
               },
             ],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.gestionUsuarios} />,
+            element: <RequireRoles allowed={ROLES_GESTION_USUARIOS} />,
             children: [
               { path: '/usuarios', element: <UsuariosPage /> },
               { path: '/usuarios/:idUsuario', element: <DetalleUsuarioPage /> },
             ],
           },
           {
-            // BOV-01 a BOV-03: cada bloque de la página se muestra según el rol exacto
-            element: <RequireRoles allowed={BOVEDA_ROLES.acceso} />,
+            element: <RequireRoles allowed={ROLES_CONSULTA_ROLES} />,
             children: [
-              { path: '/bovedas', element: <BovedasPage /> },
-              { path: '/bovedas/:idBoveda', element: <DetalleBovedaPage /> },
+              { path: '/seguridad/roles', element: <RolesAccesosPage roles={ROLES_USUARIO} seccionesParaRol={getRoleNavigation} /> },
             ],
           },
           {
             // Estática: React Router la prefiere a /cuentas/:idCuenta aunque se declare después
-            element: <RequireProfile allowed={ROUTE_ACCESS.abrirCuenta} />,
+            element: <RequirePermiso permiso={PERMISOS.cuentasAbrir} />,
             children: [{ path: '/cuentas/abrir', element: <AbrirCuentaPage /> }],
           },
         ],

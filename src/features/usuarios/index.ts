@@ -8,3 +8,5 @@ export { ROLES_GESTION_USUARIOS } from '@/features/usuarios/lib/acceso'
 export { useUsuario, useUsuarios } from '@/features/usuarios/hooks/useUsuarios'
 export { nombreCompleto } from '@/features/usuarios/lib/formato'
 export type { UsuarioDetalle, UsuarioResumen } from '@/features/usuarios/api/usuarios.contract'
+
+export { ROLES_USUARIO } from '@/features/usuarios/api/usuarios.contract'

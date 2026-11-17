@@ -25,11 +25,10 @@ import {
 import { useRedes, useTiposCredito } from '@/features/catalogos'
 import type { ProductoAdmin } from '@/features/organizacion/api/productos.contract'
 import { CampoAgencia as Campo, inputClassName, selectClassName } from '@/features/organizacion/components/CampoAgencia'
-import { useActualizarProducto, useCrearProducto } from '@/features/organizacion/hooks/useProductosAdmin'
+import { useActualizarProducto, useCrearProducto, useTiposProducto } from '@/features/organizacion/hooks/useProductosAdmin'
 import { a11yCampo } from '@/features/organizacion/lib/agencias'
 import {
   campoDelError,
-  ETIQUETA_TIPO,
   mensajeErrorProducto,
   payloadCrear,
   payloadEdicion,
@@ -61,8 +60,8 @@ export function ProductoFormDialog({ modo, onCerrar, onGuardado }: ProductoFormD
           </DialogTitle>
           <DialogDescription>
             {editando
-              ? 'El código y el tipo no cambian: los usan las cuentas, tarjetas y créditos que ya existen.'
-              : 'El producto se crea inactivo. Agrégale al menos un subproducto y actívalo para ofrecerlo.'}
+              ? 'Los datos se editan solo mientras el producto está en Borrador y sin uso.'
+              : 'El producto se crea en Borrador. Agrégale al menos un subproducto y actívalo para ofrecerlo.'}
           </DialogDescription>
         </DialogHeader>
         {modo && (
@@ -88,6 +87,7 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
   const editando = modo.tipo === 'editar'
   const [inicial] = useState(() => (modo.tipo === 'editar' ? valoresEdicion(modo.producto) : VALORES_NUEVO))
   const [sinCambios, setSinCambios] = useState(false)
+  const tipos = useTiposProducto()
   const tiposCredito = useTiposCredito()
   const redes = useRedes()
   const crear = useCrearProducto()
@@ -99,6 +99,7 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
     control,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<ProductoFormInput, unknown, ProductoFormData>({
     resolver: zodResolver(productoFormSchema),
@@ -134,18 +135,19 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
     )
   }
 
-  const AYUDA_CODIGO = 'De 3 a 10 letras o números. No cambia después.'
+  const AYUDA_CODIGO = 'De 3 a 10 letras o números. Se edita solo en Borrador.'
   const AYUDA_DESCRIPCION = 'Opcional. Qué es el producto y para quién, en una línea.'
 
   return (
     <form onSubmit={handleSubmit(guardar)} noValidate className="flex flex-col gap-5">
+      {tipos.isError && <Aviso tono="error">No pudimos cargar los tipos de producto.</Aviso>}
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo id="producto-codigo" label="Código" error={errors.codigoProducto?.message} ayuda={AYUDA_CODIGO}>
           <Input
             id="producto-codigo"
             autoComplete="off"
             maxLength={10}
-            disabled={editando && modo.producto.estado === 'A'}
+            disabled={editando && modo.producto.estadoCatalogo !== 'Borrador'}
             className={`${inputClassName} uppercase`}
             {...a11yCampo('producto-codigo', errors.codigoProducto?.message, AYUDA_CODIGO)}
             {...register('codigoProducto')}
@@ -154,9 +156,15 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
         <Campo id="producto-tipo" label="Tipo" error={errors.tipoProducto?.message}>
           <Controller
             control={control}
-            name="tipoProducto"
+            name="idTipoProducto"
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange} disabled={editando}>
+              <Select value={field.value} onValueChange={(id) => {
+                const elegido = tipos.data?.find((t) => String(t.idTipoProducto) === id)
+                if (!elegido) return
+                field.onChange(id)
+                setValue('tipoProducto', elegido.tipoProducto, { shouldValidate: true })
+                setValue('tipoCuenta', elegido.tipoCuenta ?? '')
+              }} disabled={editando || tipos.isPending || tipos.isError}>
                 <SelectTrigger
                   id="producto-tipo"
                   onBlur={field.onBlur}
@@ -166,9 +174,9 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
                   <SelectValue placeholder="Elige el tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(['Cuenta', 'Credito', 'Tarjeta'] as const).map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {ETIQUETA_TIPO[t]}
+                  {tipos.data?.map((t) => (
+                    <SelectItem key={t.idTipoProducto} value={String(t.idTipoProducto)}>
+                      {t.nombre}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -208,7 +216,7 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
                 control={control}
                 name="tipoCuenta"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange} disabled={editando}>
+                  <Select value={field.value} onValueChange={field.onChange} disabled>
                     <SelectTrigger
                       id="producto-tipo-cuenta"
                       onBlur={field.onBlur}

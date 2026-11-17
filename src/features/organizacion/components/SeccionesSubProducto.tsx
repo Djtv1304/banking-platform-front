@@ -208,6 +208,11 @@ export function SeccionElegibilidad({ subproducto, soloLectura, onGuardado }: Se
   const texto = (v: number | null | undefined) => (v == null ? '' : String(v))
   const [minima, setMinima] = useState(() => texto(subproducto.edadMinima))
   const [maxima, setMaxima] = useState(() => texto(subproducto.edadMaxima))
+  const [nombre, setNombre] = useState(subproducto.nombreSubProducto)
+  const [tipoCliente, setTipoCliente] = useState(subproducto.tipoClientePermitido ?? 'Ambos')
+  const [tutor, setTutor] = useState(subproducto.requiereTutor ?? false)
+  const [requerido, setRequerido] = useState(() => texto(subproducto.idSubProductoRequerido))
+  const [maximo, setMaximo] = useState(() => texto(subproducto.maximoPorCliente))
   const [error, setError] = useState<string | null>(null)
 
   const leer = (v: string) => (v.trim() === '' ? null : /^\d{1,3}$/.test(v.trim()) && Number(v) <= 120 ? Number(v) : undefined)
@@ -220,9 +225,10 @@ export function SeccionElegibilidad({ subproducto, soloLectura, onGuardado }: Se
     if (edadMinima !== null && edadMaxima !== null && edadMaxima < edadMinima) {
       return setError('La edad máxima no puede ser menor que la mínima.')
     }
+    if ([[requerido, 2147483647], [maximo, 32767]].some(([valor, limite]) => String(valor) !== '' && (!/^\d+$/.test(String(valor)) || Number(valor) < 1 || Number(valor) > Number(limite)))) return setError('Usa identificadores y cantidades enteras positivas.')
     setError(null)
     actualizar.mutate(
-      { idSubProducto: subproducto.idSubProducto, body: { edadMinima, edadMaxima } },
+      { idSubProducto: subproducto.idSubProducto, body: { nombreSubProducto: nombre.trim(), edadMinima, edadMaxima, tipoClientePermitido: tipoCliente, requiereTutor: tutor, idSubProductoRequerido: requerido ? Number(requerido) : null, maximoPorCliente: maximo ? Number(maximo) : null } },
       { onSuccess: () => onGuardado(`Guardamos la elegibilidad de ${subproducto.codigoSubProducto}.`) },
     )
   }
@@ -249,6 +255,11 @@ export function SeccionElegibilidad({ subproducto, soloLectura, onGuardado }: Se
     >
       <form onSubmit={enviar} noValidate className="flex flex-col gap-3">
         <div className="grid gap-3 sm:grid-cols-2">
+          <Campo id="eleg-nombre" label="Nombre"><Input id="eleg-nombre" value={nombre} minLength={3} maxLength={100} onChange={(e) => setNombre(e.target.value)} disabled={soloLectura} /></Campo>
+          <Campo id="eleg-tipo" label="Tipo de cliente"><select id="eleg-tipo" className={inputClassName} value={tipoCliente} onChange={(e) => setTipoCliente(e.target.value as typeof tipoCliente)} disabled={soloLectura}><option value="Ambos">Ambos</option><option value="Natural">Natural</option><option value="Juridico">Jurídico</option></select></Campo>
+          <Campo id="eleg-requerido" label="ID del subproducto requerido"><Input id="eleg-requerido" type="number" min={1} step={1} value={requerido} onChange={(e) => setRequerido(e.target.value)} disabled={soloLectura} /></Campo>
+          <Campo id="eleg-maximo" label="Máximo por cliente"><Input id="eleg-maximo" type="number" min={1} max={32767} step={1} value={maximo} onChange={(e) => setMaximo(e.target.value)} disabled={soloLectura} /></Campo>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={tutor} onChange={(e) => setTutor(e.target.checked)} disabled={soloLectura} />Requiere tutor</label>
           {campo('eleg-min', 'Edad mínima (años)', minima, setMinima, 'Ej.: 18.')}
           {campo('eleg-max', 'Edad máxima (años)', maxima, setMaxima, 'Menores: 17.')}
         </div>

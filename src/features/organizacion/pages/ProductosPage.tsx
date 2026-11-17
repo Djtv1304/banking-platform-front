@@ -5,16 +5,14 @@ import { ChevronDown, ChevronRight, Eye, Plus, Search } from 'lucide-react'
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
 import { Aviso, Button, Cargando, Input } from '@/shared/ui'
-import { hasAnyRole, useAuthStore } from '@/features/auth'
-import { PRODUCTOS_ROLES, type TipoProductoAdmin } from '@/features/organizacion/api/productos.contract'
+import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import { EstadoProductoBadge } from '@/features/organizacion/components/EstadoProductoBadge'
 import { ProductoFormDialog, type ModoProducto } from '@/features/organizacion/components/ProductoFormDialog'
-import { useProductosAdmin } from '@/features/organizacion/hooks/useProductosAdmin'
+import { useProductosAdmin, useTiposProducto } from '@/features/organizacion/hooks/useProductosAdmin'
 import {
   condicionesDe,
   agruparPorTipo,
   filtrarProductos,
-  GRUPO_TIPO,
   mensajeErrorProducto,
   rutaProducto,
 } from '@/features/organizacion/lib/producto-form'
@@ -24,16 +22,17 @@ import {
  * ADMIN y ASESOR consultan; solo ADMIN crea. El backend repite la regla en cada ruta.
  */
 export function ProductosPage() {
-  const roles = useAuthStore((state) => state.user?.roles)
-  const esAdmin = hasAnyRole(roles ?? [], PRODUCTOS_ROLES.administrar)
+  const esAdmin = hasPermission(usePermisos(), PERMISOS.productosEditar)
   const productos = useProductosAdmin()
+  const tipos = useTiposProducto()
   const [busqueda, setBusqueda] = useState('')
+  const [estadoFiltro, setEstadoFiltro] = useState('todos')
   const [formulario, setFormulario] = useState<ModoProducto | null>(null)
   const [confirmacion, setConfirmacion] = useState<string | null>(null)
   // Los grupos empiezan cerrados para no saturar la vista
-  const [abiertos, setAbiertos] = useState<ReadonlySet<TipoProductoAdmin>>(new Set())
+  const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set())
   const buscando = busqueda.trim() !== ''
-  const alternarGrupo = (tipo: TipoProductoAdmin) =>
+  const alternarGrupo = (tipo: string) =>
     setAbiertos((actual) => {
       const nuevo = new Set(actual)
       if (nuevo.has(tipo)) nuevo.delete(tipo)
@@ -45,11 +44,11 @@ export function ProductosPage() {
     if (productos.isError) return <Aviso tono="error">{mensajeErrorProducto(toApiError(productos.error))}</Aviso>
     if (productos.isPending) return <Cargando texto="Cargando productos…" />
     if (productos.data.length === 0) return <Aviso>Todavía no hay productos registrados.</Aviso>
-    const visibles = filtrarProductos(productos.data, busqueda)
+    const visibles = filtrarProductos(productos.data, busqueda).filter((p) => estadoFiltro === 'todos' || (p.estadoCatalogo ?? (p.estado === 'A' ? 'Activo' : 'Suspendido')) === estadoFiltro)
     if (visibles.length === 0) return <Aviso>Ningún producto coincide con «{busqueda.trim()}».</Aviso>
     return (
       <div className="flex flex-col gap-6">
-        {agruparPorTipo(visibles).map(({ tipo, productos: delGrupo }) => {
+        {agruparPorTipo(visibles, tipos.data).map(({ tipo, nombre, productos: delGrupo }) => {
           // Con búsqueda se abren los grupos que tienen coincidencias
           const desplegado = buscando || abiertos.has(tipo)
           return (
@@ -63,7 +62,7 @@ export function ProductosPage() {
                 className="flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left hover:bg-muted/60"
               >
                 <span className="text-base font-semibold text-heading">
-                  {GRUPO_TIPO[tipo]} <span className="text-sm font-normal text-muted-foreground">({delGrupo.length})</span>
+                  {nombre} <span className="text-sm font-normal text-muted-foreground">({delGrupo.length})</span>
                 </span>
                 <ChevronDown className={cn('size-5 text-muted-foreground transition-transform', desplegado && 'rotate-180')} aria-hidden />
               </button>
@@ -79,7 +78,7 @@ export function ProductosPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-base font-semibold text-heading">{producto.nombreProducto}</span>
-                        <EstadoProductoBadge estado={producto.estado} />
+                        <EstadoProductoBadge estado={producto.estado} estadoCatalogo={producto.estadoCatalogo} />
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {producto.codigoProducto} · {condicionesDe(producto)}
@@ -92,6 +91,14 @@ export function ProductosPage() {
                     </div>
                     <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
                   </Link>
+                  {producto.subproductos.length > 0 && <ul className="ml-6 border-l border-border pb-3 pl-4">
+                    {producto.subproductos.map((sub) => <li key={sub.idSubProducto}>
+                      <Link to={`/productos/subproductos/${sub.idSubProducto}/ficha`} className="flex items-center justify-between gap-3 rounded-lg p-2 hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring">
+                        <span>{sub.codigoSubProducto} · {sub.nombreSubProducto}</span>
+                        <EstadoProductoBadge estado={sub.estado} estadoCatalogo={sub.estadoCatalogo} />
+                      </Link>
+                    </li>)}
+                  </ul>}
                 </li>
               ))}
             </ul>
@@ -140,6 +147,11 @@ export function ProductosPage() {
             className="h-11 rounded-xl pl-9"
           />
         </div>
+        <label className="flex items-center gap-3 text-sm">Estado
+          <select className="rounded-lg border border-border bg-card p-2" value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)}>
+            {['todos', 'Borrador', 'Activo', 'Suspendido', 'Retirado'].map((e) => <option key={e} value={e}>{e === 'todos' ? 'Todos' : e}</option>)}
+          </select>
+        </label>
         {contenido}
       </section>
 

@@ -8,8 +8,9 @@ import {
 } from '@/features/usuarios/api/usuarios.contract'
 
 /*
- * Lo que la pantalla le pide a AUT-05: búsqueda, filtros, orden y página. Viven solo en memoria
- * (no en la URL) para que nombres, correos o usernames no queden en el historial ni en los logs.
+ * Lo que la pantalla le pide a AUT-05: búsqueda, filtros, orden y página. Los datos personales
+ * viven en memoria para que no queden en el historial ni en los logs. Solo el código público
+ * del rol puede llegar por URL desde la vista de Roles y accesos.
  */
 
 export const PAGE_SIZE = 20
@@ -30,6 +31,12 @@ export type FiltrosUsuariosInput = z.input<typeof filtrosUsuariosSchema>
 export type FiltrosUsuarios = z.output<typeof filtrosUsuariosSchema>
 
 export const FILTROS_VACIOS: FiltrosUsuarios = { q: '', estado: '', rol: '', idAgencia: '', vinculado: '' }
+
+/** Solo un código de rol público puede precargar el filtro desde la vista de roles. */
+export function filtrosDesdeRol(rol: string | null): FiltrosUsuarios {
+  const valido = (ROLES_USUARIO as readonly string[]).includes(rol ?? '')
+  return { ...FILTROS_VACIOS, rol: valido ? rol as FiltrosUsuarios['rol'] : '' }
+}
 
 export interface Orden {
   campo: CampoOrden

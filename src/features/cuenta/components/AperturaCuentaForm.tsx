@@ -89,7 +89,7 @@ interface DatosAperturaProps {
 
 /** Espera los catálogos: la agencia del usuario se preselecciona al crear el formulario */
 function DatosApertura(props: DatosAperturaProps) {
-  const productos = useProductos('Cuenta')
+  const productos = useProductos('Cuenta', undefined, props.cliente.idCliente)
   const agencias = useAgencias()
   const idAgenciaUsuario = useAuthStore((state) => state.user?.idAgencia ?? null)
 

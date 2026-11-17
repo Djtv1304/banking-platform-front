@@ -5,7 +5,7 @@ import { crearBusquedaProgramada } from '@/features/clientes/lib/busqueda-progra
 export function useFiltrosClientes() {
   const [filtros, setFiltros] = useState(FILTROS_INICIALES)
   const [busqueda, setBusqueda] = useState({ filtros: FILTROS_INICIALES, page: 1 })
-  const [programador] = useState(() => crearBusquedaProgramada(
+  const [programador] = useState(() => crearBusquedaProgramada<FiltrosClientes>(
     (actuales) => setBusqueda({ filtros: actuales, page: 1 }),
   ))
   const componiendo = useRef(false)

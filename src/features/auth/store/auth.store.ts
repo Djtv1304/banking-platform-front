@@ -25,6 +25,10 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
 export const useAuthStatus = () => useAuthStore((state) => state.status)
 
+/** Permisos de escritura del usuario (arreglo estable del store; vacío sin sesión) */
+const SIN_PERMISOS: readonly string[] = []
+export const usePermisos = (): readonly string[] => useAuthStore((state) => state.user?.permisos ?? SIN_PERMISOS)
+
 /** Perfil de acceso del usuario autenticado (null mientras no hay sesión) */
 export const useAccessProfile = (): AccessProfile | null =>
   useAuthStore((state) => (state.user ? getAccessProfile(state.user.roles) : null))

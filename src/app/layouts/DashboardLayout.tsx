@@ -2,35 +2,18 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
   Bell,
-  Building2,
-  Calculator,
   CircleHelp,
-  CreditCard,
-  HandCoins,
-  House,
-  Landmark,
   LogOut,
   Moon,
-  Package,
   PanelLeft,
-  ShieldCheck,
-  Library,
   Sun,
-  UserPlus,
-  UserSearch,
-  Vault,
-  WalletCards,
-  type LucideIcon,
 } from 'lucide-react'
 
-import { canAccess, CLIENTES_ROLES, hasAnyRole, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, type AccessProfile } from '@/features/auth'
-import { ROUTE_ACCESS } from '@/app/router/route-access'
-import { ROLES_GESTION_USUARIOS } from '@/features/usuarios'
-import { PRODUCTOS_ROLES } from '@/features/organizacion'
-import { BOVEDA_ROLES } from '@/features/boveda'
+import { formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, usePermisos } from '@/features/auth'
+import { getVisibleSections, type NavItem } from '@/app/navigation/navigation'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
-import { CATALOGOS_ROLES, useAgencias } from '@/features/catalogos'
+import { useAgencias } from '@/features/catalogos'
 import { INSTITUCION } from '@/shared/config'
 import {
   Badge,
@@ -42,105 +25,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui'
-
-interface NavItem {
-  to: string
-  label: string
-  Icon: LucideIcon
-  end?: boolean
-  /** Perfiles que ven la opción. Sin valor = todos. El admin ve todas. */
-  profiles?: readonly AccessProfile[]
-  roles?: readonly string[]
-  /** Módulo sin pantallas todavía: abre «Módulo en preparación» y muestra la etiqueta «Pronto» */
-  enPreparacion?: boolean
-}
-
-const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
-  { items: [{ to: '/', label: 'Inicio', Icon: House, end: true }] },
-  {
-    title: 'Organización',
-    items: [
-      { to: '/organizacion/entidad', label: 'Datos de la cooperativa', Icon: Building2, profiles: ROUTE_ACCESS.datosCooperativa, roles: ['ADMIN', 'ASESOR'] },
-      { to: '/organizacion/agencias', label: 'Agencias', Icon: Building2, profiles: ROUTE_ACCESS.agencias },
-    ],
-  },
-  {
-    title: 'Productos y Catálogos',
-    // ADMIN administra; ASESOR solo consulta (las páginas ocultan las acciones)
-    items: [
-      { to: '/productos', label: 'Productos', Icon: Package, roles: PRODUCTOS_ROLES.consultar },
-      { to: '/catalogos', label: 'Catálogos', Icon: Library, roles: CATALOGOS_ROLES.consultar },
-    ],
-  },
-  {
-    title: 'Clientes',
-    items: [
-      { to: '/registrar-cliente', label: 'Registrar cliente', Icon: UserPlus, profiles: ROUTE_ACCESS.registrarCliente, roles: CLIENTES_ROLES.registrar },
-      { to: '/clientes-busqueda', label: 'Consultar clientes', Icon: UserSearch, profiles: ROUTE_ACCESS.consultarClientes, roles: CLIENTES_ROLES.consultar },
-    ],
-  },
-  {
-    title: 'Cuentas',
-    items: [
-      { to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas },
-      { to: '/cuentas/abrir', label: 'Abrir cuenta', Icon: WalletCards, profiles: ROUTE_ACCESS.abrirCuenta },
-    ],
-  },
-  {
-    title: 'Créditos',
-    items: [
-      {
-        to: '/creditos',
-        label: 'Solicitudes de crédito',
-        Icon: HandCoins,
-        profiles: ROUTE_ACCESS.creditos,
-        enPreparacion: true,
-      },
-    ],
-  },
-  {
-    title: 'Tarjetas',
-    items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas }],
-  },
-  {
-    title: 'Tesorería',
-    // SUPERVISOR, CONTADOR, AUDITOR y ADMIN; la página muestra a cada rol solo lo que puede consultar
-    items: [{ to: '/bovedas', label: 'Bóvedas', Icon: Vault, roles: BOVEDA_ROLES.acceso }],
-  },
-  {
-    title: 'Cuentas contables',
-    items: [
-      {
-        to: '/contabilidad',
-        label: 'Plan de cuentas',
-        Icon: Calculator,
-        profiles: ROUTE_ACCESS.cuentasContables,
-        enPreparacion: true,
-      },
-    ],
-  },
-  {
-    title: 'Accesos y roles',
-    items: [
-      {
-        to: '/usuarios',
-        label: 'Usuarios del sistema',
-        Icon: ShieldCheck,
-        profiles: ROUTE_ACCESS.gestionUsuarios,
-        roles: ROLES_GESTION_USUARIOS,
-      },
-    ],
-  },
-]
-
-/** Solo las opciones (y secciones con al menos una opción) que el perfil puede ver */
-function getVisibleSections(profile: AccessProfile | null, roles: readonly string[]) {
-  if (!profile) return []
-  return NAV_SECTIONS.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => canAccess(profile, item.profiles) && (!item.roles || hasAnyRole(roles, item.roles))),
-  })).filter((section) => section.items.length > 0)
-}
 
 const SIDEBAR_STORAGE_KEY = 'enquocoop-sidebar-collapsed'
 
@@ -160,7 +44,8 @@ export function DashboardLayout() {
   const [collapsed, toggleCollapsed] = useSidebarCollapsed()
   const { pathname } = useLocation()
   const roles = useAuthStore((state) => state.user?.roles)
-  const sections = getVisibleSections(useAccessProfile(), roles ?? [])
+  const permisos = usePermisos()
+  const sections = getVisibleSections(useAccessProfile(), roles ?? [], permisos)
   const currentPage = sections
     .flatMap((section) => section.items.map((item) => ({ ...item, sectionTitle: section.title })))
     .filter(({ to, end }) => (end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)))
@@ -171,10 +56,10 @@ export function DashboardLayout() {
     )
 
   return (
-    <div className="flex h-svh bg-panel">
+    <div className="flex h-svh bg-panel print:block print:h-auto print:bg-white">
       <aside
         className={cn(
-          'flex shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200',
+          'flex shrink-0 flex-col print:hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200',
           collapsed ? 'w-16' : 'w-60',
         )}
       >
@@ -243,7 +128,7 @@ export function DashboardLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4 sm:px-6">
+        <header className="print:hidden flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4 sm:px-6">
           {currentPage && (
             <p className="flex min-w-0 items-center gap-2 text-sm">
               {currentPage.sectionTitle && (
@@ -280,8 +165,7 @@ export function DashboardLayout() {
           </div>
         </header>
 
-        {/* `relative`: lo absoluto sin ancestro posicionado (p. ej. `sr-only`) queda dentro del scroll y no alarga el documento */}
-        <main className="relative flex-1 overflow-y-auto px-4 py-6 sm:px-8">
+        <main className="print:overflow-visible print:p-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           <Outlet />
         </main>
       </div>

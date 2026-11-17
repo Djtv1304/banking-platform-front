@@ -1,8 +1,10 @@
+import type { FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { LoaderCircle, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 
 import { Button, Input } from '@/shared/ui'
+import { useBusquedaAutomatica } from '@/shared/lib/useBusquedaAutomatica'
 import { useAgencias } from '@/features/catalogos'
 import { Campo } from '@/features/usuarios/components/Campo'
 import { ariaCampo, campoClassName, selectClassName } from '@/features/usuarios/lib/campos'
@@ -25,29 +27,49 @@ interface FiltrosUsuariosProps {
   /** Hay búsqueda o filtros aplicados en la tabla (muestra «Limpiar») */
   aplicados: boolean
   onBuscar: (filtros: Filtros) => void
+  iniciales?: FiltrosUsuariosInput
 }
 
 /** Búsqueda libre (username, nombres, apellidos o correo) y filtros combinables de AUT-05 */
-export function FiltrosUsuarios({ buscando, aplicados, onBuscar }: FiltrosUsuariosProps) {
+export function FiltrosUsuarios({ buscando, aplicados, onBuscar, iniciales = FILTROS_VACIOS }: FiltrosUsuariosProps) {
   const {
     register,
     handleSubmit,
+    getValues,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<FiltrosUsuariosInput, unknown, Filtros>({
     resolver: zodResolver(filtrosUsuariosSchema),
-    defaultValues: FILTROS_VACIOS,
+    mode: 'onChange',
+    defaultValues: iniciales,
+  })
+  const busqueda = useBusquedaAutomatica(() => {
+    const resultado = filtrosUsuariosSchema.safeParse(getValues())
+    if (resultado.success) onBuscar(resultado.data)
   })
   const agencias = useAgencias()
   const errorBusqueda = errors.q?.message
 
   const limpiar = () => {
+    busqueda.cancelar()
     reset(FILTROS_VACIOS)
     onBuscar(FILTROS_VACIOS)
   }
 
+  const enviar = (evento: FormEvent<HTMLFormElement>) => {
+    busqueda.cancelar()
+    void handleSubmit(onBuscar)(evento)
+  }
+
   return (
-    <form onSubmit={handleSubmit(onBuscar)} noValidate role="search" aria-label="Buscar usuarios" className="flex flex-col gap-5">
+    <form
+      onSubmit={enviar}
+      {...busqueda.eventos}
+      noValidate
+      role="search"
+      aria-label="Buscar usuarios"
+      className="flex flex-col gap-5"
+    >
       <Campo id="q" label="Buscar" error={errorBusqueda}>
         <div className="relative">
           <Search aria-hidden className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
@@ -116,16 +138,19 @@ export function FiltrosUsuarios({ buscando, aplicados, onBuscar }: FiltrosUsuari
       </fieldset>
 
       <div className="flex flex-wrap justify-end gap-3">
-        {aplicados && (
-          <Button type="button" variant="outline" disabled={buscando} onClick={limpiar} className="h-[52px] rounded-xl px-6 text-base">
+        {(aplicados || isDirty) && (
+          <Button type="button" variant="outline" onClick={limpiar} className="h-[52px] rounded-xl px-6 text-base">
             Limpiar
           </Button>
         )}
-        <Button type="submit" disabled={buscando} className="h-[52px] rounded-xl px-8 text-base font-semibold">
-          {buscando ? <LoaderCircle className="animate-spin" /> : <Search />}
-          Buscar
-        </Button>
       </div>
+      <p role="status" className="text-sm text-muted-foreground">
+        {Object.keys(errors).length > 0
+          ? 'Corrige los filtros indicados para actualizar los resultados.'
+          : buscando
+            ? 'Actualizando resultados…'
+            : 'La lista se actualiza al dejar de escribir o cambiar un filtro. Enter busca inmediatamente.'}
+      </p>
     </form>
   )
 }

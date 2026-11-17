@@ -21,10 +21,11 @@ export const ROUTE_ACCESS = {
   consultarMovimientos: ['staff'],
   // TAR-02/03: ASESOR, SUPERVISOR y ADMIN (el CAJERO es 'staff' en la UI: su 403 muestra «No tienes permiso»)
   consultarTarjetas: ['staff'],
-  // AUT-05 a AUT-09: ADMIN y SUPERVISOR (el rol exacto se comprueba en el menú y dentro de la página)
+  // AUT-05 a AUT-09: ADMIN (el rol exacto se comprueba en el menú y dentro de la página)
   gestionUsuarios: ['staff'],
   // F-05: módulos del menú todavía en preparación (parámetros son de administración)
   creditos: ['staff'],
+  // E2-02 / CON-03: CONTADOR, AUDITOR y ADMIN (el rol exacto se comprueba en el menú y en el router)
   cuentasContables: ['staff'],
   // ORG-01/02: solo ADMIN
   agencias: ['admin'],

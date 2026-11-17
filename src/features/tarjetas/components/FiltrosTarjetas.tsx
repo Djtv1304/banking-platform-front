@@ -1,9 +1,10 @@
+import type { FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { LoaderCircle, Search } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
 import { Button, Input } from '@/shared/ui'
+import { useBusquedaAutomatica } from '@/shared/lib/useBusquedaAutomatica'
 import { ESTADOS_TARJETA } from '@/features/tarjetas/api/tarjetas.contract'
 import { Field, fieldClassName } from '@/features/tarjetas/components/form-fields'
 import {
@@ -29,10 +30,17 @@ export function FiltrosTarjetas({ buscando, onBuscar }: FiltrosTarjetasProps) {
   const {
     register,
     handleSubmit,
+    getValues,
+    reset,
     formState: { errors },
   } = useForm<FiltrosTarjetasInput, unknown, Filtros>({
     resolver: zodResolver(filtrosTarjetasSchema),
+    mode: 'onChange',
     defaultValues: FILTROS_VACIOS,
+  })
+  const busqueda = useBusquedaAutomatica(() => {
+    const resultado = filtrosTarjetasSchema.safeParse(getValues())
+    if (resultado.success) onBuscar(resultado.data)
   })
 
   const campoId = (name: 'idCliente' | 'idCuenta', label: string) => {
@@ -53,8 +61,26 @@ export function FiltrosTarjetas({ buscando, onBuscar }: FiltrosTarjetasProps) {
     )
   }
 
+  const limpiar = () => {
+    busqueda.cancelar()
+    reset(FILTROS_VACIOS)
+    onBuscar(FILTROS_VACIOS)
+  }
+
+  const enviar = (evento: FormEvent<HTMLFormElement>) => {
+    busqueda.cancelar()
+    void handleSubmit(onBuscar)(evento)
+  }
+
   return (
-    <form onSubmit={handleSubmit(onBuscar)} noValidate aria-label="Filtros de búsqueda" className="flex flex-col gap-5">
+    <form
+      onSubmit={enviar}
+      {...busqueda.eventos}
+      noValidate
+      role="search"
+      aria-label="Filtros de búsqueda"
+      className="flex flex-col gap-5"
+    >
       <div className="grid gap-5 sm:grid-cols-3">
         {campoId('idCliente', 'ID del cliente')}
         {campoId('idCuenta', 'ID de la cuenta')}
@@ -71,11 +97,17 @@ export function FiltrosTarjetas({ buscando, onBuscar }: FiltrosTarjetasProps) {
       </div>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={buscando} className="h-[52px] rounded-xl px-8 text-base font-semibold">
-          {buscando ? <LoaderCircle className="animate-spin" /> : <Search />}
-          Buscar
+        <Button type="button" variant="outline" onClick={limpiar} className="h-[52px] rounded-xl px-6 text-base">
+          Limpiar
         </Button>
       </div>
+      <p role="status" className="text-sm text-muted-foreground">
+        {Object.keys(errors).length > 0
+          ? 'Corrige los filtros indicados para actualizar los resultados.'
+          : buscando
+            ? 'Actualizando resultados…'
+            : 'La lista se actualiza al dejar de escribir o cambiar un filtro. Enter busca inmediatamente.'}
+      </p>
     </form>
   )
 }

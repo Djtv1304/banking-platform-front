@@ -2,16 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { accesoGestionClientes, estadosPermitidos } from '@/features/clientes/lib/gestion-clientes'
 import { leerDetalleHistorial } from '@/features/clientes/lib/historial'
 
-describe('permisos C-04 del backend vigente', () => {
+describe('C-04: consultar por rol, cambiar por permiso', () => {
   it.each([
-    ['ASESOR', true, true, false], ['SUPERVISOR', false, true, true], ['ADMIN', true, true, true],
-    ['AUDITOR', false, false, true], ['CAJERO', false, false, false], ['cliente', false, false, false],
-  ])('%s tiene los permisos esperados', (rol, edicion, estado, historial) => {
-    expect(accesoGestionClientes([String(rol)])).toMatchObject({ edicion, estado, historial })
+    ['ASESOR', true, false], ['SUPERVISOR', true, true], ['ADMIN', true, true],
+    ['AUDITOR', false, true], ['CAJERO', true, false], ['cliente', false, false],
+  ])('%s: consulta=%s, historial=%s (rol)', (rol, consulta, historial) => {
+    expect(accesoGestionClientes([String(rol)])).toMatchObject({ consulta, historial, edicion: false, estado: false })
   })
-  it('normaliza los slugs y combina varios roles sin conceder permisos por defecto', () => {
-    expect(accesoGestionClientes([' asesor ', 'auditor'])).toEqual({ consulta: true, edicion: true, estado: true, historial: true })
-    expect(accesoGestionClientes([])).toEqual({ consulta: false, edicion: false, estado: false, historial: false })
+  it('editar y cambiar estado dependen de clientes:editar y clientes:estado', () => {
+    expect(accesoGestionClientes(['SUPERVISOR'], ['clientes:estado'])).toMatchObject({ edicion: false, estado: true })
+    expect(accesoGestionClientes(['ASESOR'], ['clientes:editar', 'clientes:estado'])).toMatchObject({ edicion: true, estado: true })
+    expect(accesoGestionClientes([' asesor ', 'auditor'], [])).toEqual({ consulta: true, edicion: false, estado: false, historial: true })
   })
 })
 

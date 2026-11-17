@@ -12,7 +12,7 @@ import { esCedulaValida } from '@/shared/lib'
  *   Bloquear o desactivar corta las sesiones del usuario en WorkOS.
  * - AUT-09 PUT  /usuarios/{idUsuario}/roles → reemplaza el rol (uno). No se puede quitar el último ADMIN.
  *
- * Roles: ADMIN y SUPERVISOR. Los errores llegan como ProblemDetails con `errors: [{ field, message }]`;
+ * Roles: ADMIN. Los errores llegan como ProblemDetails con `errors: [{ field, message }]`;
  * el 503 indica que WorkOS (invitaciones) no está disponible. Los esquemas de respuesta solo validan
  * los campos que usa la pantalla; zod descarta el resto.
  */

@@ -16,6 +16,7 @@ import {
   getProductos,
   getRedes,
   getRegistrosCatalogo,
+  pedirConfirmacion,
   getSeguros,
   getSistemasAmortizacion,
   getTasasInteres,
@@ -23,7 +24,7 @@ import {
   getTiposCredito,
   getTiposMovimientoCaja,
 } from '@/features/catalogos/api/catalogos.api'
-import type { TipoProducto, TipoTarjeta, ValorCampo } from '@/features/catalogos/api/catalogos.contract'
+import type { Confirmacion, TipoProducto, TipoTarjeta, ValorCampo } from '@/features/catalogos/api/catalogos.contract'
 
 /*
  * Catálogos con caché por sesión (F-09).
@@ -74,10 +75,10 @@ export const useAgencias = () => useCatalogo({ queryKey: ['catalogos', 'agencias
  * los subproductos de tarjeta de ese tipo: al cambiarlo en el formulario de emisión cambia la clave
  * y se cargan (una vez por sesión) las opciones congruentes.
  */
-export const useProductos = (tipo?: TipoProducto, tipoTarjeta?: TipoTarjeta) =>
+export const useProductos = (tipo?: TipoProducto, tipoTarjeta?: TipoTarjeta, idCliente?: number) =>
   useCatalogo({
-    queryKey: ['catalogos', 'productos', tipo ?? 'todos', tipoTarjeta ?? 'todas'],
-    queryFn: () => getProductos(tipo, tipoTarjeta),
+    queryKey: ['catalogos', 'productos', tipo ?? 'todos', tipoTarjeta ?? 'todas', idCliente ?? 'sin-cliente'],
+    queryFn: () => getProductos(tipo, tipoTarjeta, idCliente),
   })
 
 export const useRedes = () => useCatalogo({ queryKey: ['catalogos', 'redes'], queryFn: getRedes })
@@ -152,7 +153,8 @@ export function useSeguros() {
 export function useCrearRegistroCatalogo() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ clave, body }: { clave: string; body: Record<string, ValorCampo> }) => crearRegistroCatalogo(clave, body),
+    mutationFn: ({ clave, body, confirmacion }: { clave: string; body: Record<string, ValorCampo>; confirmacion?: Confirmacion }) =>
+      crearRegistroCatalogo(clave, body, confirmacion),
     retry: false,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalogos'] }),
   })
@@ -161,8 +163,21 @@ export function useCrearRegistroCatalogo() {
 export function useEliminarRegistroCatalogo() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ clave, id }: { clave: string; id: string }) => eliminarRegistroCatalogo(clave, id),
+    mutationFn: ({ clave, id, confirmacion }: { clave: string; id: string; confirmacion?: Confirmacion }) =>
+      eliminarRegistroCatalogo(clave, id, confirmacion),
     retry: false,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalogos'] }),
+  })
+}
+
+/** Pide un código nuevo cada vez que se abre la confirmación (sin caché) */
+export function useCodigoConfirmacion(clave: string, activo: boolean) {
+  return useQuery({
+    queryKey: ['catalogos', 'confirmacion', clave],
+    queryFn: () => pedirConfirmacion(clave),
+    enabled: activo,
+    gcTime: 0,
+    staleTime: 0,
+    retry: false,
   })
 }

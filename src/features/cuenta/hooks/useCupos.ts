@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { ApiError } from '@/shared/api'
-import { useAuthStore } from '@/features/auth'
+import { useAuthStore, usePermisos } from '@/features/auth'
 import { actualizarCupo, getCupos, getHistorialCupo } from '@/features/cuenta/api/cupos.api'
 import type { CupoUpdate } from '@/features/cuenta/api/cupos.contract'
 import { permisosCupos } from '@/features/cuenta/lib/cupos'
@@ -48,5 +48,5 @@ export function useActualizarCupo(idCuenta: number) {
 export function usePermisosCupos() {
   // Se elige el arreglo (referencia estable) y no un objeto nuevo en cada render
   const roles = useAuthStore((state) => state.user?.roles)
-  return permisosCupos(roles ?? [])
+  return permisosCupos(roles ?? [], usePermisos())
 }

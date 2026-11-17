@@ -10,6 +10,7 @@ import {
   guardarRestricciones,
   guardarVinculos,
   listarProductos,
+  listarTiposProducto,
   obtenerCupos,
   obtenerFicha,
   obtenerProducto,
@@ -30,6 +31,10 @@ const CLAVE_PRODUCTOS = ['organizacion', 'productos'] as const
 /** El catálogo de productos activos (apertura de cuentas, tarjetas) también cambia al guardar */
 const CLAVE_CATALOGO = ['catalogos', 'productos'] as const
 
+export function useTiposProducto() {
+  return useQuery({ queryKey: [...CLAVE_PRODUCTOS, 'tipos'], queryFn: listarTiposProducto })
+}
+
 export function useProductosAdmin() {
   return useQuery({ queryKey: CLAVE_PRODUCTOS, queryFn: listarProductos })
 }
@@ -49,6 +54,7 @@ function useAlGuardar() {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: CLAVE_PRODUCTOS }),
       queryClient.invalidateQueries({ queryKey: CLAVE_CATALOGO }),
+      queryClient.invalidateQueries({ queryKey: ['organizacion', 'ficha'] }),
     ])
 }
 
@@ -98,7 +104,10 @@ export function useGuardarCupos(idSubProducto: number) {
   return useMutation({
     mutationFn: (cupos: CupoCanalBody[]) => guardarCupos(idSubProducto, cupos),
     retry: false,
-    onSuccess: (cupos) => queryClient.setQueryData(claveCupos(idSubProducto), cupos),
+    onSuccess: async (cupos) => {
+      queryClient.setQueryData(claveCupos(idSubProducto), cupos)
+      await queryClient.invalidateQueries({ queryKey: ['organizacion', 'ficha', idSubProducto] })
+    },
   })
 }
 
@@ -111,7 +120,10 @@ export function useGuardarRestricciones(idSubProducto: number) {
   return useMutation({
     mutationFn: (body: RestriccionesBody) => guardarRestricciones(idSubProducto, body),
     retry: false,
-    onSuccess: (r) => queryClient.setQueryData(claveRestricciones(idSubProducto), r),
+    onSuccess: async (r) => {
+      queryClient.setQueryData(claveRestricciones(idSubProducto), r)
+      await queryClient.invalidateQueries({ queryKey: ['organizacion', 'ficha', idSubProducto] })
+    },
   })
 }
 
@@ -127,7 +139,7 @@ export function useGuardarVinculos(destino: DestinoVinculos) {
   return useMutation({
     mutationFn: (body: Vinculos) => guardarVinculos(destino, body),
     retry: false,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['organizacion', 'vinculos'] }),
+    onSuccess: () => Promise.all([queryClient.invalidateQueries({ queryKey: ['organizacion', 'vinculos'] }), queryClient.invalidateQueries({ queryKey: ['organizacion', 'ficha'] })]),
   })
 }
 
@@ -141,5 +153,19 @@ export function useFichaSubProducto(idSubProducto: number) {
     queryKey: ['organizacion', 'ficha', idSubProducto],
     queryFn: () => obtenerFicha(idSubProducto),
     enabled: Number.isInteger(idSubProducto) && idSubProducto > 0,
+  })
+}
+
+
+export function useImprimirFicha(idSubProducto: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => obtenerFicha(idSubProducto, true),
+    retry: false,
+    onSuccess: async (ficha) => {
+      queryClient.setQueryData(['organizacion', 'ficha', idSubProducto], ficha)
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      window.print()
+    },
   })
 }

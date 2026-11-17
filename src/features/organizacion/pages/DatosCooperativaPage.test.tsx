@@ -5,7 +5,10 @@ import { ApiError } from '@/shared/api'
 import { DatosCooperativaPage } from '@/features/organizacion/pages/DatosCooperativaPage'
 
 const estado = vi.hoisted(() => ({ roles: ['ADMIN'], data: undefined as unknown, error: null as unknown, pendiente: false }))
-vi.mock('@/features/auth', () => ({ useAuthStore: () => estado.roles }))
+vi.mock('@/features/auth', () => ({
+  useAuthStore: () => estado.roles,
+  usePermisos: () => (estado.roles.includes('ADMIN') ? ['organizacion:editar'] : []),
+}))
 vi.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ cancelQueries: vi.fn() }) }))
 vi.mock('@/features/organizacion/hooks/useEntidad', () => ({
   useEntidad: () => ({ data: estado.data, error: estado.error, isPending: estado.pendiente, isError: !!estado.error, isSuccess: !!estado.data && !estado.error, isFetching: false, refetch: vi.fn() }),

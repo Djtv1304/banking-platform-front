@@ -35,9 +35,14 @@ const respuesta = (data: unknown, status = 200) => ({
 afterEach(() => vi.restoreAllMocks())
 describe('Entidad · permisos y contrato #323', () => {
   it('separa la consulta de ASESOR de la edición de ADMIN y deniega otros roles', () => {
-    expect(accesoEntidad([' admin '])).toEqual({
+    expect(accesoEntidad([' admin '], ['organizacion:editar'])).toEqual({
       consulta: true,
       edicion: true
+    })
+    // Editar lo decide el permiso, no el rol
+    expect(accesoEntidad(['ADMIN'])).toEqual({
+      consulta: true,
+      edicion: false
     })
     expect(accesoEntidad(['ASESOR'])).toEqual({
       consulta: true,
