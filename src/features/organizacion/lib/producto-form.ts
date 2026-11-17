@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { ApiError } from '@/shared/api'
 import type {
   ProductoAdmin,
+  SubProductoAdmin,
   ProductoCreate,
   ProductoUpdate,
   TipoProductoAdmin,
@@ -246,7 +247,7 @@ export function filtrarProductos(productos: readonly ProductoAdmin[], busqueda: 
         p.nombreProducto,
         p.descripcion ?? '',
         ETIQUETA_TIPO[p.tipoProducto],
-        ...p.subproductos.map((s) => s.nombreSubProducto),
+        ...p.subproductos.flatMap((s) => [s.codigoSubProducto, s.nombreSubProducto]),
       ].join(' '),
     ).includes(termino),
   )
@@ -268,6 +269,41 @@ export function agruparPorTipo(productos: readonly ProductoAdmin[], tipos: reado
   return [...definidos, ...(Object.keys(GRUPO_TIPO) as TipoProductoAdmin[])
     .map((tipo) => ({ tipo, nombre: GRUPO_TIPO[tipo], productos: sinTipo.filter((p) => p.tipoProducto === tipo) }))]
     .filter((g) => g.productos.length > 0)
+}
+
+/** Tres niveles de negocio. Los contenedores SQL no agregan un nivel al arbol. */
+export function jerarquiaComercial(
+  productos: readonly ProductoAdmin[],
+  tipos: readonly { idTipoProducto: number; codigo: string; nombre: string }[] = [],
+  estado = 'todos',
+) {
+  type Modelo = { producto: ProductoAdmin; subproducto: SubProductoAdmin | null }
+  const familias: { tipo: TipoProductoAdmin; nombre: string; subproductos: { clave: string; nombre: string; modelos: Modelo[] }[] }[] = []
+  for (const tipo of Object.keys(GRUPO_TIPO) as TipoProductoAdmin[]) {
+    const grupos = new Map<string, { clave: string; nombre: string; modelos: Modelo[] }>()
+    for (const producto of productos.filter((p) => p.tipoProducto === tipo)) {
+      const catalogo = tipos.find((t) => t.idTipoProducto === producto.idTipoProducto)
+      const modelos: (SubProductoAdmin | null)[] = producto.subproductos.length ? producto.subproductos : [null]
+      for (const subproducto of modelos) {
+        const estadoModelo = subproducto?.estadoCatalogo ?? (subproducto ? (subproducto.estado === 'A' ? 'Activo' : 'Suspendido') : producto.estadoCatalogo ?? (producto.estado === 'A' ? 'Activo' : 'Suspendido'))
+        if (estado !== 'todos' && estadoModelo !== estado) continue
+        const nombre = tipo === 'Cuenta'
+          ? catalogo?.nombre ?? (producto.tipoCuenta === 'Corriente' ? 'Cuenta corriente' : producto.tipoCuenta === 'Ahorro' ? 'Cuenta de ahorro' : 'Cuentas sin clasificar')
+          : tipo === 'Credito'
+            ? producto.nombreTipoCredito ?? 'Creditos sin clasificar'
+            : subproducto?.tipoTarjeta === 'Debito' ? 'Tarjeta de debito' : subproducto?.tipoTarjeta === 'Credito' ? 'Tarjeta de credito' : 'Tarjetas sin clasificar'
+        const clave = tipo === 'Cuenta' ? catalogo?.codigo ?? `Cuenta-${producto.tipoCuenta ?? 'sin-tipo'}` : `${tipo}-${nombre}`
+        let grupo = grupos.get(clave)
+        if (!grupo) {
+          grupo = { clave, nombre, modelos: [] }
+          grupos.set(clave, grupo)
+        }
+        grupo.modelos.push({ producto, subproducto })
+      }
+    }
+    if (grupos.size) familias.push({ tipo, nombre: GRUPO_TIPO[tipo], subproductos: [...grupos.values()] })
+  }
+  return familias
 }
 
 export const porcentaje = (fraccion: number) =>

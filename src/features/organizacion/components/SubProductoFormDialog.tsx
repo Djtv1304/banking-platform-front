@@ -39,10 +39,10 @@ export function SubProductoFormDialog({ producto, onCerrar, onGuardado }: SubPro
       <DialogContent className="gap-5 p-6 sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-heading">
-            Nuevo subproducto{producto ? ` de ${producto.nombreProducto}` : ''}
+            Nuevo modelo comercial{producto ? ` de ${producto.nombreProducto}` : ''}
           </DialogTitle>
           <DialogDescription>
-            El subproducto se crea en Borrador. Se ofrece cuando ambos están activos y el cliente cumple su elegibilidad.
+            El modelo se crea en Borrador. Su oferta requiere que los registros esten Activos y el cliente cumpla su elegibilidad.
           </DialogDescription>
         </DialogHeader>
         {producto && <Formulario key={producto.idProducto} producto={producto} onCancelar={onCerrar} onGuardado={onGuardado} />}
@@ -80,7 +80,7 @@ function Formulario({
     crear.mutate(
       { idProducto: producto.idProducto, body: datos },
       {
-        onSuccess: (s) => onGuardado(`Agregamos el subproducto ${s.codigoSubProducto} a ${producto.codigoProducto}.`),
+        onSuccess: (s) => onGuardado(`Agregamos el modelo ${s.codigoSubProducto} a ${producto.codigoProducto}.`),
         onError: (e) => {
           const apiError = toApiError(e)
           if (apiError.code === 'CODIGO_DUPLICADO' || apiError.code === 'CODIGO_TARJETA_INVALIDO') {
@@ -135,7 +135,7 @@ function Formulario({
         </Button>
         <Button type="submit" size="lg" disabled={crear.isPending} className="rounded-lg px-4 font-semibold">
           {crear.isPending ? <LoaderCircle className="animate-spin" /> : <Save />}
-          Agregar subproducto
+          Agregar modelo
         </Button>
       </DialogFooter>
     </form>

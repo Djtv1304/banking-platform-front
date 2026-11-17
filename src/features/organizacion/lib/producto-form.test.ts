@@ -5,6 +5,7 @@ import type { ProductoAdmin } from '@/features/organizacion/api/productos.contra
 import {
   filtrarProductos,
   agruparPorTipo,
+  jerarquiaComercial,
   mensajeErrorProducto,
   payloadCrear,
   payloadEdicion,
@@ -103,4 +104,38 @@ it('agrupa por tipos del catalogo, incluidos certificados de aportacion', () => 
   const producto = { idTipoProducto: 3, tipoProducto: 'Cuenta' } as ProductoAdmin
   const grupos = agruparPorTipo([producto], [{ idTipoProducto: 3, codigo: 'CERTIFICADO_APORTACION', nombre: 'Certificados de aportación' }])
   expect(grupos).toEqual([{ tipo: 'CERTIFICADO_APORTACION', nombre: 'Certificados de aportación', productos: [producto] }])
+})
+
+describe('jerarquia comercial del negocio', () => {
+  const producto: ProductoAdmin = {
+    idProducto: 16, codigoProducto: 'AHO002', nombreProducto: 'Ahorro Objetivo',
+    tipoProducto: 'Cuenta', tipoCuenta: 'Ahorro', idTipoProducto: 1,
+    permiteOperacionesPresenciales: true, estado: 'A', estadoCatalogo: 'Activo',
+    subproductos: [
+      { idSubProducto: 18, idProducto: 16, codigoSubProducto: 'AHO002-JOV', nombreSubProducto: 'Joven', estado: 'I', estadoCatalogo: 'Borrador', fechaRegistro: '' },
+      { idSubProducto: 19, idProducto: 16, codigoSubProducto: 'AHO002-FAM', nombreSubProducto: 'Familiar', estado: 'A', estadoCatalogo: 'Activo', fechaRegistro: '' },
+    ],
+  }
+  const tipos = [{ idTipoProducto: 1, codigo: 'CUENTA_AHORRO', nombre: 'Cuenta de ahorro' }]
+
+  it('presenta Cuentas, Cuenta de ahorro y modelos sin insertar otro nivel', () => {
+    const familia = jerarquiaComercial([producto], tipos)[0]
+    expect(familia.tipo).toBe('Cuenta')
+    expect(familia.subproductos).toHaveLength(1)
+    expect(familia.subproductos[0].nombre).toBe('Cuenta de ahorro')
+    expect(familia.subproductos[0].modelos.map((m) => m.subproducto?.idSubProducto)).toEqual([18, 19])
+    expect(familia.subproductos[0].modelos[0].producto).toBe(producto)
+  })
+
+  it('el filtro Borrador encuentra modelos aunque su padre este Activo', () => {
+    const modelos = jerarquiaComercial([producto], tipos, 'Borrador')[0].subproductos[0].modelos
+    expect(modelos.map((m) => m.subproducto?.idSubProducto)).toEqual([18])
+    expect(producto.subproductos).toHaveLength(2)
+  })
+
+  it('busca el codigo del modelo y conserva configuraciones sin modelos', () => {
+    expect(filtrarProductos([producto], 'aho002-jov')).toEqual([producto])
+    const vacio = { ...producto, estado: 'I' as const, estadoCatalogo: 'Borrador' as const, subproductos: [] }
+    expect(jerarquiaComercial([vacio], tipos, 'Borrador')[0].subproductos[0].modelos[0].subproducto).toBeNull()
+  })
 })

@@ -185,23 +185,23 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
       <section aria-labelledby="titulo-subproductos" className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-6 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 id="titulo-subproductos" className="text-lg font-semibold text-heading">Subproductos</h2>
+            <h2 id="titulo-subproductos" className="text-lg font-semibold text-heading">Modelos comerciales</h2>
             <p className="text-sm text-muted-foreground">{AYUDA_PARAMETROS[producto.tipoProducto]}</p>
           </div>
           {esAdmin && (
             <Button variant="outline" onClick={() => setNuevoSub(true)}>
               <Plus />
-              Subproducto
+              Modelo comercial
             </Button>
           )}
         </div>
 
         {producto.subproductos.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin subproductos. El producto se activa cuando tiene al menos uno.</p>
+          <p className="text-sm text-muted-foreground">Sin modelos comerciales. Agrega un modelo en Borrador para definir su elegibilidad.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-sm">
-              <caption className="sr-only">Subproductos de {producto.nombreProducto}</caption>
+              <caption className="sr-only">Modelos de {producto.nombreProducto}</caption>
               <thead className="border-b border-border text-muted-foreground">
                 <tr>
                   <th scope="col" className="px-3 py-2 font-medium">Código</th>
