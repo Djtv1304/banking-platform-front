@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const api = vi.hoisted(() => ({ getMe: vi.fn() }))
+const api = vi.hoisted(() => ({ getMe: vi.fn(), refresh: vi.fn() }))
 vi.mock('@/features/auth/api/auth.api', () => ({ ...api, logout: vi.fn() }))
 
 import { apiClient, ApiError } from '@/shared/api'
@@ -25,17 +25,35 @@ describe('sincronización del acceso de la sesión', () => {
     vi.useRealTimers()
   })
 
-  it('al volver a la ventana relee el rol y elimina datos del acceso anterior', async () => {
+  it('no consulta /me al volver a la ventana ni con el paso del tiempo (nada en segundo plano)', async () => {
+    vi.useFakeTimers()
     const ventana = new EventTarget()
     vi.stubGlobal('window', ventana)
     vi.stubGlobal('document', Object.assign(new EventTarget(), { visibilityState: 'visible' }))
-    api.getMe.mockResolvedValue({ ...perfil, roles: ['ASESOR'] })
     const detener = startSessionSync()
     try {
       ventana.dispatchEvent(new Event('focus'))
-      await vi.waitFor(() => expect(useAuthStore.getState().user?.roles).toEqual(['ASESOR']))
-      expect(cache.clear).toHaveBeenCalledOnce()
+      document.dispatchEvent(new Event('visibilitychange'))
+      await vi.advanceTimersByTimeAsync(5 * 60_000)
+      expect(api.getMe).not.toHaveBeenCalled()
+      expect(api.refresh).not.toHaveBeenCalled()
     } finally { detener() }
+  })
+
+  it('un cierre en otra pestaña cierra esta con el mismo motivo', async () => {
+    vi.stubGlobal('window', new EventTarget())
+    vi.stubGlobal('document', Object.assign(new EventTarget(), { visibilityState: 'visible' }))
+    const detener = startSessionSync()
+    const otraPestana = new BroadcastChannel('enquocoop-sesion')
+    try {
+      otraPestana.postMessage({ tipo: 'cerrada', motivo: 'SESION_REVOCADA' })
+      await vi.waitFor(() => expect(useAuthStore.getState().status).toBe('anonymous'))
+      expect(useAuthStore.getState().motivoCierre).toBe('SESION_REVOCADA')
+      expect(cache.clear).toHaveBeenCalledOnce()
+    } finally {
+      otraPestana.close()
+      detener()
+    }
   })
 
   it('ante un 403 sincroniza el menú sin repetir la operación rechazada', async () => {
@@ -98,25 +116,5 @@ describe('sincronización del acceso de la sesión', () => {
     const adapter = vi.fn().mockRejectedValue({ isAxiosError: true, response: { status: 403, data: {} }, config: { url: '/api/v1/auth/me' } })
     await expect(apiClient.get('/api/v1/auth/me', { adapter })).rejects.toMatchObject({ status: 403 })
     expect(api.getMe).not.toHaveBeenCalled()
-  })
-
-  it('revisa cada minuto visible, omite pestañas ocultas y permite desmontar la revisión', async () => {
-    vi.useFakeTimers()
-    const documento = Object.assign(new EventTarget(), { visibilityState: 'hidden' })
-    vi.stubGlobal('window', new EventTarget())
-    vi.stubGlobal('document', documento)
-    api.getMe.mockResolvedValue(perfil)
-    const detener = startSessionSync()
-    await vi.advanceTimersByTimeAsync(60_000)
-    expect(api.getMe).not.toHaveBeenCalled()
-    documento.visibilityState = 'visible'
-    documento.dispatchEvent(new Event('visibilitychange'))
-    await vi.advanceTimersByTimeAsync(0)
-    expect(api.getMe).toHaveBeenCalledOnce()
-    await vi.advanceTimersByTimeAsync(60_000)
-    expect(api.getMe).toHaveBeenCalledTimes(2)
-    detener()
-    await vi.advanceTimersByTimeAsync(60_000)
-    expect(api.getMe).toHaveBeenCalledTimes(2)
   })
 })
