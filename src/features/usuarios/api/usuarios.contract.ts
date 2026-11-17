@@ -124,6 +124,7 @@ export const crearUsuarioSchema = z
       .string()
       .trim()
       .refine(esCedulaValida, 'Ingresa una cédula ecuatoriana válida de 10 dígitos.'),
+    idAgencias: z.array(z.string().regex(ID_AGENCIA_REGEX)).max(100).optional(),
     idAgencia: z.string().regex(ID_AGENCIA_REGEX, 'Elige la agencia donde operará.'),
     // Entra como texto (el select empieza vacío) y sale como uno de los 7 roles
     rol: z.string().pipe(z.enum(ROLES_USUARIO, 'Elige el rol del usuario.')),

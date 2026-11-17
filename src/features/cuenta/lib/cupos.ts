@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { CUENTAS_ROLES } from '@/features/auth/lib/access'
 
 import type { ApiError } from '@/shared/api'
 import { hasPermission, PERMISOS } from '@/shared/lib'
@@ -20,7 +21,7 @@ export const disponibleCupo = (cupo: Pick<CupoEfectivo, 'cupoDiario' | 'cupoMens
 
 /** Roles que ven (CTA-07, CTA-09); editar (CTA-08) depende del permiso cuentas:cupos */
 const ROLES_CUPOS = {
-  ver: ['ASESOR', 'SUPERVISOR', 'ADMIN'],
+  ver: CUENTAS_ROLES.cupos,
   historial: ['SUPERVISOR', 'AUDITOR', 'ADMIN'],
 } as const
 

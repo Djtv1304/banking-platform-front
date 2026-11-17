@@ -3,10 +3,15 @@
 
 export { LoginPage } from '@/features/auth/pages/LoginPage';
 export { useAccessProfile, useAuthStatus, useAuthStore, usePermisos } from '@/features/auth/store/auth.store';
-export { canAccess, CLIENTES_ROLES, getAccessProfile, hasAnyRole, hasPermission, PERMISOS, ROLES } from '@/features/auth/lib/access';
+export { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, getAccessProfile, hasAnyRole, hasPermission, PERMISOS, ROLES } from '@/features/auth/lib/access';
 export type { AccessProfile, Permiso } from '@/features/auth/lib/access';
 export type { AuthStatus } from '@/features/auth/store/auth.store';
 export { registerAuthHandlers, restoreSession, refreshSession, startSessionSync, signOut } from '@/features/auth/session';
 export { sanitizeReturnTo } from '@/features/auth/lib/return-to';
 export type { MeResponse } from '@/features/auth/api/auth.contract';
 export { formatRol, formatRoles } from '@/features/auth/lib/roles';
+
+export { SelectorAgencia } from '@/features/auth/components/SelectorAgencia';
+export { agenciaAsignadaSchema } from '@/features/auth/api/auth.contract';
+
+export { obtenerContextoAgencias } from '@/features/auth/api/auth.api';

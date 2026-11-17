@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { obtenerContextoAgencias } from '@/features/auth/api/auth.api'
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando, Paginacion } from '@/shared/ui'
@@ -28,7 +30,11 @@ export function AsientosPage() {
   const [orden, setOrden] = useState<OrdenAsientos>(ORDEN_ASIENTOS_INICIAL)
   const [page, setPage] = useState(1)
   const [seleccionado, setSeleccionado] = useState<number | null>(null)
-  const asientos = useAsientos(armarParametrosAsientos(filtros, page, orden))
+  const contexto = useQuery({ queryKey: ['auth', 'agencias'], queryFn: ({ signal }) => obtenerContextoAgencias(signal), retry: false })
+  const bloquearAgencia = !contexto.data?.alcanceGlobal && !contexto.data?.accesoTodasAgencias
+  const agenciaFija = bloquearAgencia ? contexto.data?.idAgencia ?? '' : undefined
+  const efectivos = bloquearAgencia ? { ...filtros, idAgencia: agenciaFija ?? '' } : contexto.data?.alcanceGlobal ? filtros : { ...filtros, idAgencia: filtros.idAgencia || contexto.data?.idAgencia || '' }
+  const asientos = useAsientos(armarParametrosAsientos(efectivos, page, orden))
 
   const agencias = useAgencias()
   const nombresAgencia = useMemo(
@@ -87,7 +93,7 @@ export function AsientosPage() {
       </header>
 
       <section aria-label="Filtros" className="rounded-3xl border border-border bg-card p-6 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-8">
-        <FiltrosAsientos consultando={asientos.isFetching} onConsultar={consultar} />
+        <FiltrosAsientos consultando={asientos.isFetching} onConsultar={consultar} bloquearAgencia={bloquearAgencia} agenciaFija={agenciaFija} permitirTodas={!!contexto.data?.alcanceGlobal} agenciaInicial={contexto.data?.idAgencia ?? undefined} />
       </section>
 
       <section aria-label="Resultados" className="rounded-3xl border border-border bg-card p-4 sm:p-6">

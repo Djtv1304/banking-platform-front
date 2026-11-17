@@ -1,5 +1,5 @@
-import { ApiError, apiClient } from '@/shared/api'
-import { AUTH_ENDPOINTS, meResponseSchema, type LogoutResponse } from '@/features/auth/api/auth.contract'
+import { ApiError, apiClient, fijarContextoAgencia, limpiarContextoAgencia } from '@/shared/api'
+import { AUTH_ENDPOINTS, contextoAgenciasSchema, meResponseSchema, type LogoutResponse } from '@/features/auth/api/auth.contract'
 
 /**
  * URL para iniciar sesión. Se usa como `href` (navegación completa): el backend responde con un 302
@@ -21,10 +21,22 @@ export async function getMe() {
   if (!result.success) {
     throw new ApiError('No pudimos verificar tu sesión. Inténtalo más tarde.', status, 'respuesta_invalida')
   }
+  fijarContextoAgencia(result.data.idAgencia)
   return result.data
 }
 
 export async function logout() {
   const { data } = await apiClient.post<LogoutResponse>(AUTH_ENDPOINTS.logout)
+  limpiarContextoAgencia()
   return data
+}
+
+
+export async function obtenerContextoAgencias(signal?: AbortSignal) {
+  const { data } = await apiClient.get<unknown>('/api/v1/auth/agencias', { signal })
+  return contextoAgenciasSchema.parse(data)
+}
+export async function seleccionarAgencia(idAgencia: string | null) {
+  const { data } = await apiClient.post<unknown>('/api/v1/auth/agencia-activa', { idAgencia })
+  return contextoAgenciasSchema.parse(data)
 }

@@ -1,6 +1,6 @@
 import { Building2, BookOpenText, Calculator, CreditCard, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, WalletCards, type LucideIcon } from 'lucide-react'
 
-import { canAccess, CLIENTES_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
+import { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
 import { ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
 import { PRODUCTOS_ROLES } from '@/features/organizacion'
 import { CATALOGOS_ROLES } from '@/features/catalogos'
@@ -27,8 +27,8 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Organización',
     items: [
-      { to: '/organizacion/entidad', label: 'Datos de la cooperativa', Icon: Building2, profiles: ROUTE_ACCESS.datosCooperativa, roles: ['ADMIN', 'ASESOR'] },
-      { to: '/organizacion/agencias', label: 'Agencias', Icon: Building2, profiles: ROUTE_ACCESS.agencias },
+      { to: '/organizacion/entidad', label: 'Datos de la cooperativa', Icon: Building2, profiles: ROUTE_ACCESS.datosCooperativa, roles: ORGANIZACION_ROLES.entidad },
+      { to: '/organizacion/agencias', label: 'Agencias', Icon: Building2, profiles: ROUTE_ACCESS.agencias, roles: ORGANIZACION_ROLES.agencias },
     ],
   },
   {
@@ -49,7 +49,7 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Cuentas',
     items: [
-      { to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas },
+      { to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas, roles: CUENTAS_ROLES.consultar },
       { to: '/cuentas/abrir', label: 'Abrir cuenta', Icon: WalletCards, profiles: ROUTE_ACCESS.abrirCuenta, permiso: PERMISOS.cuentasAbrir },
     ],
   },
@@ -61,13 +61,14 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
         label: 'Solicitudes de crédito',
         Icon: HandCoins,
         profiles: ROUTE_ACCESS.creditos,
+        roles: CREDITOS_ROLES.consultar,
         enPreparacion: true,
       },
     ],
   },
   {
     title: 'Tarjetas',
-    items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas }],
+    items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas, roles: TARJETAS_ROLES.consultar }],
   },
   {
     title: 'Cuentas contables',
@@ -123,7 +124,7 @@ export function getVisibleSections(profile: AccessProfile | null, roles: readonl
 /** Opciones del menú para un rol reconocido. No sustituye la autorización de las APIs. */
 export function getRoleNavigation(role: string) {
   if (!(ROLES_USUARIO as readonly string[]).includes(role)) return []
-  return getVisibleSections(getAccessProfile([role]), [role]).map((section) => ({
+  return getVisibleSections(getAccessProfile([role]), [role], []).map((section) => ({
     titulo: section.title ?? 'General',
     opciones: section.items.map((item) => ({
       titulo: item.label,

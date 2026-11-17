@@ -64,3 +64,7 @@ export type LoginErrorCode =
   | 'SOLICITUD_INVALIDA'
   | 'CREDENCIALES_INVALIDAS'
   | 'AUTENTICACION_NO_DISPONIBLE'
+
+
+export const agenciaAsignadaSchema = z.object({ idAgencia: z.string(), codigo: z.string(), estado: z.string(), principal: z.boolean().optional().default(false) })
+export const contextoAgenciasSchema = z.object({ idAgencia: z.string().nullable(), idAgenciaPrincipal: z.string().nullable(), agenciasAsignadas: z.array(agenciaAsignadaSchema), agenciasPermitidas: z.array(agenciaAsignadaSchema), requiereSeleccionAgencia: z.boolean(), alcanceGlobal: z.boolean().optional().default(false), accesoTodasAgencias: z.boolean().optional().default(false) })

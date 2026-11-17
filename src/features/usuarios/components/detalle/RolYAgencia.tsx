@@ -1,3 +1,4 @@
+import { AgenciasUsuarioPanel } from '@/features/usuarios/components/detalle/AgenciasUsuarioPanel'
 import { useState, type ReactNode } from 'react'
 import { Building2, KeyRound } from 'lucide-react'
 
@@ -43,7 +44,7 @@ export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps)
         />
         <Fila
           Icon={Building2}
-          titulo="Agencia"
+          titulo="Agencia principal"
           valor={agencia ? agencia.nombre : usuario.idAgencia ? `Agencia ${usuario.idAgencia}` : 'Sin agencia asignada'}
           sinValor={!usuario.idAgencia}
           nota={
@@ -52,13 +53,14 @@ export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps)
               : 'Donde registra sus operaciones.'
           }
           accion={
-            <Button variant="outline" size="lg" onClick={() => setDialogo('agencia')} className="rounded-lg px-3">
+            <Button variant="outline" size="lg" disabled={usuario.rol !== 'CAJERO'} onClick={() => setDialogo('agencia')} className="rounded-lg px-3">
               {usuario.idAgencia ? 'Cambiar' : 'Asignar'}
             </Button>
           }
         />
       </ul>
 
+      <AgenciasUsuarioPanel idUsuario={usuario.idUsuario} rol={usuario.rol} onGuardado={onGuardado} />
       <CambiarRolDialog
         usuario={usuario}
         esPropio={esPropio}

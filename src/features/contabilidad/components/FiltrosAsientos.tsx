@@ -40,11 +40,15 @@ function Campo({ id, label, error, children }: { id: string; label: string; erro
 
 interface FiltrosAsientosProps {
   consultando: boolean
+  bloquearAgencia?: boolean
+  agenciaFija?: string
+  permitirTodas?: boolean
+  agenciaInicial?: string
   onConsultar: (filtros: Filtros) => void
 }
 
 /** Filtros combinables de CON-04: se aplican al cambiar, con fecha válida. */
-export function FiltrosAsientos({ consultando, onConsultar }: FiltrosAsientosProps) {
+export function FiltrosAsientos({ consultando, onConsultar, bloquearAgencia = false, agenciaFija, permitirTodas = true, agenciaInicial }: FiltrosAsientosProps) {
   const [borrador, setBorrador] = useState<Filtros>(FILTROS_ASIENTOS_VACIOS)
   const [errorFecha, setErrorFecha] = useState<string>()
   const agencias = useAgencias()
@@ -55,7 +59,7 @@ export function FiltrosAsientos({ consultando, onConsultar }: FiltrosAsientosPro
       return
     }
     setErrorFecha(undefined)
-    onConsultar(filtros)
+    onConsultar(bloquearAgencia ? { ...filtros, idAgencia: agenciaFija ?? "" } : filtros)
   }
 
   const cambiar = (campo: keyof Filtros) => (valor: string) => {
@@ -72,7 +76,7 @@ export function FiltrosAsientos({ consultando, onConsultar }: FiltrosAsientosPro
   const limpiar = () => {
     setBorrador(FILTROS_ASIENTOS_VACIOS)
     setErrorFecha(undefined)
-    onConsultar(FILTROS_ASIENTOS_VACIOS)
+    onConsultar(bloquearAgencia ? { ...FILTROS_ASIENTOS_VACIOS, idAgencia: agenciaFija ?? "" } : FILTROS_ASIENTOS_VACIOS)
   }
 
   return (
@@ -96,16 +100,20 @@ export function FiltrosAsientos({ consultando, onConsultar }: FiltrosAsientosPro
           <select
             id="agencia-asiento"
             className={selectClassName}
-            value={borrador.idAgencia}
+            disabled={bloquearAgencia}
+            value={bloquearAgencia ? agenciaFija ?? "" : borrador.idAgencia || (!permitirTodas ? agenciaInicial ?? "" : "")}
             onChange={(evento) => cambiar('idAgencia')(evento.target.value)}
           >
-            <option value="">{agencias.isLoading ? 'Cargando agencias…' : 'Todas'}</option>
-            {agencias.data.map((agencia) => (
+            {!bloquearAgencia && permitirTodas && <option value="">Todas</option>}
+            {bloquearAgencia && !agenciaFija && <option value="">Verificando agencia...</option>}
+            {bloquearAgencia && agenciaFija && !agencias.data.some((a) => a.idAgencia === agenciaFija) && <option value={agenciaFija}>{agenciaFija}</option>}
+            {agencias.data.filter((agencia) => !bloquearAgencia || agencia.idAgencia === agenciaFija).map((agencia) => (
               <option key={agencia.idAgencia} value={agencia.idAgencia}>
                 {etiquetaAgencia(agencia)}
               </option>
             ))}
           </select>
+          {bloquearAgencia && <p className="text-sm text-muted-foreground">Agencia definida por su contexto operativo.</p>}
         </Campo>
 
         <Campo id="origen-asiento" label="Origen">

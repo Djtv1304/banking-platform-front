@@ -25,7 +25,10 @@ const asiento = (id: number, extra: Partial<Asiento> = {}): Asiento => ({
 
 const estado = vi.hoisted(() => ({
   asientos: {} as Record<string, unknown>,
+  contexto: { idAgencia: "001", alcanceGlobal: false, accesoTodasAgencias: false },
 }))
+
+vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: estado.contexto }) }))
 
 vi.mock('@/features/contabilidad/hooks/useAsientos', () => ({ useAsientos: () => estado.asientos, useAsiento: () => ({ isPending: true }) }))
 vi.mock('@/features/catalogos', () => ({
@@ -62,6 +65,7 @@ const pagina = (items: Asiento[], total = items.length) => ({
 })
 
 beforeEach(() => {
+  estado.contexto = { idAgencia: "001", alcanceGlobal: false, accesoTodasAgencias: false }
   estado.asientos = pagina([asiento(1), asiento(2, { estado: 'REVERSADO', idAsientoReversion: 9 })])
 })
 
@@ -129,4 +133,15 @@ describe('AsientosPage', () => {
     expect(salida).toContain('No pudimos conectarnos')
     expect(salida).toContain('Reintentar')
   })
+})
+
+it('bloquea la agencia del filtro para un contexto operativo concreto', () => {
+  expect(html()).toMatch(/id="agencia-asiento"[^>]*disabled/);
+  expect(html()).toContain('Agencia definida por su contexto operativo.')
+})
+
+it('permite el filtro de agencias para acceso total', () => {
+  estado.contexto = { idAgencia: "", alcanceGlobal: true, accesoTodasAgencias: true }
+  expect(html()).not.toMatch(/id="agencia-asiento"[^>]*disabled/);
+  expect(html()).toContain('>Todas</option>')
 })
