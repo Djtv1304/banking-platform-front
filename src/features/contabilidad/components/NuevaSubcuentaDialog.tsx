@@ -23,6 +23,7 @@ import type { NodoCuenta } from '@/features/contabilidad/lib/arbol'
 import { LARGO_MAXIMO_CODIGO, etiquetaNaturaleza } from '@/features/contabilidad/lib/cuenta-contable'
 import {
   LARGO_MAXIMO_NOMBRE,
+  siguienteCodigoLibre,
   subcuentaFormSchema,
   type SubcuentaFormData,
   type SubcuentaFormInput,
@@ -57,6 +58,8 @@ export function NuevaSubcuentaDialog({ padre, onCerrar, onHecho }: NuevaSubcuent
 
 function FormularioSubcuenta({ padre, onCancelar, onHecho }: { padre: NodoCuenta; onCancelar: () => void; onHecho: (mensaje: string) => void }) {
   const codigoPadre = padre.cuenta.codigoCuenta
+  const codigosHijas = padre.hijos.map((hija) => hija.cuenta.codigoCuenta)
+  const siguienteLibre = siguienteCodigoLibre(codigoPadre, codigosHijas)
   const crear = useCrearCuenta()
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
   const {
@@ -66,8 +69,8 @@ function FormularioSubcuenta({ padre, onCancelar, onHecho }: { padre: NodoCuenta
     setError,
     formState: { errors },
   } = useForm<SubcuentaFormInput, unknown, SubcuentaFormData>({
-    resolver: zodResolver(subcuentaFormSchema(codigoPadre)),
-    defaultValues: { codigoCuenta: codigoPadre, nombreCuenta: '', esImputable: true },
+    resolver: zodResolver(subcuentaFormSchema(codigoPadre, codigosHijas)),
+    defaultValues: { codigoCuenta: siguienteLibre ?? codigoPadre, nombreCuenta: '', esImputable: true },
   })
 
   const guardar = (datos: SubcuentaFormData) => {
@@ -86,10 +89,16 @@ function FormularioSubcuenta({ padre, onCancelar, onHecho }: { padre: NodoCuenta
     )
   }
 
-  const ayudaCodigo = `Empieza por ${codigoPadre} y agrega dígitos, sin puntos.`
+  const ayudaCodigo = siguienteLibre
+    ? `Es ${codigoPadre} más 2 dígitos (01 a 99). Siguiente libre: ${siguienteLibre}.`
+    : undefined
 
   return (
     <form onSubmit={handleSubmit(guardar)} noValidate className="flex flex-col gap-5">
+      {siguienteLibre === null && (
+        <Aviso tono="error">{`La cuenta ${codigoPadre} no admite más subcuentas: ya no quedan códigos libres bajo ella.`}</Aviso>
+      )}
+
       <CampoCuenta id="subcuenta-codigo" label="Código" error={errors.codigoCuenta?.message} ayuda={ayudaCodigo}>
         <Input
           id="subcuenta-codigo"
@@ -143,7 +152,7 @@ function FormularioSubcuenta({ padre, onCancelar, onHecho }: { padre: NodoCuenta
         <Button type="button" variant="outline" size="lg" onClick={onCancelar} className="rounded-lg px-4">
           Cancelar
         </Button>
-        <Button type="submit" size="lg" disabled={crear.isPending} className="rounded-lg px-4 font-semibold">
+        <Button type="submit" size="lg" disabled={crear.isPending || siguienteLibre === null} className="rounded-lg px-4 font-semibold">
           {crear.isPending && <LoaderCircle className="animate-spin" />}
           Crear subcuenta
         </Button>
