@@ -42,7 +42,7 @@ export function SubProductoFormDialog({ producto, onCerrar, onGuardado }: SubPro
             Nuevo subproducto{producto ? ` de ${producto.nombreProducto}` : ''}
           </DialogTitle>
           <DialogDescription>
-            El subproducto se crea activo. Se ofrece al cliente cuando el producto también está activo.
+            El subproducto se crea en Borrador. Se ofrece cuando ambos están activos y el cliente cumple su elegibilidad.
           </DialogDescription>
         </DialogHeader>
         {producto && <Formulario key={producto.idProducto} producto={producto} onCancelar={onCerrar} onGuardado={onGuardado} />}
@@ -115,6 +115,19 @@ function Formulario({
           {...register('nombreSubProducto')}
         />
       </Campo>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {(['edadMinima', 'edadMaxima', 'idSubProductoRequerido', 'maximoPorCliente'] as const).map((campo) => (
+          <Campo key={campo} id={`sub-${campo}`} label={{ edadMinima: 'Edad mínima', edadMaxima: 'Edad máxima', idSubProductoRequerido: 'ID del subproducto requerido', maximoPorCliente: 'Máximo por cliente' }[campo]} error={errors[campo]?.message}>
+            <Input id={`sub-${campo}`} type="number" min={campo.startsWith('edad') ? 0 : 1} max={campo.startsWith('edad') ? 120 : undefined} step={1} {...register(campo, { setValueAs: (v: string) => v === '' ? undefined : Number(v) })} aria-invalid={!!errors[campo]} aria-describedby={errors[campo] ? `sub-${campo}-error` : undefined} />
+          </Campo>
+        ))}
+        <Campo id="sub-tipo-cliente" label="Tipo de cliente">
+          <select id="sub-tipo-cliente" className={inputClassName} {...register('tipoClientePermitido')}>
+            <option value="Ambos">Ambos</option><option value="Natural">Natural</option><option value="Juridico">Jurídico</option>
+          </select>
+        </Campo>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...register('requiereTutor')} />Requiere tutor</label>
+      </div>
       {general && <Aviso tono="error">{general}</Aviso>}
       <DialogFooter className="-mx-6 -mb-6 px-6">
         <Button type="button" variant="outline" size="lg" onClick={onCancelar} className="rounded-lg px-4">

@@ -6,9 +6,9 @@ import { DetalleProductoPage } from '@/features/organizacion/pages/DetalleProduc
 import { ProductosPage } from '@/features/organizacion/pages/ProductosPage'
 import type { ProductoAdmin } from '@/features/organizacion/api/productos.contract'
 
-const estado = vi.hoisted(() => ({ roles: ['ADMIN'] as string[], data: [] as unknown[] }))
+const estado = vi.hoisted(() => ({ roles: ['ADMIN'] as string[], permisos: ['PRD-CONSULTAR', 'PRD-EDITAR', 'PRD-EXPORTAR'], data: [] as unknown[] }))
 vi.mock('@/features/auth', () => ({
-  useAuthStore: (selector: (s: { user: { roles: string[] } }) => unknown) => selector({ user: { roles: estado.roles } }),
+  useAuthStore: (selector: (s: { user: { roles: string[]; permisos: string[] } }) => unknown) => selector({ user: { roles: estado.roles, permisos: estado.permisos } }),
   hasAnyRole: (roles: readonly string[], permitidos: readonly string[]) => roles.some((r) => permitidos.includes(r)),
 }))
 vi.mock('react-router', () => ({
@@ -17,6 +17,7 @@ vi.mock('react-router', () => ({
   useNavigate: () => vi.fn(),
 }))
 vi.mock('@/features/organizacion/hooks/useProductosAdmin', () => ({
+  useTiposProducto: () => ({ data: [] }),
   useProductosAdmin: () => ({ data: estado.data, isPending: false, isError: false, error: null }),
   useProductoAdmin: () => ({ data: estado.data[0], isPending: false, isError: false, error: null }),
   useActualizarProducto: () => ({ isPending: false, mutate: vi.fn() }),
@@ -74,6 +75,7 @@ const CONSUMO: ProductoAdmin = {
 
 beforeEach(() => {
   estado.roles = ['ADMIN']
+  estado.permisos = ['PRD-CONSULTAR', 'PRD-EDITAR', 'PRD-EXPORTAR']
   estado.data = [AHORRO]
 })
 const lista = () => renderToStaticMarkup(<ProductosPage />)
@@ -135,4 +137,19 @@ describe('DetalleProductoPage', () => {
     expect(salida).not.toContain('Desactivar')
     expect(salida).not.toContain('Subproducto</button>')
   })
+})
+
+
+it('sin PRD-EDITAR no ofrece escrituras aunque el rol sea ADMIN', () => {
+  estado.permisos = ['PRD-CONSULTAR']
+  expect(lista()).not.toContain('Nuevo producto')
+  expect(detalle()).not.toContain('Editar')
+})
+it('sin PRD-CONSULTAR presenta el estado sin permiso', () => {
+  estado.permisos = []
+  expect(lista()).toContain('No tienes permiso')
+})
+it('el producto activo muestra el editor deshabilitado', () => {
+  estado.data = [{ ...AHORRO, estadoCatalogo: 'Activo' }]
+  expect(detalle()).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Editar/)
 })

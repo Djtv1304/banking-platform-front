@@ -1,0 +1,2 @@
+# Keep inline-script bytes stable for the CSP hashes and their regression test.
+index.html text eol=lf

@@ -3,10 +3,11 @@ import { Link, useParams } from 'react-router'
 import { ArrowLeft, Printer } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
+import { useAuthStore } from '@/features/auth'
 import { Aviso, Button, Cargando } from '@/shared/ui'
 import { ETIQUETA_TIPO_TASA, type TipoTasa } from '@/features/catalogos'
-import { useFichaSubProducto } from '@/features/organizacion/hooks/useProductosAdmin'
-import { condicionesDe, dinero, ETIQUETA_TIPO, mensajeErrorProducto, porcentaje, rutaProducto } from '@/features/organizacion/lib/producto-form'
+import { useFichaSubProducto, useImprimirFicha } from '@/features/organizacion/hooks/useProductosAdmin'
+import { dinero, ETIQUETA_TIPO, mensajeErrorProducto, porcentaje, rutaProducto } from '@/features/organizacion/lib/producto-form'
 
 const delProducto = (heredado: boolean) => (heredado ? ' · del producto' : '')
 
@@ -23,10 +24,12 @@ function Bloque({ titulo, vacio, children }: { titulo: string; vacio: boolean; c
 export function FichaSubProductoPage() {
   const { idSubProducto } = useParams()
   const ficha = useFichaSubProducto(Number(idSubProducto))
+  const imprimir = useImprimirFicha(Number(idSubProducto))
+  const puedeImprimir = useAuthStore((state) => state.user?.permisos.includes('PRD-EXPORTAR') ?? false)
 
   if (ficha.isError) return <Aviso tono="error">{mensajeErrorProducto(toApiError(ficha.error))}</Aviso>
   if (ficha.isPending) return <Cargando texto="Cargando ficha…" />
-  const { producto, subproducto: sub, elegibilidad: e, cupos, restricciones, tasas, comisiones, seguros, sistemasAmortizacion } = ficha.data
+  const { producto, condiciones, fecha, subproducto: sub, elegibilidad: e, cupos, restricciones, tasas, comisiones, seguros, sistemasAmortizacion } = ficha.data
   const edad =
     e.edadMinima == null && e.edadMaxima == null
       ? 'Sin límite de edad'
@@ -39,30 +42,48 @@ export function FichaSubProductoPage() {
   ].filter(Boolean)
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 print:max-w-none print:bg-white print:[&_*]:text-black print:[&_*]:bg-white">
       <div className="flex items-center justify-between gap-3 print:hidden">
         <Link to={rutaProducto(producto.idProducto)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-heading">
           <ArrowLeft className="size-4" aria-hidden />
           {producto.nombreProducto}
         </Link>
-        <Button variant="outline" onClick={() => window.print()}>
+        {puedeImprimir && <Button variant="outline" disabled={imprimir.isPending} onClick={() => imprimir.mutate()}>
           <Printer />
           Imprimir
-        </Button>
+        </Button>}
       </div>
+      {imprimir.error && <Aviso tono="error">{mensajeErrorProducto(toApiError(imprimir.error))}</Aviso>}
       <header>
         <p className="text-sm text-muted-foreground">
-          {ETIQUETA_TIPO[producto.tipoProducto]} · {producto.nombreProducto} · {condicionesDe(producto)}
+          {ETIQUETA_TIPO[producto.tipoProducto]} · {producto.nombreProducto}
         </p>
         <h1 className="text-[32px] leading-tight font-bold text-heading">{sub.nombreSubProducto}</h1>
         <p className="text-sm text-muted-foreground">
-          {sub.codigoSubProducto} · {sub.estado === 'A' ? 'Activo' : 'Inactivo'} · {edad}
+          {sub.codigoSubProducto} · {sub.estadoCatalogo ?? (sub.estado === 'A' ? 'Activo' : 'Suspendido')} · {edad}
           {origen.length > 0 && ` (mínima: ${origen.join(', ')})`}
         </p>
         {producto.descripcion && <p className="mt-2 text-base text-heading">{producto.descripcion}</p>}
       </header>
 
       <div className="grid gap-6 rounded-3xl border border-border bg-card p-6 sm:grid-cols-2">
+        <Bloque titulo={`Condiciones vigentes${fecha ? ` al ${fecha}` : ''}`} vacio={!condiciones}>
+          {condiciones && <>
+            <li>Apertura: {dinero(condiciones.montoAperturaMinimo)}</li>
+            <li>Saldo mínimo: {dinero(condiciones.saldoMinimo)}</li>
+            <li>Interés anual: {condiciones.tasaInteresAnual} % {condiciones.periodicidadInteres}</li>
+            <li>Mantenimiento: {dinero(condiciones.costoMantenimiento)} {condiciones.periodicidadCosto}</li>
+            {condiciones.mesesInactividad != null && <li>Inactividad: {condiciones.mesesInactividad} meses</li>}
+            <li>Vigencia: {condiciones.vigenciaDesde} a {condiciones.vigenciaHasta ?? 'sin fecha final'}</li>
+          </>}
+        </Bloque>
+        <Bloque titulo="Elegibilidad" vacio={false}>
+          <li>Tipo de cliente: {e.tipoClientePermitido ?? 'Ambos'}</li>
+          <li>Edad: {edad}</li>
+          <li>{e.requiereTutor ? 'Requiere tutor verificable' : 'No requiere tutor'}</li>
+          {e.idSubProductoRequerido != null && <li>Subproducto requerido: {e.idSubProductoRequerido}</li>}
+          {e.maximoPorCliente != null && <li>Máximo por cliente: {e.maximoPorCliente}</li>}
+        </Bloque>
         <Bloque titulo="Tasas de interés" vacio={tasas.length === 0}>
           {tasas.map((t) => (
             <li key={t.idTasaInteres}>

@@ -74,10 +74,10 @@ export const useAgencias = () => useCatalogo({ queryKey: ['catalogos', 'agencias
  * los subproductos de tarjeta de ese tipo: al cambiarlo en el formulario de emisión cambia la clave
  * y se cargan (una vez por sesión) las opciones congruentes.
  */
-export const useProductos = (tipo?: TipoProducto, tipoTarjeta?: TipoTarjeta) =>
+export const useProductos = (tipo?: TipoProducto, tipoTarjeta?: TipoTarjeta, idCliente?: number) =>
   useCatalogo({
-    queryKey: ['catalogos', 'productos', tipo ?? 'todos', tipoTarjeta ?? 'todas'],
-    queryFn: () => getProductos(tipo, tipoTarjeta),
+    queryKey: ['catalogos', 'productos', tipo ?? 'todos', tipoTarjeta ?? 'todas', idCliente ?? 'sin-cliente'],
+    queryFn: () => getProductos(tipo, tipoTarjeta, idCliente),
   })
 
 export const useRedes = () => useCatalogo({ queryKey: ['catalogos', 'redes'], queryFn: getRedes })
