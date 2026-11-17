@@ -61,9 +61,12 @@ const esTerminal = (estado: string) => (ESTADOS_TERMINALES as readonly string[])
 export const admiteRegenerarPin = (tarjeta: Pick<Tarjeta, 'pinAsignado' | 'estadoActual'>) =>
   tarjeta.pinAsignado && !esTerminal(tarjeta.estadoActual)
 
-/** TAR-07 · El sobre de PIN solo existe para débito */
-export const admiteSobrePin = (tarjeta: Pick<Tarjeta, 'pinAsignado' | 'tipoTarjeta'>) =>
-  tarjeta.tipoTarjeta === 'Debito' && tarjeta.pinAsignado
+/**
+ * TAR-07 · El sobre de PIN solo existe para débito, y no se entrega si la tarjeta ya no se puede
+ * usar (el backend no lo revisa: entregar el PIN de una tarjeta cancelada no tiene sentido)
+ */
+export const admiteSobrePin = (tarjeta: Pick<Tarjeta, 'pinAsignado' | 'tipoTarjeta' | 'estadoActual'>) =>
+  tarjeta.tipoTarjeta === 'Debito' && tarjeta.pinAsignado && !esTerminal(tarjeta.estadoActual)
 
 /** Roles de TAR-06 y TAR-07; TAR-04 y TAR-05 dependen de permisos de WorkOS */
 const ROLES_TARJETA = {
@@ -138,6 +141,10 @@ export const bloqueoFormSchema = z
           .max(MAX_DETALLE_BLOQUEO, `El detalle admite hasta ${MAX_DETALLE_BLOQUEO} caracteres.`)
           .refine(sinControl, CONTROL),
       ),
+  })
+  .refine(({ causa, detalle }) => causa !== 'Otra' || detalle !== '', {
+    path: ['detalle'],
+    message: 'Con la causa «Otra», describe el motivo del bloqueo.',
   })
   .transform(({ causa, detalle }) => ({ motivo: armarMotivoBloqueo(causa as CausaBloqueo, detalle) }))
 

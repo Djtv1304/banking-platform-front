@@ -162,7 +162,7 @@ function FormularioMotivo({ onEnviar, children }: FormularioProps) {
 
 const OPCIONES_CAUSA = CAUSAS_BLOQUEO.map((causa) => ({ value: causa, label: causa }))
 
-/** Bloqueo inmediato (JPRFM-2026-048-T): causa obligatoria y detalle opcional → «Causa: detalle» */
+/** Bloqueo inmediato (JPRFM-2026-048-T): causa obligatoria y detalle opcional (obligatorio con «Otra») → «Causa: detalle» */
 function FormularioBloqueo({ onEnviar, children }: FormularioProps) {
   const {
     control,
@@ -175,6 +175,7 @@ function FormularioBloqueo({ onEnviar, children }: FormularioProps) {
   })
   const errorDetalle = errors.detalle?.message
   const detalle = useWatch({ control, name: 'detalle' })
+  const causa = useWatch({ control, name: 'causa' })
 
   return (
     <form onSubmit={handleSubmit(onEnviar)} noValidate className="flex flex-col gap-5">
@@ -195,7 +196,7 @@ function FormularioBloqueo({ onEnviar, children }: FormularioProps) {
           )}
         />
       </Field>
-      <Field id="bloqueo-detalle" label="Detalle (opcional)" error={errorDetalle}>
+      <Field id="bloqueo-detalle" label={causa === 'Otra' ? 'Detalle' : 'Detalle (opcional)'} error={errorDetalle}>
         <textarea
           id="bloqueo-detalle"
           rows={3}

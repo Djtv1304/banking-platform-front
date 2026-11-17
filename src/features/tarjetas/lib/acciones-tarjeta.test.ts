@@ -58,9 +58,13 @@ describe('PIN y sobre', () => {
   })
 
   it('el sobre de PIN solo existe en débito con PIN', () => {
-    expect(admiteSobrePin({ pinAsignado: true, tipoTarjeta: 'Debito' })).toBe(true)
-    expect(admiteSobrePin({ pinAsignado: true, tipoTarjeta: 'Credito' })).toBe(false)
-    expect(admiteSobrePin({ pinAsignado: false, tipoTarjeta: 'Debito' })).toBe(false)
+    expect(admiteSobrePin({ pinAsignado: true, tipoTarjeta: 'Debito', estadoActual: 'Aprobada' })).toBe(true)
+    expect(admiteSobrePin({ pinAsignado: true, tipoTarjeta: 'Debito', estadoActual: 'Bloqueada' })).toBe(true)
+    expect(admiteSobrePin({ pinAsignado: true, tipoTarjeta: 'Credito', estadoActual: 'Aprobada' })).toBe(false)
+    expect(admiteSobrePin({ pinAsignado: false, tipoTarjeta: 'Debito', estadoActual: 'Aprobada' })).toBe(false)
+    for (const estadoActual of ['Cancelada', 'Anulada', 'Vencida', 'Cerrada']) {
+      expect(admiteSobrePin({ pinAsignado: true, tipoTarjeta: 'Debito', estadoActual })).toBe(false)
+    }
   })
 })
 
@@ -107,6 +111,17 @@ describe('motivo de bloqueo', () => {
       'Elige la causa del bloqueo.',
     )
     expect(bloqueoFormSchema.parse({ causa: 'Sospecha de fraude', detalle: '' })).toEqual({ motivo: 'Sospecha de fraude' })
+  })
+
+  it('con la causa «Otra» el detalle es obligatorio', () => {
+    const sinDetalle = bloqueoFormSchema.safeParse({ causa: 'Otra', detalle: '   ' })
+    expect(sinDetalle.error?.issues[0]).toMatchObject({
+      path: ['detalle'],
+      message: 'Con la causa «Otra», describe el motivo del bloqueo.',
+    })
+    expect(bloqueoFormSchema.parse({ causa: 'Otra', detalle: 'Tarjeta retenida en el ATM' })).toEqual({
+      motivo: 'Otra: Tarjeta retenida en el ATM',
+    })
   })
 
   it('causa y detalle juntos nunca pasan de 500', () => {
