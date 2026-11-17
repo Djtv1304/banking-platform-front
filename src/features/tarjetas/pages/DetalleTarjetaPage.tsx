@@ -5,7 +5,9 @@ import { ArrowLeft } from 'lucide-react'
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando } from '@/shared/ui'
 import type { Tarjeta } from '@/features/tarjetas/api/tarjetas.contract'
+import { AccionesTarjeta } from '@/features/tarjetas/components/AccionesTarjeta'
 import { EstadoTarjetaBadge } from '@/features/tarjetas/components/EstadoTarjetaBadge'
+import { usePermisosTarjeta } from '@/features/tarjetas/hooks/useAccionesTarjeta'
 import { useTarjeta } from '@/features/tarjetas/hooks/useConsultaTarjetas'
 import { leerId } from '@/features/tarjetas/lib/consulta'
 import {
@@ -74,6 +76,7 @@ function SinDetalle({ children }: { children: ReactNode }) {
 }
 
 function DetalleTarjeta({ tarjeta }: { tarjeta: Tarjeta }) {
+  const permisos = usePermisosTarjeta()
   return (
     <>
       <header className="flex flex-wrap items-center gap-3">
@@ -121,6 +124,8 @@ function DetalleTarjeta({ tarjeta }: { tarjeta: Tarjeta }) {
           </dl>
         </section>
       </div>
+
+      <AccionesTarjeta tarjeta={tarjeta} permisos={permisos} />
     </>
   )
 }
