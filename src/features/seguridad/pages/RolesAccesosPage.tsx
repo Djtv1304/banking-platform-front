@@ -40,7 +40,7 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
       </header>
 
       <Aviso>
-        Esta vista es de consulta. Para asignar o cambiar el rol de una persona, abre su ficha en Usuarios del sistema.
+        Esta vista lista las opciones de consulta por rol. Las opciones de escritura del menu personal dependen de los permisos reales de WorkOS. Para cambiar un rol, abre la ficha en Usuarios del sistema.
       </Aviso>
 
       {roles.length === 0 ? (

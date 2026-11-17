@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { setUnauthorizedHandler, setForbiddenHandler, toApiError } from '@/shared/api'
+import { setUnauthorizedHandler, setForbiddenHandler, toApiError, limpiarContextoAgencia } from '@/shared/api'
 import { getMe, logout } from '@/features/auth/api/auth.api'
 import { AUTH_ENDPOINTS, esMotivoCierre, type MeResponse, type MotivoCierre } from '@/features/auth/api/auth.contract'
 import { iniciarControlInactividad } from '@/features/auth/inactividad'
@@ -35,6 +35,7 @@ function accessKey(user: MeResponse) {
  */
 function cerrarSesionLocal(motivo: MotivoCierre | null) {
   const teniaSesion = useAuthStore.getState().user !== null
+  limpiarContextoAgencia()
   useAuthStore.getState().clearSession(motivo)
   sessionCache?.clear()
   if (teniaSesion) publicar({ tipo: 'cerrada', motivo })
@@ -111,6 +112,7 @@ export function startSessionSync() {
   const dejarDeEscuchar = escuchar((mensaje) => {
     const { status } = useAuthStore.getState()
     if (mensaje.tipo === 'cerrada' && status === 'authenticated') {
+      limpiarContextoAgencia()
       useAuthStore.getState().clearSession(mensaje.motivo)
       sessionCache?.clear()
     }

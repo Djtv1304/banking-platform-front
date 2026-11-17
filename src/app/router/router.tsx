@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 
 import { DashboardLayout } from '@/app/layouts/DashboardLayout'
-import { CLIENTES_ROLES, LoginPage, PERMISOS } from '@/features/auth'
+import { CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, LoginPage, PERMISOS } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
 import {
   AgenciasPage,
@@ -37,7 +37,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/', element: <HomePage /> },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.datosCooperativa} />,
+            element: <RequireRoles allowed={ORGANIZACION_ROLES.entidad} />,
             children: [{ path: '/organizacion/entidad', element: <DatosCooperativaPage /> }],
           },
           {
@@ -49,14 +49,14 @@ export const router = createBrowserRouter([
             children: [{ path: '/solicitar-tarjeta', element: <SolicitarTarjetaPage /> }],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.consultarCuentas} />,
+            element: <RequireRoles allowed={CUENTAS_ROLES.consultar} />,
             children: [
               { path: '/cuentas', element: <BuscarCuentasPage /> },
               { path: '/cuentas/:idCuenta', element: <DetalleCuentaPage /> },
             ],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.consultarCupos} />,
+            element: <RequireRoles allowed={CUENTAS_ROLES.cupos} />,
             children: [{ path: '/cuentas/:idCuenta/cupos', element: <CuposCuentaPage /> }],
           },
           {
@@ -67,18 +67,18 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.consultarMovimientos} />,
+            element: <RequireRoles allowed={CUENTAS_ROLES.movimientos} />,
             children: [{ path: '/cuentas/:idCuenta/movimientos', element: <MovimientosCuentaPage /> }],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.consultarTarjetas} />,
+            element: <RequireRoles allowed={TARJETAS_ROLES.consultar} />,
             children: [
               { path: '/tarjetas', element: <BuscarTarjetasPage /> },
               { path: '/tarjetas/:idTarjeta', element: <DetalleTarjetaPage /> },
             ],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.creditos} />,
+            element: <RequireRoles allowed={CREDITOS_ROLES.consultar} />,
             children: [
               {
                 path: '/creditos',
@@ -92,7 +92,7 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.agencias} />,
+            element: <RequireRoles allowed={ORGANIZACION_ROLES.agencias} />,
             children: [{ path: '/organizacion/agencias', element: <AgenciasPage /> }],
           },
           {

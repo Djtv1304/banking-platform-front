@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
   Bell,
@@ -9,7 +10,7 @@ import {
   Sun,
 } from 'lucide-react'
 
-import { AvisoInactividad, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, usePermisos } from '@/features/auth'
+import { AvisoInactividad, obtenerContextoAgencias, SelectorAgencia, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, usePermisos } from '@/features/auth'
 import { getVisibleSections, type NavItem } from '@/app/navigation/navigation'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
@@ -165,6 +166,7 @@ export function DashboardLayout() {
           </div>
         </header>
 
+        <div className="print:hidden border-b border-border bg-card px-4 py-2 sm:px-6"><SelectorAgencia /></div>
         <main className="print:overflow-visible print:p-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           <Outlet />
         </main>
@@ -178,6 +180,8 @@ export function DashboardLayout() {
 function useAgenciaLabel() {
   const idAgencia = useAuthStore((state) => state.user?.idAgencia ?? null)
   const { data: agencias } = useAgencias()
+  const contexto = useQuery({ queryKey: ['auth', 'agencias'], queryFn: ({ signal }) => obtenerContextoAgencias(signal), retry: false })
+  if (contexto.data?.alcanceGlobal || (contexto.data?.accesoTodasAgencias && contexto.data.agenciasPermitidas.length > 1)) return 'Acceso a todas las agencias'
   if (!idAgencia) return 'Sin agencia asignada'
   const agencia = agencias?.find((item) => item.idAgencia === idAgencia)
   return `Agencia ${agencia?.nombre ?? idAgencia}`

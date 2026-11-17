@@ -91,3 +91,7 @@ const MOTIVOS_CIERRE: readonly string[] = ['SESION_EXPIRADA', 'SESION_INACTIVA',
 export function esMotivoCierre(code: unknown): code is MotivoCierre {
   return typeof code === 'string' && MOTIVOS_CIERRE.includes(code)
 }
+
+
+export const agenciaAsignadaSchema = z.object({ idAgencia: z.string(), codigo: z.string(), estado: z.string(), principal: z.boolean().optional().default(false) })
+export const contextoAgenciasSchema = z.object({ idAgencia: z.string().nullable(), idAgenciaPrincipal: z.string().nullable(), agenciasAsignadas: z.array(agenciaAsignadaSchema), agenciasPermitidas: z.array(agenciaAsignadaSchema), requiereSeleccionAgencia: z.boolean(), alcanceGlobal: z.boolean().optional().default(false), accesoTodasAgencias: z.boolean().optional().default(false) })

@@ -6,6 +6,14 @@ import { toApiError, type ApiError } from '@/shared/api/errors'
  * `shared` no conoce la feature de autenticación: ella registra aquí qué hacer cuando la API
  * responde 401 (ver `registerAuthHandlers` en features/auth).
  */
+let agenciaPagina: string | null | undefined
+
+/** Snapshot confirmado de esta pagina; no cambia durante un formulario abierto. */
+export function fijarContextoAgencia(id: string | null) {
+  if (agenciaPagina === undefined) agenciaPagina = id
+}
+export function limpiarContextoAgencia() { agenciaPagina = undefined }
+
 let onUnauthorized: ((error: ApiError) => void) | null = null
 let onForbidden: ((url?: string) => Promise<void>) | null = null
 
@@ -24,6 +32,13 @@ export function setForbiddenHandler(handler: (url?: string) => Promise<void>) {
  */
 export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
+})
+
+apiClient.interceptors.request.use((config) => {
+  if (agenciaPagina !== undefined && ['post', 'put', 'patch', 'delete'].includes((config.method ?? 'get').toLowerCase())) {
+    config.headers.set('X-Agencia-Contexto', agenciaPagina ?? 'global')
+  }
+  return config
 })
 
 apiClient.interceptors.response.use(

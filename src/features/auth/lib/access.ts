@@ -22,6 +22,27 @@ export const CLIENTES_ROLES = {
   consultar: ['ASESOR', 'CAJERO', 'SUPERVISOR', 'ADMIN'],
 } as const
 
+/** Contratos de consulta existentes; compartidos entre menu y rutas. */
+export const CUENTAS_ROLES = {
+  consultar: ['ASESOR', 'CAJERO', 'SUPERVISOR', 'ADMIN'],
+  movimientos: ['ASESOR', 'CAJERO', 'SUPERVISOR', 'ADMIN'],
+  cupos: ['ASESOR', 'SUPERVISOR', 'ADMIN'],
+} as const
+
+export const TARJETAS_ROLES = {
+  consultar: ['ASESOR', 'SUPERVISOR', 'ADMIN'],
+} as const
+
+/** El frontend de creditos sigue en preparacion; el backend disponible simula. */
+export const CREDITOS_ROLES = {
+  consultar: ['ASESOR', 'ADMIN'],
+} as const
+
+export const ORGANIZACION_ROLES = {
+  entidad: ['ASESOR', 'ADMIN'],
+  agencias: ['ADMIN'],
+} as const
+
 /** Permisos concretos de UI; el backend sigue siendo quien autoriza la operación. */
 export function hasAnyRole(roles: readonly string[], allowed: readonly string[]) {
   return roles.some((role) => allowed.includes(role.trim().toUpperCase()))
