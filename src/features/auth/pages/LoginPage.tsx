@@ -6,15 +6,28 @@ import { HelpCenterCard } from '@/features/auth/components/HelpCenterCard'
 import { SignInButton } from '@/features/auth/components/SignInButton'
 import { SignupCard } from '@/features/auth/components/SignupCard'
 import { PromoSlider } from '@/features/auth/components/promo-slider/PromoSlider'
-import { getLoginErrorMessage } from '@/features/auth/lib/login-errors'
+import { borrarCierrePendiente, leerCierrePendiente } from '@/features/auth/lib/cierre-pendiente'
+import { getLoginErrorMessage, getMotivoCierreMessage, type AvisoLogin } from '@/features/auth/lib/login-errors'
 import { sanitizeReturnTo } from '@/features/auth/lib/return-to'
+import { useAuthStore } from '@/features/auth/store/auth.store'
 
 export function LoginPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const returnTo = sanitizeReturnTo(searchParams.get('return_to'))
+  // Cierre por inactividad: vuelve del logout de WorkOS sin parámetros, con el aviso guardado
+  const [pendiente] = useState(leerCierrePendiente)
+  const returnTo = sanitizeReturnTo(searchParams.get('return_to')) ?? pendiente?.returnTo
   // El callback del backend devuelve aquí con ?error=... si algo falló. Se lee una sola vez
   // y se quita de la URL para que no reaparezca al recargar.
-  const [errorMessage] = useState(() => getLoginErrorMessage(searchParams.get('error')))
+  const [error] = useState(() => getLoginErrorMessage(searchParams.get('error')))
+  // Por qué terminó la sesión anterior (401 con motivo o cierre por inactividad). Se muestra una vez.
+  const [cierre] = useState(() =>
+    getMotivoCierreMessage(useAuthStore.getState().motivoCierre ?? pendiente?.motivo ?? null),
+  )
+
+  useEffect(() => {
+    if (useAuthStore.getState().motivoCierre) useAuthStore.getState().consumirMotivoCierre()
+    borrarCierrePendiente()
+  }, [])
 
   useEffect(() => {
     if (!searchParams.has('error')) return
@@ -47,13 +60,10 @@ export function LoginPage() {
                 Ingresa con tu usuario de funcionario para atender a los clientes de la cooperativa.
               </p>
 
-              {errorMessage && (
-                <p
-                  role="alert"
-                  className="mt-8 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-                >
-                  {errorMessage}
-                </p>
+              {error ? (
+                <LoginNotice aviso={error} tono="error" />
+              ) : (
+                cierre && <LoginNotice aviso={cierre} tono="info" />
               )}
 
               <div className="mt-10">
@@ -69,6 +79,22 @@ export function LoginPage() {
           </div>
         </div>
       </main>
+    </div>
+  )
+}
+
+function LoginNotice({ aviso, tono }: { aviso: AvisoLogin; tono: 'error' | 'info' }) {
+  return (
+    <div
+      role={tono === 'error' ? 'alert' : 'status'}
+      className={
+        tono === 'error'
+          ? 'mt-8 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive'
+          : 'mt-8 rounded-xl border border-info/50 bg-info/15 px-4 py-3 text-sm text-foreground'
+      }
+    >
+      <p>{aviso.mensaje}</p>
+      {aviso.nota && <p className="mt-2 text-xs opacity-80">{aviso.nota}</p>}
     </div>
   )
 }
