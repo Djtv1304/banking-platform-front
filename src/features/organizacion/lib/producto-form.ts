@@ -5,7 +5,6 @@ import type {
   ProductoAdmin,
   ProductoCreate,
   ProductoUpdate,
-  SubProductoCreate,
   TipoProductoAdmin,
 } from '@/features/organizacion/api/productos.contract'
 
@@ -49,6 +48,7 @@ const camposProducto = z.object({
     .regex(/^[A-Z0-9]{3,10}$/, 'Usa de 3 a 10 letras o números, sin espacios.'),
   nombreProducto: nombre,
   descripcion,
+  idTipoProducto: z.string().optional(),
   tipoProducto: z.string(),
   tipoCuenta: z.string(),
   montoAperturaMinimo: z.string().trim(),
@@ -79,6 +79,7 @@ export const VALORES_NUEVO: ProductoFormInput = {
   codigoProducto: '',
   nombreProducto: '',
   descripcion: '',
+  idTipoProducto: '',
   tipoProducto: '',
   tipoCuenta: '',
   montoAperturaMinimo: '',
@@ -91,6 +92,7 @@ export const valoresEdicion = (producto: ProductoAdmin): ProductoFormInput => ({
   codigoProducto: producto.codigoProducto,
   nombreProducto: producto.nombreProducto,
   descripcion: producto.descripcion ?? '',
+  idTipoProducto: producto.idTipoProducto != null ? String(producto.idTipoProducto) : '',
   tipoProducto: producto.tipoProducto,
   tipoCuenta: producto.tipoCuenta ?? '',
   montoAperturaMinimo: producto.montoAperturaMinimo != null ? String(producto.montoAperturaMinimo) : '',
@@ -108,6 +110,7 @@ export function payloadCrear(datos: ProductoFormData): ProductoCreate {
     tipoProducto: tipo,
     permiteOperacionesPresenciales: datos.permiteOperacionesPresenciales,
   }
+  if (datos.idTipoProducto) body.idTipoProducto = Number(datos.idTipoProducto)
   if (datos.descripcion) body.descripcion = datos.descripcion
   if (tipo === 'Cuenta') {
     body.tipoCuenta = datos.tipoCuenta as ProductoCreate['tipoCuenta']
@@ -149,8 +152,17 @@ export function subProductoFormSchema(tipoProducto: TipoProductoAdmin) {
         .toUpperCase()
         .regex(/^[A-Z0-9-]{3,15}$/, 'Usa de 3 a 15 letras, números o guiones.'),
       nombreSubProducto: nombre,
+      edadMinima: z.number().int().min(0).max(120).optional(),
+      edadMaxima: z.number().int().min(0).max(120).optional(),
+      tipoClientePermitido: z.enum(['Natural', 'Juridico', 'Ambos']).optional(),
+      requiereTutor: z.boolean().optional(),
+      idSubProductoRequerido: z.number().int().positive().optional(),
+      maximoPorCliente: z.number().int().min(1).max(32767).optional(),
     })
     .superRefine((valor, ctx) => {
+      if (valor.edadMinima != null && valor.edadMaxima != null && valor.edadMaxima < valor.edadMinima) {
+        ctx.addIssue({ code: 'custom', path: ['edadMaxima'], message: 'La edad m\u00e1xima no puede ser menor que la m\u00ednima.' })
+      }
       if (tipoProducto === 'Tarjeta' && !PREFIJOS_TARJETA.some((p) => valor.codigoSubProducto.startsWith(p))) {
         ctx.addIssue({
           code: 'custom',
@@ -161,8 +173,8 @@ export function subProductoFormSchema(tipoProducto: TipoProductoAdmin) {
     })
 }
 
-export type SubProductoFormInput = SubProductoCreate
-export type SubProductoFormData = SubProductoCreate
+export type SubProductoFormInput = z.input<ReturnType<typeof subProductoFormSchema>>
+export type SubProductoFormData = z.output<ReturnType<typeof subProductoFormSchema>>
 
 const MENSAJES: Record<string, string> = {
   CODIGO_DUPLICADO: 'Ya existe un registro con ese código.',
@@ -182,7 +194,9 @@ const MENSAJES: Record<string, string> = {
   TASAS_SOLAPADAS: 'Dos tasas de crédito vinculadas se cruzan en monto y fechas: deja solo una para cada rango.',
   COMISION_NO_EXISTE: 'Hay comisiones que ya no existen o están inactivas. Recarga e intenta otra vez.',
   SEGURO_NO_EXISTE: 'Hay seguros que ya no existen o están inactivos. Recarga e intenta otra vez.',
-  PRODUCTO_NO_EDITABLE: 'El código solo se cambia mientras el producto está inactivo y sin uso.',
+  TIPO_PRODUCTO_INVALIDO: 'El tipo seleccionado no corresponde al producto.',
+  ESTADO_INVALIDO: 'El cambio de estado no est\u00e1 permitido.',
+  PRODUCTO_NO_EDITABLE: 'Los datos solo se editan en Borrador y sin uso.',
   PRODUCTO_EN_USO: 'El producto tiene cuentas, tarjetas o créditos: no se elimina, solo se desactiva.',
   PRODUCTO_ACTIVO: 'Desactiva el producto antes de eliminarlo.',
   ELEGIBILIDAD_INVALIDA: 'La edad máxima no puede ser menor que la mínima.',
@@ -192,8 +206,7 @@ const MENSAJES: Record<string, string> = {
 }
 
 export function mensajeErrorProducto(error: ApiError) {
-  // Solo una negación por rol es «no eres administrador»; otro 403 tiene su propia causa
-  if (error.code === 'SIN_PERMISO') return 'Solo un administrador puede crear o editar productos.'
+  if (error.status === 403) return 'No tienes permiso para esta operaci\u00f3n.'
   return MENSAJES[error.code] ?? error.message
 }
 
@@ -249,9 +262,11 @@ export const GRUPO_TIPO: Record<TipoProductoAdmin, string> = {
 }
 
 /** Productos agrupados por tipo (solo los grupos que tienen alguno) */
-export function agruparPorTipo(productos: readonly ProductoAdmin[]) {
-  return (Object.keys(GRUPO_TIPO) as TipoProductoAdmin[])
-    .map((tipo) => ({ tipo, productos: productos.filter((p) => p.tipoProducto === tipo) }))
+export function agruparPorTipo(productos: readonly ProductoAdmin[], tipos: readonly { idTipoProducto: number; codigo: string; nombre: string }[] = []) {
+  const definidos = tipos.map((t) => ({ tipo: t.codigo, nombre: t.nombre, productos: productos.filter((p) => p.idTipoProducto === t.idTipoProducto) }))
+  const sinTipo = productos.filter((p) => !tipos.some((t) => t.idTipoProducto === p.idTipoProducto))
+  return [...definidos, ...(Object.keys(GRUPO_TIPO) as TipoProductoAdmin[])
+    .map((tipo) => ({ tipo, nombre: GRUPO_TIPO[tipo], productos: sinTipo.filter((p) => p.tipoProducto === tipo) }))]
     .filter((g) => g.productos.length > 0)
 }
 

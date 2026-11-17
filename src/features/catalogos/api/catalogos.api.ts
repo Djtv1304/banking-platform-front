@@ -58,8 +58,9 @@ export const getAgencias = () => getLista(CATALOGOS_ENDPOINTS.agencias, agenciaS
  * Sin filtros devuelve todos los productos activos con sus subproductos. `tipoTarjeta` deja solo
  * productos Tarjeta con los subproductos de ese tipo (emisión de tarjetas, TAR-01).
  */
-export const getProductos = (tipo?: TipoProducto, tipoTarjeta?: TipoTarjeta) => {
+export const getProductos = (tipo?: TipoProducto, tipoTarjeta?: TipoTarjeta, idCliente?: number) => {
   const params: Record<string, string> = {}
+  if (idCliente != null) params.idCliente = String(idCliente)
   if (tipo) params.tipo = tipo
   if (tipoTarjeta) params.tipoTarjeta = tipoTarjeta
   return getLista(CATALOGOS_ENDPOINTS.productos, productoSchema, params)

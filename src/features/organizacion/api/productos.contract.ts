@@ -1,15 +1,14 @@
 import { z } from 'zod'
 
-/*
- * Contrato de Productos y subproductos (`/api/v1/productos`) en camelCase.
- *
- * ADMIN y ASESOR consultan; solo ADMIN crea y edita. Un producto nace inactivo y se activa cuando
- * tiene al menos un subproducto. No hay DELETE: la baja es lógica por estado. Los bodies rechazan
- * campos desconocidos (400): se envían solo los campos que se definen.
+/* Productos y subproductos: tipos del catalogo E3-01, altas en Borrador,
+ * datos editables solo en Borrador sin uso y eliminacion del producto nunca activado.
+ * WorkOS exige los permisos PRD-CONSULTAR, PRD-EDITAR y PRD-EXPORTAR segun la accion.
+ * Estado A/I se conserva por compatibilidad; estadoCatalogo expresa el ciclo de vida.
  */
 
 export const PRODUCTOS_ENDPOINTS = {
   lista: '/api/v1/productos',
+  tipos: '/api/v1/productos/tipos',
   producto: (idProducto: number) => `/api/v1/productos/${idProducto}`,
   subproductos: (idProducto: number) => `/api/v1/productos/${idProducto}/subproductos`,
   subproducto: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}`,
@@ -27,6 +26,9 @@ export const PRODUCTOS_ROLES = {
 
 export const tipoProductoSchema = z.enum(['Cuenta', 'Credito', 'Tarjeta'])
 export const estadoProductoSchema = z.enum(['A', 'I'])
+export const estadoCatalogoSchema = z.enum(['Borrador', 'Activo', 'Suspendido', 'Retirado'])
+export const tipoClientePermitidoSchema = z.enum(['Natural', 'Juridico', 'Ambos'])
+export const tipoProductoInfoSchema = z.object({ idTipoProducto: z.number(), codigo: z.string(), nombre: z.string(), tipoProducto: tipoProductoSchema, tipoCuenta: z.enum(['Ahorro', 'Corriente']).nullish() })
 export const tipoCuentaSchema = z.enum(['Ahorro', 'Corriente'])
 
 export const subProductoAdminSchema = z.object({
@@ -35,12 +37,17 @@ export const subProductoAdminSchema = z.object({
   codigoSubProducto: z.string(),
   nombreSubProducto: z.string(),
   estado: estadoProductoSchema,
+  estadoCatalogo: estadoCatalogoSchema.nullish(),
   fechaRegistro: z.string(),
   /** Solo en subproductos de tarjeta: lo define el prefijo del código (TDB débito, TCR crédito) */
   tipoTarjeta: z.enum(['Debito', 'Credito']).nullish(),
   /** Elegibilidad por edad; null = sin límite (menores: edadMaxima 17) */
   edadMinima: z.number().nullish(),
   edadMaxima: z.number().nullish(),
+  tipoClientePermitido: tipoClientePermitidoSchema.optional(),
+  requiereTutor: z.boolean().optional(),
+  idSubProductoRequerido: z.number().nullish(),
+  maximoPorCliente: z.number().nullish(),
 })
 
 export const productoAdminSchema = z.object({
@@ -49,6 +56,7 @@ export const productoAdminSchema = z.object({
   nombreProducto: z.string(),
   descripcion: z.string().nullish(),
   tipoProducto: tipoProductoSchema,
+  idTipoProducto: z.number().nullish(),
   tipoCuenta: tipoCuentaSchema.nullish(),
   montoAperturaMinimo: z.number().nullish(),
   idTipoCredito: z.number().nullish(),
@@ -57,6 +65,7 @@ export const productoAdminSchema = z.object({
   nombreRed: z.string().nullish(),
   permiteOperacionesPresenciales: z.boolean(),
   estado: estadoProductoSchema,
+  estadoCatalogo: estadoCatalogoSchema.nullish(),
   subproductos: z.array(subProductoAdminSchema),
 })
 
@@ -71,6 +80,7 @@ export interface ProductoCreate {
   codigoProducto: string
   nombreProducto: string
   descripcion?: string
+  idTipoProducto?: number
   tipoProducto: TipoProductoAdmin
   tipoCuenta?: TipoCuenta
   montoAperturaMinimo?: number
@@ -86,6 +96,7 @@ export interface ProductoUpdate {
   descripcion?: string | null
   montoAperturaMinimo?: number
   permiteOperacionesPresenciales?: boolean
+  estadoCatalogo?: z.infer<typeof estadoCatalogoSchema>
   estado?: EstadoProducto
 }
 
@@ -93,14 +104,23 @@ export interface SubProductoCreate {
   codigoSubProducto: string
   nombreSubProducto: string
   edadMinima?: number
+  tipoClientePermitido?: z.infer<typeof tipoClientePermitidoSchema>
+  requiereTutor?: boolean
+  idSubProductoRequerido?: number | null
+  maximoPorCliente?: number | null
   edadMaxima?: number
 }
 
 export interface SubProductoUpdate {
   nombreSubProducto?: string
+  estadoCatalogo?: z.infer<typeof estadoCatalogoSchema>
   estado?: EstadoProducto
   /** null quita el límite */
   edadMinima?: number | null
+  tipoClientePermitido?: z.infer<typeof tipoClientePermitidoSchema>
+  requiereTutor?: boolean
+  idSubProductoRequerido?: number | null
+  maximoPorCliente?: number | null
   edadMaxima?: number | null
 }
 
@@ -163,12 +183,18 @@ export type DestinoVinculos = { tipo: 'producto'; id: number } | { tipo: 'subpro
 
 /** Lo que el asesor lee al cliente: lo vigente del subproducto con lo que hereda del producto */
 export const fichaSubProductoSchema = z.object({
+  fecha: z.string().optional(),
+  condiciones: z.object({ montoAperturaMinimo: z.number(), saldoMinimo: z.number(), tasaInteresAnual: z.number(), costoMantenimiento: z.number(), periodicidadInteres: z.string().nullish(), periodicidadCosto: z.string().nullish(), mesesInactividad: z.number().nullish(), vigenciaDesde: z.string(), vigenciaHasta: z.string().nullish() }).nullish(),
   producto: productoAdminSchema,
   subproducto: subProductoAdminSchema,
   /** Edad que rige: la mínima más alta entre subproducto, red (tarjetas) y política EDAD_MINIMA (créditos) */
   elegibilidad: z.object({
     edadMinima: z.number().nullish(),
     edadMaxima: z.number().nullish(),
+    tipoClientePermitido: tipoClientePermitidoSchema.optional(),
+    requiereTutor: z.boolean().optional(),
+    idSubProductoRequerido: z.number().nullish(),
+    maximoPorCliente: z.number().nullish(),
     edadMinimaSubproducto: z.number().nullish(),
     edadMinimaRed: z.number().nullish(),
     edadMinimaPolitica: z.number().nullish(),

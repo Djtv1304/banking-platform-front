@@ -55,10 +55,10 @@ export function DashboardLayout() {
     )
 
   return (
-    <div className="flex h-svh bg-panel">
+    <div className="flex h-svh bg-panel print:block print:h-auto print:bg-white">
       <aside
         className={cn(
-          'flex shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200',
+          'flex shrink-0 flex-col print:hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200',
           collapsed ? 'w-16' : 'w-60',
         )}
       >
@@ -127,7 +127,7 @@ export function DashboardLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4 sm:px-6">
+        <header className="print:hidden flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4 sm:px-6">
           {currentPage && (
             <p className="flex min-w-0 items-center gap-2 text-sm">
               {currentPage.sectionTitle && (
@@ -164,7 +164,7 @@ export function DashboardLayout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-8">
+        <main className="print:overflow-visible print:p-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           <Outlet />
         </main>
       </div>

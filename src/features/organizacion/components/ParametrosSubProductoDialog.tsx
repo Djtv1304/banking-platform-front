@@ -39,7 +39,7 @@ export function ParametrosSubProductoDialog({ producto, subproducto, soloLectura
         </DialogHeader>
         {subproducto && (
           <div key={subproducto.idSubProducto} className="flex flex-col gap-6">
-            <SeccionElegibilidad subproducto={subproducto} soloLectura={soloLectura} onGuardado={onGuardado} />
+            <SeccionElegibilidad subproducto={subproducto} soloLectura={soloLectura || subproducto.estadoCatalogo !== 'Borrador'} onGuardado={onGuardado} />
             {producto.tipoProducto !== 'Credito' && (
               <SeccionCupos subproducto={subproducto} soloLectura={soloLectura} onGuardado={onGuardado} />
             )}

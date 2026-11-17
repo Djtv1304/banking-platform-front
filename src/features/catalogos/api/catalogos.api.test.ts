@@ -2,7 +2,7 @@ import { AxiosHeaders } from 'axios'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError, apiClient } from '@/shared/api'
-import { getActividadesEconomicas, getCiudades, getPaises } from '@/features/catalogos/api/catalogos.api'
+import { getActividadesEconomicas, getCiudades, getPaises, getProductos } from '@/features/catalogos/api/catalogos.api'
 
 const casos = [
   { nombre: 'países', obtener: getPaises, ruta: '/api/v1/catalogos/paises', datos: [{ codigoPais: 'ECU', codigoNumerico: '218', nombrePais: 'Ecuador' }] },
@@ -36,4 +36,11 @@ describe.each(casos)('catálogo de $nombre', ({ obtener, ruta, datos }) => {
     await expect(obtener()).rejects.toBe(error)
     await expect(obtener()).resolves.toEqual(datos)
   })
+})
+
+
+it('CAT-07 envia el cliente junto a los filtros para evaluar elegibilidad', async () => {
+  const llamada = vi.spyOn(apiClient, 'get').mockResolvedValue(respuesta([]))
+  await getProductos('Cuenta', undefined, 42)
+  expect(llamada).toHaveBeenCalledWith('/api/v1/catalogos/productos', { params: { tipo: 'Cuenta', idCliente: '42' } })
 })

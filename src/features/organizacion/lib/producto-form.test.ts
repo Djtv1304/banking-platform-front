@@ -4,6 +4,7 @@ import { ApiError } from '@/shared/api'
 import type { ProductoAdmin } from '@/features/organizacion/api/productos.contract'
 import {
   filtrarProductos,
+  agruparPorTipo,
   mensajeErrorProducto,
   payloadCrear,
   payloadEdicion,
@@ -63,10 +64,7 @@ describe('formulario de subproducto', () => {
 
 it('traduce los errores del backend', () => {
   expect(mensajeErrorProducto(new ApiError('x', 409, 'PRODUCTO_SIN_SUBPRODUCTOS'))).toContain('al menos un subproducto')
-  expect(mensajeErrorProducto(new ApiError('x', 403, 'SIN_PERMISO'))).toContain('administrador')
-  // Otro 403 (usuario sin vincular, origen) dice su causa, no «solo un administrador»
-  expect(mensajeErrorProducto(new ApiError('x', 403, 'USUARIO_INTERNO_NO_VINCULADO'))).toContain('vincule')
-  expect(mensajeErrorProducto(new ApiError('x', 403, 'ORIGEN_NO_PERMITIDO'))).toContain('canal autorizado')
+  expect(mensajeErrorProducto(new ApiError('x', 403, 'SIN_PERMISO'))).toContain('permiso')
 })
 
 it('el buscador ignora tildes y mayúsculas y busca también en subproductos', () => {
@@ -83,4 +81,26 @@ it('el buscador ignora tildes y mayúsculas y busca también en subproductos', (
   expect(filtrarProductos(productos, 'CREDITO DE').map((x) => x.codigoProducto)).toEqual(['CRE001'])
   expect(filtrarProductos(productos, 'emprend').map((x) => x.codigoProducto)).toEqual(['CRE002'])
   expect(filtrarProductos(productos, '  ')).toHaveLength(2)
+})
+
+
+describe('E3-02 datos de elegibilidad', () => {
+  it('rechaza maxima menor que minima y permite edades de menores', () => {
+    const schema = subProductoFormSchema('Cuenta')
+    const sub = { codigoSubProducto: 'AHO-MN', nombreSubProducto: 'Ahorro menores' }
+    expect(schema.safeParse({ ...sub, edadMinima: 18, edadMaxima: 17 }).success).toBe(false)
+    expect(schema.parse({ ...sub, edadMinima: 0, edadMaxima: 17, tipoClientePermitido: 'Natural', requiereTutor: true, maximoPorCliente: 1 })).toMatchObject({ edadMinima: 0, edadMaxima: 17, requiereTutor: true, maximoPorCliente: 1 })
+    expect(schema.safeParse({ ...sub, maximoPorCliente: 0 }).success).toBe(false)
+  })
+  it('envia el identificador del catalogo de tipos entregado por el backend', () => {
+    const datos = productoFormSchema.parse({ ...cuenta, idTipoProducto: '3' })
+    expect(payloadCrear(datos).idTipoProducto).toBe(3)
+  })
+})
+
+
+it('agrupa por tipos del catalogo, incluidos certificados de aportacion', () => {
+  const producto = { idTipoProducto: 3, tipoProducto: 'Cuenta' } as ProductoAdmin
+  const grupos = agruparPorTipo([producto], [{ idTipoProducto: 3, codigo: 'CERTIFICADO_APORTACION', nombre: 'Certificados de aportación' }])
+  expect(grupos).toEqual([{ tipo: 'CERTIFICADO_APORTACION', nombre: 'Certificados de aportación', productos: [producto] }])
 })

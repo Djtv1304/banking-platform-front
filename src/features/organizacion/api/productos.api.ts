@@ -4,6 +4,7 @@ import { ApiError, apiClient } from '@/shared/api'
 import {
   PRODUCTOS_ENDPOINTS,
   productoAdminSchema,
+  tipoProductoInfoSchema,
   cupoCanalSchema,
   fichaSubProductoSchema,
   restriccionesSchema,
@@ -100,7 +101,12 @@ export async function eliminarProducto(idProducto: number) {
   await apiClient.delete(PRODUCTOS_ENDPOINTS.producto(idProducto))
 }
 
-export async function obtenerFicha(idSubProducto: number) {
-  const { data, status } = await apiClient.get<unknown>(PRODUCTOS_ENDPOINTS.ficha(idSubProducto))
+export async function obtenerFicha(idSubProducto: number, imprimible = false) {
+  const { data, status } = await apiClient.get<unknown>(PRODUCTOS_ENDPOINTS.ficha(idSubProducto) + (imprimible ? '/imprimible' : ''))
   return validar(fichaSubProductoSchema, data, status)
+}
+
+export async function listarTiposProducto() {
+  const { data, status } = await apiClient.get<unknown>(PRODUCTOS_ENDPOINTS.tipos)
+  return validar(tipoProductoInfoSchema.array(), data, status)
 }

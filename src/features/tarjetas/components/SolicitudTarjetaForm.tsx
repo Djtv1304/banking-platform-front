@@ -85,7 +85,7 @@ export function SolicitudTarjetaForm() {
   })
 
   const { data: cuentas, isFetching: cargandoCuentas } = useCuentasCliente(cliente?.idCliente)
-  const { data: productos, isLoading: cargandoProductos } = useProductos('Tarjeta', tipoTarjeta)
+  const { data: productos, isLoading: cargandoProductos } = useProductos('Tarjeta', tipoTarjeta, cliente?.idCliente)
   const { data: tarjetasCuenta } = useTarjetasPrincipales(idCuenta ? Number(idCuenta) : undefined, esExtension)
   const { data: direcciones, isFetching: cargandoDirecciones } = useDireccionesCliente(
     cliente?.idCliente,
