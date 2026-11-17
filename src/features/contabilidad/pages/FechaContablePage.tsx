@@ -1,5 +1,6 @@
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando } from '@/shared/ui'
+import { ConsultarFecha } from '@/features/contabilidad/components/ConsultarFecha'
 import { FechaVigente } from '@/features/contabilidad/components/FechaVigente'
 import { ProximosDias } from '@/features/contabilidad/components/ProximosDias'
 import { useFechaContableActual } from '@/features/contabilidad/hooks/useFechaContable'
@@ -39,6 +40,7 @@ export function FechaContablePage() {
         </p>
       </header>
       {contenido}
+      <ConsultarFecha />
     </div>
   )
 }

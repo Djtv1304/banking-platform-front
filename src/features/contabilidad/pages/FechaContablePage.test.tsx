@@ -23,6 +23,7 @@ const estado = vi.hoisted(() => ({
 
 vi.mock('@/features/contabilidad/hooks/useFechaContable', () => ({
   useFechaContableActual: () => estado.actual,
+  useFechaContable: () => ({ isPending: true, isError: false, isFetching: false, refetch: vi.fn() }),
   useFechasContables: (fechas: readonly string[]) => {
     estado.pedidas = fechas
     return estado.proximas
@@ -35,6 +36,7 @@ vi.mock('@/shared/ui', async () => ({
   Cargando: (await import('@/shared/ui/aviso')).Cargando,
   Badge: (await import('@/shared/ui/badge')).Badge,
   Button: (await import('@/shared/ui/button')).Button,
+  FechaInput: (await import('@/shared/ui/fecha-input')).FechaInput,
 }))
 
 const ok = (data: FechaContable) => ({ isPending: false, isError: false, data })
@@ -86,6 +88,16 @@ describe('FechaContablePage', () => {
     estado.actual = ok(fecha('2026-12-29'))
     html()
     expect(estado.pedidas.slice(2)).toEqual(['2027-01-01', '2027-01-02', '2027-01-03', '2027-01-04', '2027-01-05'])
+  })
+
+  it('ofrece consultar una fecha con día, mes y año y un botón Consultar', () => {
+    const salida = html()
+    expect(salida).toContain('Consultar una fecha')
+    expect(salida).toContain('Fecha a consultar')
+    expect(salida).toContain('>Día<')
+    expect(salida).toContain('>Mes<')
+    expect(salida).toContain('>Consultar</button>')
+    expect(salida).not.toContain('Consultando la fecha…')
   })
 
   it('mientras carga, avisa y no muestra la tarjeta', () => {
