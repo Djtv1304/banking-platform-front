@@ -17,6 +17,9 @@ import {
   etiquetaOrigenAsiento,
   etiquetaTexto,
   formatearFechaAsiento,
+  hayLineasEnCuentasDeGrupo,
+  idsCuentasDeGrupo,
+  lineaEnCuentaDeGrupo,
   mensajeErrorAsientos,
   motivoDescuadre,
   resumenPaginacionAsientos,
@@ -164,6 +167,34 @@ describe('presentación', () => {
     // El reverso trae el id del original y está CONTABILIZADO; el reversado trae null
     expect(esReverso({ idAsientoReversion: 301 })).toBe(true)
     expect(esReverso({ idAsientoReversion: null })).toBe(false)
+  })
+})
+
+describe('cuentas de grupo', () => {
+  const plan = [
+    { idCuentaContable: 1, esImputable: true },
+    { idCuentaContable: 2, esImputable: false },
+    { idCuentaContable: 3, esImputable: false },
+  ]
+
+  it('toma del plan solo las cuentas que no son imputables', () => {
+    expect([...idsCuentasDeGrupo(plan)]).toEqual([2, 3])
+    expect(idsCuentasDeGrupo([]).size).toBe(0)
+  })
+
+  it('marca la línea solo si su cuenta está en el plan y es de grupo', () => {
+    const grupo = idsCuentasDeGrupo(plan)
+    expect(lineaEnCuentaDeGrupo({ idCuentaContable: 2 }, grupo)).toBe(true)
+    expect(lineaEnCuentaDeGrupo({ idCuentaContable: 1 }, grupo)).toBe(false)
+    // Una cuenta que el plan no trae no se marca
+    expect(lineaEnCuentaDeGrupo({ idCuentaContable: 99 }, grupo)).toBe(false)
+  })
+
+  it('detecta si alguna línea cae en una cuenta de grupo', () => {
+    const grupo = idsCuentasDeGrupo(plan)
+    expect(hayLineasEnCuentasDeGrupo([{ idCuentaContable: 1 }, { idCuentaContable: 3 }], grupo)).toBe(true)
+    expect(hayLineasEnCuentasDeGrupo([{ idCuentaContable: 1 }], grupo)).toBe(false)
+    expect(hayLineasEnCuentasDeGrupo([], grupo)).toBe(false)
   })
 })
 

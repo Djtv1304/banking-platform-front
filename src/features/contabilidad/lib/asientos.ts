@@ -6,6 +6,7 @@ import {
   type CampoOrdenAsiento,
   type MovimientoAsiento,
 } from '@/features/contabilidad/api/asientos.contract'
+import type { CuentaContable } from '@/features/contabilidad/api/contabilidad.contract'
 import { formatearSaldo } from '@/features/contabilidad/lib/cuenta-contable'
 import { esNoDisponible } from '@/features/contabilidad/lib/mensajes'
 
@@ -178,6 +179,23 @@ export const esAsientoReversado = (estado: string) => estadoNormalizado(estado) 
  * original (REVERSADO) lo trae en null. No sirve para saber si un asiento fue reversado.
  */
 export const esReverso = (asiento: Pick<Asiento, 'idAsientoReversion'>) => asiento.idAsientoReversion !== null
+
+export const MENSAJE_ASIENTO_ANULADO = 'Asiento anulado: no afecta los saldos del plan de cuentas.'
+
+export const MENSAJE_ASIENTO_REVERSADO = 'Este asiento fue reversado; su reverso lo deja sin efecto.'
+
+export const MENSAJE_CUENTA_DE_GRUPO = 'Cuenta de grupo: según el catálogo de la SEPS no debería recibir movimientos.'
+
+/** Ids de las cuentas del plan que no admiten movimientos (`esImputable === false`) */
+export const idsCuentasDeGrupo = (plan: readonly Pick<CuentaContable, 'idCuentaContable' | 'esImputable'>[]) =>
+  new Set(plan.filter((cuenta) => !cuenta.esImputable).map((cuenta) => cuenta.idCuentaContable))
+
+/** Una cuenta que no está en el plan cargado no se marca: no se sabe si es de grupo */
+export const lineaEnCuentaDeGrupo = (linea: Pick<MovimientoAsiento, 'idCuentaContable'>, cuentasDeGrupo: ReadonlySet<number>) =>
+  cuentasDeGrupo.has(linea.idCuentaContable)
+
+export const hayLineasEnCuentasDeGrupo = (lineas: readonly Pick<MovimientoAsiento, 'idCuentaContable'>[], cuentasDeGrupo: ReadonlySet<number>) =>
+  lineas.some((linea) => lineaEnCuentaDeGrupo(linea, cuentasDeGrupo))
 
 /** «001 · Matriz»; hoy CAT-06 puede usar el código como nombre: entonces solo el código */
 export const etiquetaAgencia = ({ idAgencia, nombre }: Pick<Agencia, 'idAgencia' | 'nombre'>) =>
