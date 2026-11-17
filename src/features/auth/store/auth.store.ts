@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import type { MeResponse } from '@/features/auth/api/auth.contract'
+import type { MeResponse, MotivoCierre } from '@/features/auth/api/auth.contract'
 import { getAccessProfile, type AccessProfile } from '@/features/auth/lib/access'
 
 export type AuthStatus = 'restoring' | 'authenticated' | 'anonymous'
@@ -12,15 +12,20 @@ export type AuthStatus = 'restoring' | 'authenticated' | 'anonymous'
 interface AuthState {
   status: AuthStatus
   user: MeResponse | null
+  /** Por qué terminó la sesión (lo muestra /login); null en un cierre normal o sin sesión previa */
+  motivoCierre: MotivoCierre | null
   setSession: (me: MeResponse) => void
-  clearSession: () => void
+  clearSession: (motivo?: MotivoCierre | null) => void
+  consumirMotivoCierre: () => void
 }
 
 export const useAuthStore = create<AuthState>()((set) => ({
   status: 'restoring',
   user: null,
-  setSession: (me) => set({ status: 'authenticated', user: me }),
-  clearSession: () => set({ status: 'anonymous', user: null }),
+  motivoCierre: null,
+  setSession: (me) => set({ status: 'authenticated', user: me, motivoCierre: null }),
+  clearSession: (motivo = null) => set({ status: 'anonymous', user: null, motivoCierre: motivo }),
+  consumirMotivoCierre: () => set({ motivoCierre: null }),
 }))
 
 export const useAuthStatus = () => useAuthStore((state) => state.status)

@@ -1,0 +1,15 @@
+// Configuración de audit-ci: lo usa el pipeline (ci-calidad-y-seguridad.yml, paso «npm audit»)
+// para revisar las vulnerabilidades de TODAS las dependencias, incluidas las de desarrollo.
+// Hace lo mismo que `npm audit --audit-level=high`, pero permite una lista de excepciones (allowlist):
+// avisos ya revisados que todavía no tienen arreglo y que no deben frenar el pipeline.
+{
+  "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
+  // Falla con vulnerabilidades altas o críticas
+  "high": true,
+  "allowlist": [
+    // picomatch (ReDoS): ninguna versión tiene parche todavía. Solo lo usan herramientas de desarrollo
+    // (vite, vitest, shadcn CLI) y no llega al bundle. Quitar cuando picomatch publique el arreglo.
+    // Revisar: 2026-12-15
+    "GHSA-fc5q-39xc-vjpf"
+  ]
+}
