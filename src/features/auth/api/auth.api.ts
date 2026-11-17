@@ -28,3 +28,8 @@ export async function logout() {
   const { data } = await apiClient.post<LogoutResponse>(AUTH_ENDPOINTS.logout)
   return data
 }
+
+/** Renueva la sesión en WorkOS (204). Solo por una acción del usuario: cuenta como actividad. */
+export async function refresh() {
+  await apiClient.post(AUTH_ENDPOINTS.refresh)
+}

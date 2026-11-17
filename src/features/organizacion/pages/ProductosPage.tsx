@@ -10,8 +10,7 @@ import { EstadoProductoBadge } from '@/features/organizacion/components/EstadoPr
 import { ProductoFormDialog, type ModoProducto } from '@/features/organizacion/components/ProductoFormDialog'
 import { useProductosAdmin, useTiposProducto } from '@/features/organizacion/hooks/useProductosAdmin'
 import {
-  condicionesDe,
-  agruparPorTipo,
+  jerarquiaComercial,
   filtrarProductos,
   mensajeErrorProducto,
   rutaProducto,
@@ -44,66 +43,42 @@ export function ProductosPage() {
     if (productos.isError) return <Aviso tono="error">{mensajeErrorProducto(toApiError(productos.error))}</Aviso>
     if (productos.isPending) return <Cargando texto="Cargando productos…" />
     if (productos.data.length === 0) return <Aviso>Todavía no hay productos registrados.</Aviso>
-    const visibles = filtrarProductos(productos.data, busqueda).filter((p) => estadoFiltro === 'todos' || (p.estadoCatalogo ?? (p.estado === 'A' ? 'Activo' : 'Suspendido')) === estadoFiltro)
-    if (visibles.length === 0) return <Aviso>Ningún producto coincide con «{busqueda.trim()}».</Aviso>
+    const familias = jerarquiaComercial(filtrarProductos(productos.data, busqueda), tipos.data, estadoFiltro)
+    if (familias.length === 0) return <Aviso>No hay modelos que coincidan con los filtros.</Aviso>
     return (
       <div className="flex flex-col gap-6">
-        {agruparPorTipo(visibles, tipos.data).map(({ tipo, nombre, productos: delGrupo }) => {
-          // Con búsqueda se abren los grupos que tienen coincidencias
-          const desplegado = buscando || abiertos.has(tipo)
+        {familias.map((familia) => {
+          const desplegado = buscando || abiertos.has(familia.tipo)
           return (
-          <section key={tipo} className="flex flex-col gap-1 rounded-2xl border border-border">
-            <h2>
-              <button
-                type="button"
-                aria-expanded={desplegado}
-                aria-controls={`grupo-${tipo}`}
-                onClick={() => alternarGrupo(tipo)}
-                className="flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left hover:bg-muted/60"
-              >
-                <span className="text-base font-semibold text-heading">
-                  {nombre} <span className="text-sm font-normal text-muted-foreground">({delGrupo.length})</span>
-                </span>
-                <ChevronDown className={cn('size-5 text-muted-foreground transition-transform', desplegado && 'rotate-180')} aria-hidden />
-              </button>
-            </h2>
-            {desplegado && (
-            <ul id={`grupo-${tipo}`} className="flex flex-col divide-y divide-border px-1 pb-2">
-              {delGrupo.map((producto) => (
-                <li key={producto.idProducto}>
-                  <Link
-                    to={rutaProducto(producto.idProducto)}
-                    className="flex items-center justify-between gap-4 rounded-xl px-3 py-4 hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-base font-semibold text-heading">{producto.nombreProducto}</span>
-                        <EstadoProductoBadge estado={producto.estado} estadoCatalogo={producto.estadoCatalogo} />
+            <section key={familia.tipo} className="rounded-2xl border border-border">
+              <h2>
+                <button type="button" aria-expanded={desplegado} aria-controls={`grupo-${familia.tipo}`} onClick={() => alternarGrupo(familia.tipo)} className="flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left hover:bg-muted/60">
+                  <span className="text-base font-semibold text-heading">{familia.nombre}</span>
+                  <ChevronDown className={cn('size-5 text-muted-foreground transition-transform', desplegado && 'rotate-180')} aria-hidden />
+                </button>
+              </h2>
+              {desplegado && <div id={`grupo-${familia.tipo}`} className="space-y-5 px-4 pb-4">
+                {familia.subproductos.map((grupo) => <section key={grupo.clave} aria-label={grupo.nombre}>
+                  <h3 className="mb-2 text-base font-semibold text-heading">{grupo.nombre} <span className="text-sm font-normal text-muted-foreground">({grupo.modelos.length})</span></h3>
+                  <ul className="divide-y divide-border rounded-xl border border-border">
+                    {grupo.modelos.map(({ producto, subproducto }) => <li key={subproducto ? `sub-${subproducto.idSubProducto}` : `producto-${producto.idProducto}`} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-heading">{subproducto?.nombreSubProducto ?? producto.nombreProducto}</span>
+                          <EstadoProductoBadge estado={subproducto?.estado ?? producto.estado} estadoCatalogo={subproducto ? subproducto.estadoCatalogo : producto.estadoCatalogo} />
+                        </div>
+                        <p className="text-xs text-muted-foreground">{subproducto?.codigoSubProducto ?? producto.codigoProducto} - {producto.nombreProducto}</p>
+                        <p className="text-xs text-muted-foreground">{subproducto ? 'Consulta las condiciones y elegibilidad en la ficha.' : 'Sin modelos comerciales; completa el borrador.'}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {producto.codigoProducto} · {condicionesDe(producto)}
-                      </p>
-                      {producto.subproductos.length > 0 && (
-                        <p className="mt-1 text-xs text-heading">
-                          {producto.subproductos.map((s) => s.nombreSubProducto).join(' · ')}
-                        </p>
-                      )}
-                    </div>
-                    <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-                  </Link>
-                  {producto.subproductos.length > 0 && <ul className="ml-6 border-l border-border pb-3 pl-4">
-                    {producto.subproductos.map((sub) => <li key={sub.idSubProducto}>
-                      <Link to={`/productos/subproductos/${sub.idSubProducto}/ficha`} className="flex items-center justify-between gap-3 rounded-lg p-2 hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring">
-                        <span>{sub.codigoSubProducto} · {sub.nombreSubProducto}</span>
-                        <EstadoProductoBadge estado={sub.estado} estadoCatalogo={sub.estadoCatalogo} />
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-3 text-sm">
+                        {subproducto && <Link to={`/productos/subproductos/${subproducto.idSubProducto}/ficha`} className="rounded-lg p-2 text-primary hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring">Ficha</Link>}
+                        <Link to={rutaProducto(producto.idProducto)} aria-label={`Configurar ${subproducto?.codigoSubProducto ?? producto.codigoProducto}`} className="flex items-center gap-1 rounded-lg p-2 hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring">Configuracion <ChevronRight className="size-4" aria-hidden /></Link>
+                      </div>
                     </li>)}
-                  </ul>}
-                </li>
-              ))}
-            </ul>
-            )}
-          </section>
+                  </ul>
+                </section>)}
+              </div>}
+            </section>
           )
         })}
       </div>
@@ -116,13 +91,13 @@ export function ProductosPage() {
         <div>
           <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">Productos</h1>
           <p className="mt-2 text-base text-muted-foreground">
-            Productos que la cooperativa ofrece a sus clientes. Abre uno para ver y parametrizar sus subproductos.
+            Cuentas, creditos y tarjetas. Abre un producto y su subproducto para consultar los modelos comerciales.
           </p>
         </div>
         {esAdmin ? (
           <Button size="lg" onClick={() => setFormulario({ tipo: 'crear' })} className="rounded-lg px-4 font-semibold">
             <Plus />
-            Nuevo producto
+            Nuevo modelo comercial
           </Button>
         ) : (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -141,7 +116,7 @@ export function ProductosPage() {
             type="search"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por código, nombre, tipo o subproducto"
+            placeholder="Buscar por codigo, nombre, subproducto o modelo"
             aria-label="Buscar productos"
             maxLength={100}
             className="h-11 rounded-xl pl-9"
