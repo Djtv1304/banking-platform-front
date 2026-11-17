@@ -179,6 +179,7 @@ const MENSAJES: Record<string, string> = {
   CANAL_NO_EXISTE: 'Hay canales que ya no existen o están inactivos. Recarga e intenta otra vez.',
   CUPO_MENOR_QUE_PERSONALIZADO:
     'Hay cuentas con cupos personalizados mayores en ese canal. Ajústalos antes de bajar o quitar el máximo.',
+  TASAS_SOLAPADAS: 'Dos tasas de crédito vinculadas se cruzan en monto y fechas: deja solo una para cada rango.',
   COMISION_NO_EXISTE: 'Hay comisiones que ya no existen o están inactivas. Recarga e intenta otra vez.',
   SEGURO_NO_EXISTE: 'Hay seguros que ya no existen o están inactivos. Recarga e intenta otra vez.',
   PRODUCTO_NO_EDITABLE: 'El código solo se cambia mientras el producto está inactivo y sin uso.',

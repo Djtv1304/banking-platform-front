@@ -29,6 +29,7 @@ export const CATALOGOS_ENDPOINTS = {
   seguros: `${BASE}/seguros`,
   administracion: `${BASE}/administracion`,
   registros: (clave: string) => `${BASE}/administracion/${encodeURIComponent(clave)}`,
+  confirmacion: (clave: string) => `${BASE}/administracion/${encodeURIComponent(clave)}/confirmacion`,
   registro: (clave: string, id: string) =>
     `${BASE}/administracion/${encodeURIComponent(clave)}/${encodeURIComponent(id)}`,
 } as const
@@ -266,6 +267,8 @@ export const catalogoAdministrableSchema = z.object({
   camposAlta: z.array(campoCatalogoSchema).default([]),
   /** Eliminar solo procede si nadie usa el registro (409 ITEM_EN_USO) */
   permiteEliminar: z.boolean().default(false),
+  /** Crear o eliminar pide el código de confirmación de 4 caracteres */
+  requiereConfirmacion: z.boolean().default(false),
 })
 
 /** Una fila: `id` y `estado` (A/I) siempre; el resto según los campos del catálogo */
@@ -300,3 +303,18 @@ export const seguroSchema = z.object({
 
 export type Comision = z.infer<typeof comisionSchema>
 export type Seguro = z.infer<typeof seguroSchema>
+
+/** Código para cambios que pueden alterar la lógica de negocio (vence en 5 minutos) */
+export const confirmacionSchema = z.object({
+  codigo: z.string(),
+  token: z.string(),
+  venceEnSegundos: z.number(),
+  advertencia: z.string(),
+})
+
+export type ConfirmacionEmitida = z.infer<typeof confirmacionSchema>
+/** Lo que se reenvía en X-Confirmacion-Token y X-Confirmacion-Codigo */
+export interface Confirmacion {
+  token: string
+  codigo: string
+}

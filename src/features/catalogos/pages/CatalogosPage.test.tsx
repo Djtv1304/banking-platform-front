@@ -40,6 +40,7 @@ vi.mock('@/features/catalogos/hooks/useCatalogos', () => ({
 }))
 vi.mock('@/features/catalogos/components/EditarRegistroDialog', () => ({ EditarRegistroDialog: () => null }))
 vi.mock('@/features/catalogos/components/NuevaTasaDialog', () => ({ NuevaTasaDialog: () => null }))
+vi.mock('@/features/catalogos/components/ConfirmacionDialog', () => ({ ConfirmacionDialog: () => null }))
 vi.mock('@/shared/ui', () => ({
   Button: ({ children, ...props }: ComponentProps<'button'>) => <button {...props}>{children}</button>,
   Badge: ({ children }: ComponentProps<'span'>) => <span>{children}</span>,
