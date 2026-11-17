@@ -1,10 +1,11 @@
-import { Building2, BookOpenText, Calculator, CreditCard, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, WalletCards, type LucideIcon } from 'lucide-react'
+import { Building2, BookOpenText, Calculator, CreditCard, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, Vault, WalletCards, type LucideIcon } from 'lucide-react'
 
 import { canAccess, CLIENTES_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
 import { ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
 import { PRODUCTOS_ROLES } from '@/features/organizacion'
 import { CATALOGOS_ROLES } from '@/features/catalogos'
 import { CONTABILIDAD_ROLES } from '@/features/contabilidad'
+import { BOVEDA_ROLES } from '@/features/boveda'
 import { ROLES_CONSULTA_ROLES } from '@/features/seguridad'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 
@@ -68,6 +69,11 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Tarjetas',
     items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas }],
+  },
+  {
+    title: 'Tesorería',
+    // SUPERVISOR, CONTADOR, AUDITOR y ADMIN; la página muestra a cada rol solo lo que puede consultar
+    items: [{ to: '/bovedas', label: 'Bóvedas', Icon: Vault, roles: BOVEDA_ROLES.acceso }],
   },
   {
     title: 'Cuentas contables',

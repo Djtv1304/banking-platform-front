@@ -14,6 +14,7 @@ import {
 import { CATALOGOS_ROLES, CatalogosPage } from '@/features/catalogos'
 import { DetalleUsuarioPage, UsuariosPage, ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
 import { RolesAccesosPage, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
+import { BOVEDA_ROLES, BovedasPage, DetalleBovedaPage } from '@/features/boveda'
 import { getRoleNavigation } from '@/app/navigation/navigation'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
@@ -133,6 +134,14 @@ export const router = createBrowserRouter([
             element: <RequireRoles allowed={ROLES_CONSULTA_ROLES} />,
             children: [
               { path: '/seguridad/roles', element: <RolesAccesosPage roles={ROLES_USUARIO} seccionesParaRol={getRoleNavigation} /> },
+            ],
+          },
+          {
+            // BOV-01 a BOV-06: cada bloque y acción de la página se muestra según el rol exacto
+            element: <RequireRoles allowed={BOVEDA_ROLES.acceso} />,
+            children: [
+              { path: '/bovedas', element: <BovedasPage /> },
+              { path: '/bovedas/:idBoveda', element: <DetalleBovedaPage /> },
             ],
           },
           {
