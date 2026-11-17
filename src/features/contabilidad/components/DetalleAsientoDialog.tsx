@@ -3,19 +3,19 @@ import { TriangleAlert } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
-import { Aviso, Badge, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
+import { Aviso, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
 import { useAsiento } from '@/features/contabilidad/hooks/useAsientos'
+import { EstadoAsientoBadge } from '@/features/contabilidad/components/EstadoAsientoBadge'
 import { usePlanCuentas } from '@/features/contabilidad/hooks/usePlanCuentas'
 import {
   cuadreAsiento,
-  esReversado,
+  esAsientoReversado,
+  esReverso,
   etiquetaCuenta,
-  etiquetaEstadoAsiento,
   etiquetaOrigenAsiento,
   formatearFechaAsiento,
   mensajeErrorAsientos,
   motivoDescuadre,
-  tonoEstadoAsiento,
 } from '@/features/contabilidad/lib/asientos'
 import { formatearSaldo } from '@/features/contabilidad/lib/cuenta-contable'
 
@@ -88,16 +88,16 @@ function Detalle({ idAsiento, agencias, onAbrir }: Pick<DetalleAsientoDialogProp
         </Dato>
         <Dato label="Fecha">{formatearFechaAsiento(data.fechaAsiento)}</Dato>
         <Dato label="Estado">
-          <Badge variant={tonoEstadoAsiento(data.estado)}>{etiquetaEstadoAsiento(data.estado)}</Badge>
+          <EstadoAsientoBadge estado={data.estado} />
         </Dato>
         <Dato label="Origen">{etiquetaOrigenAsiento(data.origen)}</Dato>
         <Dato label="Agencia">{agencias.get(data.idAgencia) ?? data.idAgencia}</Dato>
         <Dato label="Reversión">
-          {data.idAsientoReversion !== null ? (
+          {esReverso(data) ? (
             <Button variant="link" onClick={() => onAbrir(data.idAsientoReversion as number)} className="h-auto p-0">
-              Revertido: ver el asiento de reversión
+              Reverso: ver el asiento original
             </Button>
-          ) : esReversado(data) ? (
+          ) : esAsientoReversado(data.estado) ? (
             'Reversado'
           ) : (
             'No está revertido'

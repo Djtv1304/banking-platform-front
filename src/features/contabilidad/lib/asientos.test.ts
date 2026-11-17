@@ -9,7 +9,9 @@ import {
   armarParametrosAsientos,
   cuadreAsiento,
   esFechaIsoValida,
-  esReversado,
+  esAsientoAnulado,
+  esAsientoReversado,
+  esReverso,
   etiquetaCuenta,
   etiquetaEstadoAsiento,
   etiquetaOrigenAsiento,
@@ -145,13 +147,23 @@ describe('presentación', () => {
     expect(etiquetaTexto(' ')).toBe('—')
   })
 
-  it('elige el tono del estado y detecta la reversión', () => {
-    expect(tonoEstadoAsiento('contabilizado')).toBe('default')
-    expect(tonoEstadoAsiento('ANULADO')).toBe('destructive')
-    expect(tonoEstadoAsiento('OTRO')).toBe('outline')
-    expect(esReversado({ estado: 'CONTABILIZADO', idAsientoReversion: 4 })).toBe(true)
-    expect(esReversado({ estado: 'REVERSADO', idAsientoReversion: null })).toBe(true)
-    expect(esReversado({ estado: 'CONTABILIZADO', idAsientoReversion: null })).toBe(false)
+  it('elige un tono distinto por estado y deja neutro cualquier valor nuevo', () => {
+    expect(tonoEstadoAsiento('CONTABILIZADO')).toBe('exito')
+    expect(tonoEstadoAsiento(' contabilizado ')).toBe('exito')
+    expect(tonoEstadoAsiento('REVERSADO')).toBe('advertencia')
+    expect(tonoEstadoAsiento('ANULADO')).toBe('apagado')
+    expect(tonoEstadoAsiento('PENDIENTE_APROBACION')).toBe('neutro')
+    expect(tonoEstadoAsiento('OTRO')).toBe('neutro')
+  })
+
+  it('distingue anulado, reversado y asiento de reverso', () => {
+    expect(esAsientoAnulado('anulado')).toBe(true)
+    expect(esAsientoAnulado('REVERSADO')).toBe(false)
+    expect(esAsientoReversado('REVERSADO')).toBe(true)
+    expect(esAsientoReversado('CONTABILIZADO')).toBe(false)
+    // El reverso trae el id del original y está CONTABILIZADO; el reversado trae null
+    expect(esReverso({ idAsientoReversion: 301 })).toBe(true)
+    expect(esReverso({ idAsientoReversion: null })).toBe(false)
   })
 })
 

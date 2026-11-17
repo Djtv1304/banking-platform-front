@@ -110,9 +110,9 @@ describe('DetalleAsientoDialog', () => {
     expect(salida).toContain('no son iguales')
   })
 
-  it('enlaza al asiento que lo revirtió', () => {
-    estado.asiento = { isPending: false, isError: false, data: { ...ASIENTO, estado: 'REVERSADO', idAsientoReversion: 9 } }
-    expect(html()).toContain('Revertido: ver el asiento de reversión')
+  it('enlaza al asiento original si es un reverso', () => {
+    estado.asiento = { isPending: false, isError: false, data: { ...ASIENTO, estado: 'CONTABILIZADO', idAsientoReversion: 9 } }
+    expect(html()).toContain('Reverso: ver el asiento original')
   })
 
   it('muestra los estados de carga, sin líneas y error', () => {
