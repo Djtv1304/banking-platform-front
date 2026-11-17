@@ -18,10 +18,9 @@ export const CONTABILIDAD_ENDPOINTS = {
   estado: (id: number) => `${BASE}/${id}/estado`,
 } as const
 
-/** `x-roles` de CON-03; el mantenimiento propuesto es solo de CONTADOR y ADMIN (AUDITOR consulta) */
+/** `x-roles` de CON-03; mantener el plan depende del permiso contabilidad:editar */
 export const CONTABILIDAD_ROLES = {
   consultar: ['CONTADOR', 'AUDITOR', 'ADMIN'],
-  mantener: ['CONTADOR', 'ADMIN'],
 } as const
 
 /**

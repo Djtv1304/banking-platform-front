@@ -6,11 +6,15 @@ import { DetalleProductoPage } from '@/features/organizacion/pages/DetalleProduc
 import { ProductosPage } from '@/features/organizacion/pages/ProductosPage'
 import type { ProductoAdmin } from '@/features/organizacion/api/productos.contract'
 
-const estado = vi.hoisted(() => ({ roles: ['ADMIN'] as string[], permisos: ['PRD-CONSULTAR', 'PRD-EDITAR', 'PRD-EXPORTAR'], data: [] as unknown[] }))
-vi.mock('@/features/auth', () => ({
-  useAuthStore: (selector: (s: { user: { roles: string[]; permisos: string[] } }) => unknown) => selector({ user: { roles: estado.roles, permisos: estado.permisos } }),
-  hasAnyRole: (roles: readonly string[], permitidos: readonly string[]) => roles.some((r) => permitidos.includes(r)),
-}))
+const estado = vi.hoisted(() => ({ roles: ['ADMIN'] as string[], permisos: ['productos:editar', 'productos:exportar'], data: [] as unknown[] }))
+vi.mock('@/features/auth', async () => {
+  const { hasPermission, PERMISOS } = await import('@/shared/lib')
+  return {
+    hasPermission,
+    PERMISOS,
+    usePermisos: () => (estado.roles.includes('ADMIN') ? estado.permisos : []),
+  }
+})
 vi.mock('react-router', () => ({
   Link: ({ children, to, ...props }: ComponentProps<'a'> & { to: string }) => <a href={to} {...props}>{children}</a>,
   useParams: () => ({ idProducto: '1' }),
@@ -75,7 +79,7 @@ const CONSUMO: ProductoAdmin = {
 
 beforeEach(() => {
   estado.roles = ['ADMIN']
-  estado.permisos = ['PRD-CONSULTAR', 'PRD-EDITAR', 'PRD-EXPORTAR']
+  estado.permisos = ['productos:editar', 'productos:exportar']
   estado.data = [AHORRO]
 })
 const lista = () => renderToStaticMarkup(<ProductosPage />)
@@ -140,14 +144,14 @@ describe('DetalleProductoPage', () => {
 })
 
 
-it('sin PRD-EDITAR no ofrece escrituras aunque el rol sea ADMIN', () => {
-  estado.permisos = ['PRD-CONSULTAR']
+it('sin productos:editar no ofrece escrituras aunque el rol sea ADMIN', () => {
+  estado.permisos = ['productos:exportar']
   expect(lista()).not.toContain('Nuevo producto')
   expect(detalle()).not.toContain('Editar')
 })
-it('sin PRD-CONSULTAR presenta el estado sin permiso', () => {
+it('consultar no pide permiso: sin ninguno, la lista se muestra', () => {
   estado.permisos = []
-  expect(lista()).toContain('No tienes permiso')
+  expect(lista()).not.toContain('No tienes permiso')
 })
 it('el producto activo muestra el editor deshabilitado', () => {
   estado.data = [{ ...AHORRO, estadoCatalogo: 'Activo' }]

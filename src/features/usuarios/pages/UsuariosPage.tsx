@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { CircleCheck, UserPlus, X } from 'lucide-react'
 
 import { Aviso, Button, Cargando, Paginacion } from '@/shared/ui'
-import { useAuthStore } from '@/features/auth'
+import { useAuthStore, usePermisos } from '@/features/auth'
 import { mensajeErrorListado } from '@/features/usuarios/api/usuarios.api'
 import type { CampoOrden, UsuarioCreado } from '@/features/usuarios/api/usuarios.contract'
 import { CrearUsuarioDialog } from '@/features/usuarios/components/CrearUsuarioDialog'
@@ -27,7 +27,7 @@ import { nombreCompleto } from '@/features/usuarios/lib/formato'
 /** AUT-05 y AUT-06 · Usuarios internos: búsqueda, filtros, orden, paginación y alta con invitación */
 export function UsuariosPage() {
   const roles = useAuthStore((state) => state.user?.roles)
-  const acceso = accesoUsuarios(roles ?? [])
+  const acceso = accesoUsuarios(roles ?? [], usePermisos())
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Solo el rol puede precargarse por URL; nombres y correos permanecen en memoria.

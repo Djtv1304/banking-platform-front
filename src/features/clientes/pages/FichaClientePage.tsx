@@ -6,7 +6,7 @@ import { ApiError } from '@/shared/api'
 import { GestionDirecciones } from '@/features/clientes/components/GestionDirecciones'
 import { puedeGestionarDirecciones } from '@/features/clientes/lib/direcciones'
 import { Badge, Button } from '@/shared/ui'
-import { useAuthStore } from '@/features/auth'
+import { useAuthStore, usePermisos } from '@/features/auth'
 import { GestionCliente } from '@/features/clientes/components/GestionCliente'
 import { HistorialCliente } from '@/features/clientes/components/HistorialCliente'
 import { GestionRiesgo } from '@/features/clientes/components/GestionRiesgo'
@@ -29,7 +29,8 @@ export function FichaClientePage() {
   const { idCliente } = useParams()
   const id = parsearIdCliente(idCliente)
   const roles = useAuthStore((estado) => estado.user?.roles)
-  const acceso = accesoGestionClientes(roles ?? [])
+  const permisos = usePermisos()
+  const acceso = accesoGestionClientes(roles ?? [], permisos)
   const consulta = useCliente(acceso.consulta ? id : undefined)
 
   const noExiste =
@@ -91,8 +92,7 @@ function ClienteNoEncontrado() {
 }
 
 function Ficha({ cliente }: { cliente: Cliente }) {
-  const roles = useAuthStore((state) => state.user?.roles)
-  const gestion = puedeGestionarDirecciones(roles ?? [])
+  const gestion = puedeGestionarDirecciones(usePermisos())
   // La principal primero; el resto en el orden en que llegan
   const direcciones = [...cliente.direcciones].sort((a, b) => Number(b.esPrincipal) - Number(a.esPrincipal))
 

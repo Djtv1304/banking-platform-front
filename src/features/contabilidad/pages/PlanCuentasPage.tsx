@@ -3,8 +3,7 @@ import { Search } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando, Checkbox, Input, Label } from '@/shared/ui'
-import { hasAnyRole, useAuthStore } from '@/features/auth'
-import { CONTABILIDAD_ROLES } from '@/features/contabilidad/api/contabilidad.contract'
+import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import { AccionesCuenta, type TipoAccion } from '@/features/contabilidad/components/AccionesCuenta'
 import { ArbolCuentas } from '@/features/contabilidad/components/ArbolCuentas'
 import { ConfirmarCuentaDialog, type Confirmacion } from '@/features/contabilidad/components/ConfirmarCuentaDialog'
@@ -21,10 +20,9 @@ interface Abiertos {
   ids: ReadonlySet<number>
 }
 
-/** E2-02 · Plan de cuentas (CON-03): CONTADOR, AUDITOR y ADMIN consultan; CONTADOR y ADMIN mantienen */
+/** E2-02 · Plan de cuentas (CON-03): CONTADOR, AUDITOR y ADMIN consultan; mantener exige contabilidad:editar */
 export function PlanCuentasPage() {
-  const roles = useAuthStore((state) => state.user?.roles) ?? []
-  const puedeMantener = hasAnyRole(roles, CONTABILIDAD_ROLES.mantener)
+  const puedeMantener = hasPermission(usePermisos(), PERMISOS.contabilidadEditar)
 
   const plan = usePlanCuentas()
   const arbol = useMemo(() => construirArbol(plan.data ?? []), [plan.data])

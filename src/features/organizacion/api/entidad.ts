@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ApiError, apiClient, toApiError } from '@/shared/api'
+import { hasPermission, PERMISOS } from '@/shared/lib'
 
 export const ENTIDAD_ENDPOINT = '/api/v1/organizacion/entidad'
 export const ENTIDAD_KEY = ['organizacion', 'entidad'] as const
@@ -109,11 +110,12 @@ export async function consultarExistenciaEntidad() {
   }
 }
 
-export function accesoEntidad(roles: readonly string[]) {
+/** Consultar por rol; crear o editar los datos exige organizacion:editar */
+export function accesoEntidad(roles: readonly string[], permisos: readonly string[] = []) {
   const lista = roles.map(rol => rol.trim().toUpperCase())
   return {
     consulta: lista.some(rol => ['ADMIN', 'ASESOR'].includes(rol)),
-    edicion: lista.includes('ADMIN')
+    edicion: hasPermission(permisos, PERMISOS.organizacionEditar)
   }
 }
 

@@ -13,8 +13,9 @@ describe('C-08 contrato y permisos', () => {
     expect(fechaRiesgoVisible('2026-11-12T00:30:00Z')).toContain('11 nov 2026')
     expect(fechaRiesgoVisible('2026-11-11T12:00:00')).toContain('sin zona informada')
   })
-  it.each(['ASESOR', 'SUPERVISOR', 'ADMIN'])('%s registra y consulta', (rol) => {
-    expect(accesoRiesgo([rol])).toEqual({ registro: true, historial: true })
+  it.each(['ASESOR', 'SUPERVISOR', 'ADMIN'])('%s consulta; registra solo con clientes:riesgo', (rol) => {
+    expect(accesoRiesgo([rol])).toEqual({ registro: false, historial: true })
+    expect(accesoRiesgo([rol], ['clientes:riesgo'])).toEqual({ registro: true, historial: true })
   })
   it('AUDITOR solo consulta, CAJERO y perfiles desconocidos carecen de acceso', () => {
     expect(accesoRiesgo([' auditor '])).toEqual({ registro: false, historial: true })

@@ -34,10 +34,9 @@ export const CATALOGOS_ENDPOINTS = {
     `${BASE}/administracion/${encodeURIComponent(clave)}/${encodeURIComponent(id)}`,
 } as const
 
-/** Los catálogos los consulta ADMIN y ASESOR en la SPA; solo ADMIN crea tasas de interés */
+/** Quién ve Catálogos; crear, editar y eliminar dependen del permiso catalogos:editar */
 export const CATALOGOS_ROLES = {
-  consultar: ['ADMIN', 'ASESOR'],
-  administrar: ['ADMIN'],
+  consultar: ['ADMIN', 'SUPERVISOR', 'ASESOR'],
 } as const
 
 /** CAT-01 · Ordenados por nombre. `codigoPais` es ISO 3166-1 alfa-3 (`ECU`) */

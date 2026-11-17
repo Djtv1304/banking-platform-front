@@ -5,9 +5,8 @@ import { Eye, Pencil, Plus, Power, Search, Trash2 } from 'lucide-react'
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
 import { Aviso, Badge, Button, Cargando, Input } from '@/shared/ui'
-import { hasAnyRole, useAuthStore } from '@/features/auth'
+import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import {
-  CATALOGOS_ROLES,
   type CatalogoAdministrable,
   type Confirmacion,
   type RegistroCatalogo,
@@ -30,8 +29,7 @@ import { filtrarRegistros, mostrar } from '@/features/catalogos/lib/registro-for
  * El catálogo elegido va en la URL (?catalogo=) para poder compartir el enlace.
  */
 export function CatalogosPage() {
-  const roles = useAuthStore((state) => state.user?.roles)
-  const esAdmin = hasAnyRole(roles ?? [], CATALOGOS_ROLES.administrar)
+  const esAdmin = hasPermission(usePermisos(), PERMISOS.catalogosEditar)
   const catalogos = useCatalogosAdministrables()
   const [parametros, setParametros] = useSearchParams()
   const clave = parametros.get('catalogo') ?? catalogos.data[0]?.clave ?? null

@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router'
 
-import { canAccess, hasAnyRole, sanitizeReturnTo, useAccessProfile, useAuthStatus, useAuthStore, type AccessProfile } from '@/features/auth'
+import { canAccess, hasAnyRole, hasPermission, sanitizeReturnTo, useAccessProfile, useAuthStatus, useAuthStore, usePermisos, type AccessProfile, type Permiso } from '@/features/auth'
 
 // Pantalla vacía mientras GET /api/v1/auth/me responde
 function SessionRestoring() {
@@ -48,5 +48,11 @@ export function RequireProfile({ allowed }: { allowed: readonly AccessProfile[] 
 export function RequireRoles({ allowed }: { allowed: readonly string[] }) {
   const roles = useAuthStore((state) => state.user?.roles)
   if (!hasAnyRole(roles ?? [], allowed)) return <Navigate to="/" replace />
+  return <Outlet />
+}
+
+/** Pantallas que solo sirven para escribir (registrar, abrir, solicitar): exigen el permiso. */
+export function RequirePermiso({ permiso }: { permiso: Permiso }) {
+  if (!hasPermission(usePermisos(), permiso)) return <Navigate to="/" replace />
   return <Outlet />
 }

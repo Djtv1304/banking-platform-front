@@ -1,17 +1,17 @@
+import { hasPermission, PERMISOS } from '@/shared/lib'
 import type { EstadoDestino } from '@/features/clientes/api/gestion-clientes'
 
 const rolesConsulta = ['ASESOR', 'CAJERO', 'SUPERVISOR', 'ADMIN']
-const rolesEdicion = ['ASESOR', 'ADMIN']
-const rolesEstado = ['ASESOR', 'SUPERVISOR', 'ADMIN']
 const rolesHistorial = ['SUPERVISOR', 'AUDITOR', 'ADMIN']
 
-export function accesoGestionClientes(roles: readonly string[]) {
+/** Consultar e historial por rol; editar y cambiar estado por permiso de WorkOS */
+export function accesoGestionClientes(roles: readonly string[], permisos: readonly string[] = []) {
   const normalizados = roles.map((rol) => rol.trim().toUpperCase())
   const tieneRol = (permitidos: string[]) => normalizados.some((rol) => permitidos.includes(rol))
   return {
     consulta: tieneRol(rolesConsulta),
-    edicion: tieneRol(rolesEdicion),
-    estado: tieneRol(rolesEstado),
+    edicion: hasPermission(permisos, PERMISOS.clientesEditar),
+    estado: hasPermission(permisos, PERMISOS.clientesEstado),
     historial: tieneRol(rolesHistorial),
   }
 }

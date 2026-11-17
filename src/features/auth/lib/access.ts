@@ -8,6 +8,8 @@
  * ⚠️ Esto solo decide qué se MUESTRA. Cada endpoint del backend debe validar sus propios permisos.
  * ⚠️ Confirmar con el backend/WorkOS los slugs exactos de los roles y ajustarlos aquí.
  */
+export { hasPermission, PERMISOS, type Permiso } from '@/shared/lib'
+
 export const ROLES = {
   admin: 'admin',
   cliente: 'cliente',
@@ -17,7 +19,6 @@ export type AccessProfile = 'admin' | 'staff' | 'cliente'
 
 /** CLI-02 y CLI-03/04: compartidas por navegación, rutas y accesos rápidos. */
 export const CLIENTES_ROLES = {
-  registrar: ['ASESOR', 'ADMIN'],
   consultar: ['ASESOR', 'CAJERO', 'SUPERVISOR', 'ADMIN'],
 } as const
 

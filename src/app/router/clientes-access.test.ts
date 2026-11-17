@@ -1,31 +1,30 @@
 import { describe, expect, it } from 'vitest'
 
-import { CLIENTES_ROLES, hasAnyRole } from '@/features/auth/lib/access'
+import { CLIENTES_ROLES, hasAnyRole, hasPermission, PERMISOS } from '@/features/auth/lib/access'
 
 describe('acceso a Clientes compartido por menú y rutas', () => {
   it.each([
-    ['ADMIN', true, true],
-    ['ASESOR', true, true],
-    ['CAJERO', false, true],
-    ['SUPERVISOR', false, true],
-    ['CONTADOR', false, false],
-    ['AUDITOR', false, false],
-    ['APROBADOR_CREDITO', false, false],
-    ['CLIENTE', false, false],
-    ['ROL_DESCONOCIDO', false, false],
-  ])('%s: registrar=%s, consultar=%s', (role, registrar, consultar) => {
-    expect(hasAnyRole([role], CLIENTES_ROLES.registrar)).toBe(registrar)
+    ['ADMIN', true],
+    ['ASESOR', true],
+    ['CAJERO', true],
+    ['SUPERVISOR', true],
+    ['CONTADOR', false],
+    ['AUDITOR', false],
+    ['APROBADOR_CREDITO', false],
+    ['CLIENTE', false],
+    ['ROL_DESCONOCIDO', false],
+  ])('%s: consultar=%s (lo decide el rol)', (role, consultar) => {
     expect(hasAnyRole([role], CLIENTES_ROLES.consultar)).toBe(consultar)
   })
 
-  it('sin roles no permite ninguna de las dos operaciones', () => {
-    expect(hasAnyRole([], CLIENTES_ROLES.registrar)).toBe(false)
+  it('normaliza mayúsculas y espacios y acepta cualquiera de los roles asignados', () => {
+    expect(hasAnyRole(['cliente', ' cajero '], CLIENTES_ROLES.consultar)).toBe(true)
     expect(hasAnyRole([], CLIENTES_ROLES.consultar)).toBe(false)
   })
 
-  it('normaliza mayúsculas y espacios y acepta cualquiera de los roles asignados', () => {
-    expect(hasAnyRole(['CONTADOR', ' asesor '], CLIENTES_ROLES.registrar)).toBe(true)
-    expect(hasAnyRole(['cliente', ' cajero '], CLIENTES_ROLES.consultar)).toBe(true)
-    expect(hasAnyRole(['SUPERVISOR', 'admin'], CLIENTES_ROLES.registrar)).toBe(true)
+  it('registrar lo decide el permiso clientes:editar, no el rol', () => {
+    expect(hasPermission(['clientes:editar'], PERMISOS.clientesEditar)).toBe(true)
+    expect(hasPermission(['clientes:estado'], PERMISOS.clientesEditar)).toBe(false)
+    expect(hasPermission([], PERMISOS.clientesEditar)).toBe(false)
   })
 })

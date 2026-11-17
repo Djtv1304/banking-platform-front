@@ -2,3 +2,4 @@
 
 export { cn } from '@/shared/lib/utils';
 export { esCedulaValida, esProvinciaValida } from '@/shared/lib/cedula';
+export { hasPermission, PERMISOS, type Permiso } from '@/shared/lib/permisos';

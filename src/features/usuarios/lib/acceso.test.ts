@@ -15,6 +15,11 @@ describe('regla compartida para menú, rutas y pantalla de Usuarios', () => {
     expect(accesoUsuarios([rol]).creacion).toBe(false)
   })
 
+  it('crear y cambiar usuarios depende de usuarios:editar', () => {
+    expect(accesoUsuarios(['ADMIN']).creacion).toBe(false)
+    expect(accesoUsuarios(['ADMIN'], ['usuarios:editar']).creacion).toBe(true)
+  })
+
   it('recalcula el acceso al sustituir roles y admite varios roles', () => {
     expect(accesoUsuarios(['ADMIN']).consulta).toBe(true)
     expect(accesoUsuarios(['ASESOR']).consulta).toBe(false)
