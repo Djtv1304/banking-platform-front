@@ -36,7 +36,8 @@ vi.mock('@/features/catalogos', () => ({
   }),
 }))
 
-vi.mock('@/shared/ui', () => ({
+vi.mock('@/shared/ui', async () => ({
+  FechaInput: (await import('@/shared/ui/fecha-input')).FechaInput,
   Button: ({ children, ...props }: ComponentProps<'button'>) => <button {...props}>{children}</button>,
   Badge: ({ children }: ComponentProps<'span'>) => <span>{children}</span>,
   Input: (props: ComponentProps<'input'>) => <input {...props} />,
@@ -65,6 +66,12 @@ beforeEach(() => {
 })
 
 describe('AsientosPage', () => {
+  it('ofrece día, mes español y año sin depender del formato del navegador', () => {
+    const salida = html()
+    expect(salida).toContain('Día/mes/año')
+    expect(salida).toContain('11 · Noviembre')
+    expect(salida).not.toContain('type="date"')
+  })
   it('pinta la tabla con montos, agencia y estado, y marca el asiento revertido', () => {
     const salida = html()
     expect(salida).toContain('aria-label="Asientos contables"')

@@ -1,8 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { LoaderCircle, Search } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
-import { Button, Input, Label } from '@/shared/ui'
+import { Button, FechaInput, Label } from '@/shared/ui'
 import { useAgencias } from '@/features/catalogos'
 import { ESTADOS_ASIENTO, ORIGENES_ASIENTO } from '@/features/contabilidad/api/asientos.contract'
 import {
@@ -44,22 +43,30 @@ interface FiltrosAsientosProps {
   onConsultar: (filtros: Filtros) => void
 }
 
-/** Filtros combinables de CON-04; no consultan hasta pulsar «Consultar» */
+/** Filtros combinables de CON-04: se aplican al cambiar, con fecha válida. */
 export function FiltrosAsientos({ consultando, onConsultar }: FiltrosAsientosProps) {
   const [borrador, setBorrador] = useState<Filtros>(FILTROS_ASIENTOS_VACIOS)
   const [errorFecha, setErrorFecha] = useState<string>()
   const agencias = useAgencias()
 
-  const cambiar = (campo: keyof Filtros) => (valor: string) => setBorrador((actual) => ({ ...actual, [campo]: valor }))
-
-  const enviar = (evento: FormEvent) => {
-    evento.preventDefault()
-    if (borrador.fecha && !esFechaIsoValida(borrador.fecha)) {
+  const consultar = (filtros: Filtros) => {
+    if (filtros.fecha && !esFechaIsoValida(filtros.fecha)) {
       setErrorFecha('Escribe una fecha válida: día, mes y año.')
       return
     }
     setErrorFecha(undefined)
-    onConsultar(borrador)
+    onConsultar(filtros)
+  }
+
+  const cambiar = (campo: keyof Filtros) => (valor: string) => {
+    const siguientes = { ...borrador, [campo]: valor }
+    setBorrador(siguientes)
+    consultar(siguientes)
+  }
+
+  const enviar = (evento: FormEvent) => {
+    evento.preventDefault()
+    consultar(borrador)
   }
 
   const limpiar = () => {
@@ -70,18 +77,20 @@ export function FiltrosAsientos({ consultando, onConsultar }: FiltrosAsientosPro
 
   return (
     <form onSubmit={enviar} noValidate aria-label="Filtros de asientos" className="flex flex-col gap-5">
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <Campo id="fecha-asiento" label="Fecha del asiento" error={errorFecha}>
-          <Input
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-2.5 sm:col-span-2 lg:col-span-3">
+          <FechaInput
             id="fecha-asiento"
-            type="date"
+            label="Fecha del asiento"
             value={borrador.fecha}
-            onChange={(evento) => cambiar('fecha')(evento.target.value)}
-            className={campoClassName}
-            aria-invalid={!!errorFecha}
-            aria-describedby={errorFecha ? 'fecha-asiento-error' : undefined}
+            onChange={cambiar('fecha')}
+            onBlur={() => {}}
+            inputClassName={campoClassName}
+            invalid={!!errorFecha}
+            errorId={errorFecha ? 'fecha-asiento-error' : undefined}
           />
-        </Campo>
+          {errorFecha && <p id="fecha-asiento-error" className="text-sm text-destructive">{errorFecha}</p>}
+        </div>
 
         <Campo id="agencia-asiento" label="Agencia" error={agencias.isError ? 'No pudimos cargar las agencias.' : undefined}>
           <select
@@ -133,14 +142,13 @@ export function FiltrosAsientos({ consultando, onConsultar }: FiltrosAsientosPro
       </div>
 
       <div className="flex flex-wrap justify-end gap-3">
-        <Button type="button" variant="outline" onClick={limpiar} disabled={consultando} className="h-[52px] rounded-xl px-6 text-base">
+        <Button type="button" variant="outline" onClick={limpiar} className="h-[52px] rounded-xl px-6 text-base">
           Limpiar filtros
         </Button>
-        <Button type="submit" disabled={consultando} className="h-[52px] rounded-xl px-8 text-base font-semibold">
-          {consultando ? <LoaderCircle className="animate-spin" /> : <Search />}
-          Consultar
-        </Button>
       </div>
+      <p role="status" className="text-sm text-muted-foreground">
+        {consultando ? 'Actualizando resultados…' : 'La lista se actualiza al cambiar un filtro.'}
+      </p>
     </form>
   )
 }

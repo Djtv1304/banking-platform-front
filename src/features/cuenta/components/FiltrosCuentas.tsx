@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { LoaderCircle, Search } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
 import { Button, Input, Label } from '@/shared/ui'
+import { useBusquedaAutomatica } from '@/shared/lib/useBusquedaAutomatica'
 import { useAgencias } from '@/features/catalogos'
 import {
   FILTROS_VACIOS,
@@ -49,16 +49,41 @@ export function FiltrosCuentas({ buscando, onBuscar }: FiltrosCuentasProps) {
   const {
     register,
     handleSubmit,
+    getValues,
+    reset,
     formState: { errors },
   } = useForm<FiltrosCuentasInput, unknown, Filtros>({
     resolver: zodResolver(filtrosCuentasSchema),
+    mode: 'onChange',
     defaultValues: FILTROS_VACIOS,
+  })
+  const busqueda = useBusquedaAutomatica(() => {
+    const resultado = filtrosCuentasSchema.safeParse(getValues())
+    if (resultado.success) onBuscar(resultado.data)
   })
   const agencias = useAgencias()
   const errorIdentificacion = errors.identificacion?.message
 
+  const limpiar = () => {
+    busqueda.cancelar()
+    reset(FILTROS_VACIOS)
+    onBuscar(FILTROS_VACIOS)
+  }
+
+  const enviar = (evento: FormEvent<HTMLFormElement>) => {
+    busqueda.cancelar()
+    void handleSubmit(onBuscar)(evento)
+  }
+
   return (
-    <form onSubmit={handleSubmit(onBuscar)} noValidate aria-label="Filtros de búsqueda" className="flex flex-col gap-5">
+    <form
+      onSubmit={enviar}
+      {...busqueda.eventos}
+      noValidate
+      role="search"
+      aria-label="Filtros de búsqueda"
+      className="flex flex-col gap-5"
+    >
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <Campo id="numeroCuenta" label="Número de cuenta">
           <Input
@@ -108,11 +133,17 @@ export function FiltrosCuentas({ buscando, onBuscar }: FiltrosCuentasProps) {
       </div>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={buscando} className="h-[52px] rounded-xl px-8 text-base font-semibold">
-          {buscando ? <LoaderCircle className="animate-spin" /> : <Search />}
-          Buscar
+        <Button type="button" variant="outline" onClick={limpiar} className="h-[52px] rounded-xl px-6 text-base">
+          Limpiar
         </Button>
       </div>
+      <p role="status" className="text-sm text-muted-foreground">
+        {Object.keys(errors).length > 0
+          ? 'Corrige los filtros indicados para actualizar los resultados.'
+          : buscando
+            ? 'Actualizando resultados…'
+            : 'La lista se actualiza al dejar de escribir o cambiar un filtro. Enter busca inmediatamente.'}
+      </p>
     </form>
   )
 }
