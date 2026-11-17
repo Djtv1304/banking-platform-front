@@ -74,6 +74,14 @@ export const ETIQUETA_TIPO_DIA: Record<TipoDia, string> = {
   'no-contable': 'No contable',
 }
 
+/** Variante del `Badge` de cada tipo de día */
+export const VARIANTE_TIPO_DIA: Record<TipoDia, 'default' | 'secondary' | 'outline'> = {
+  habil: 'default',
+  feriado: 'secondary',
+  'fin-de-semana': 'secondary',
+  'no-contable': 'outline',
+}
+
 export const etiquetaEstadoDia = (fecha: Pick<FechaContable, 'esDiaContable'>) =>
   fecha.esDiaContable ? 'Día contable' : 'No contable'
 
