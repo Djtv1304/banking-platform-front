@@ -7,6 +7,7 @@ import { Aviso, Button, Cargando } from '@/shared/ui'
 import type { Tarjeta } from '@/features/tarjetas/api/tarjetas.contract'
 import { AccionesTarjeta } from '@/features/tarjetas/components/AccionesTarjeta'
 import { EstadoTarjetaBadge } from '@/features/tarjetas/components/EstadoTarjetaBadge'
+import { HistorialTarjeta } from '@/features/tarjetas/components/HistorialTarjeta'
 import { PinTarjeta } from '@/features/tarjetas/components/PinTarjeta'
 import { usePermisosTarjeta } from '@/features/tarjetas/hooks/useAccionesTarjeta'
 import { useTarjeta } from '@/features/tarjetas/hooks/useConsultaTarjetas'
@@ -128,6 +129,7 @@ function DetalleTarjeta({ tarjeta }: { tarjeta: Tarjeta }) {
 
       <AccionesTarjeta tarjeta={tarjeta} permisos={permisos} />
       <PinTarjeta tarjeta={tarjeta} permisos={permisos} />
+      {permisos.historial && <HistorialTarjeta idTarjeta={tarjeta.idTarjeta} />}
     </>
   )
 }
