@@ -187,11 +187,13 @@ const MENSAJES: Record<string, string> = {
   PRODUCTO_ACTIVO: 'Desactiva el producto antes de eliminarlo.',
   ELEGIBILIDAD_INVALIDA: 'La edad máxima no puede ser menor que la mínima.',
   CUPOS_INCOHERENTES: 'El cupo mensual debe ser mayor o igual que el diario, y el máximo por transacción no puede superar el diario.',
+  ORIGEN_NO_PERMITIDO: 'La solicitud no llegó por el canal autorizado. Recarga la página e inténtalo otra vez.',
   USUARIO_INTERNO_NO_VINCULADO: 'Tu usuario no está habilitado para esta operación. Pide al administrador que lo vincule.',
 }
 
 export function mensajeErrorProducto(error: ApiError) {
-  if (error.status === 403) return 'Solo un administrador puede crear o editar productos.'
+  // Solo una negación por rol es «no eres administrador»; otro 403 tiene su propia causa
+  if (error.code === 'SIN_PERMISO') return 'Solo un administrador puede crear o editar productos.'
   return MENSAJES[error.code] ?? error.message
 }
 

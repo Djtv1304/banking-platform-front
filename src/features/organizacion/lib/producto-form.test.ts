@@ -64,6 +64,9 @@ describe('formulario de subproducto', () => {
 it('traduce los errores del backend', () => {
   expect(mensajeErrorProducto(new ApiError('x', 409, 'PRODUCTO_SIN_SUBPRODUCTOS'))).toContain('al menos un subproducto')
   expect(mensajeErrorProducto(new ApiError('x', 403, 'SIN_PERMISO'))).toContain('administrador')
+  // Otro 403 (usuario sin vincular, origen) dice su causa, no «solo un administrador»
+  expect(mensajeErrorProducto(new ApiError('x', 403, 'USUARIO_INTERNO_NO_VINCULADO'))).toContain('vincule')
+  expect(mensajeErrorProducto(new ApiError('x', 403, 'ORIGEN_NO_PERMITIDO'))).toContain('canal autorizado')
 })
 
 it('el buscador ignora tildes y mayúsculas y busca también en subproductos', () => {

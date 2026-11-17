@@ -27,16 +27,18 @@ import {
 import { Campo, inputClassName } from '@/features/catalogos/components/CampoCatalogo'
 import { useCrearTasaInteres, useTiposCredito } from '@/features/catalogos/hooks/useCatalogos'
 import { payloadTasa, tasaFormSchema, type TasaFormData, type TasaFormInput } from '@/features/catalogos/lib/tasa-form'
+import { mensajeErrorCatalogo } from '@/features/catalogos/lib/mensajes'
 
 const MENSAJES: Record<string, string> = {
-  TASA_SOLAPADA: 'Ya hay una tasa de ese tipo de crédito para ese rango de monto en esas fechas. Ajusta el rango o la vigencia.',
   VIGENCIA_PASADA: 'La vigencia no puede empezar antes de hoy.',
   TIPO_CREDITO_NO_EXISTE: 'El tipo de crédito elegido no existe o está inactivo.',
   DATOS_INVALIDOS: 'Revisa los datos: hay valores que no son válidos.',
 }
 
 const mensajeError = (error: ApiError) =>
-  error.status === 403 ? 'Solo un administrador puede crear tasas de interés.' : (MENSAJES[error.code] ?? error.message)
+  error.code === 'SIN_PERMISO'
+    ? 'Solo un administrador puede crear tasas de interés.'
+    : (MENSAJES[error.code] ?? mensajeErrorCatalogo(error))
 
 const porcentaje = (fraccion: number) => `${(fraccion * 100).toLocaleString('es-EC', { maximumFractionDigits: 2 })} %`
 interface NuevaTasaDialogProps {
