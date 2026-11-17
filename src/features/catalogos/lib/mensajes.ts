@@ -10,6 +10,8 @@ const MENSAJES: Record<string, string> = {
   ITEM_EN_USO: 'El registro se usa en otros datos: no se elimina. Desactívalo para que deje de ofrecerse.',
   ALTA_NO_PERMITIDA: 'Este catálogo no admite altas desde aquí.',
   BAJA_NO_PERMITIDA: 'Este catálogo no admite eliminar: desactiva el registro.',
+  CONFIRMACION_REQUERIDA: 'Este cambio requiere el código de confirmación.',
+  CONFIRMACION_INVALIDA: 'El código no coincide o venció. Pide uno nuevo e inténtalo otra vez.',
   REFERENCIA_INVALIDA: 'Hay un dato que apunta a un registro que no existe (por ejemplo, el país).',
 }
 
