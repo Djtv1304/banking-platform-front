@@ -11,6 +11,7 @@ import {
 import type { TarjetaEstadoUpdate } from '@/features/tarjetas/api/tarjetas.contract'
 import { permisosTarjeta } from '@/features/tarjetas/lib/acciones-tarjeta'
 import { type FiltroHistorial, parametrosHistorial } from '@/features/tarjetas/lib/historial-tarjeta'
+import { guardarArchivo, nombreSobrePin } from '@/features/tarjetas/lib/sobre-pin'
 
 /* Estado, PIN e historial de una tarjeta (A-05). Las escrituras no se reintentan */
 
@@ -47,9 +48,15 @@ export function useRegenerarPin(idTarjeta: number) {
   return useMutation({ mutationFn: () => regenerarPin(idTarjeta), retry: false, onSettled: refrescar })
 }
 
-/** TAR-07 · Es una lectura de una sola vez: nunca se reintenta ni se guarda en caché */
+/**
+ * TAR-07 · Se entrega una sola vez: nunca se reintenta. El PDF se guarda como archivo dentro de la
+ * mutación para que no quede en su `data` ni en ninguna caché.
+ */
 export const useDescargarSobrePin = (idTarjeta: number) =>
-  useMutation({ mutationFn: () => descargarSobrePin(idTarjeta), retry: false })
+  useMutation({
+    mutationFn: async () => guardarArchivo(await descargarSobrePin(idTarjeta), nombreSobrePin(idTarjeta)),
+    retry: false,
+  })
 
 /** TAR-06 */
 export const useHistorialTarjeta = (idTarjeta: number, filtro: FiltroHistorial, page: number) =>
