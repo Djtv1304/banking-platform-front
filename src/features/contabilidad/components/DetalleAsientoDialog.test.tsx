@@ -35,10 +35,14 @@ const ASIENTO: Asiento = {
 
 const estado = vi.hoisted(() => ({
   asiento: {} as Record<string, unknown>,
+  /** Respuesta de `useAsiento` por id cuando no es el asiento abierto (p. ej. el original de un reverso) */
+  porId: {} as Record<number, Record<string, unknown>>,
   plan: {} as Record<string, unknown>,
 }))
 
-vi.mock('@/features/contabilidad/hooks/useAsientos', () => ({ useAsiento: () => estado.asiento }))
+vi.mock('@/features/contabilidad/hooks/useAsientos', () => ({
+  useAsiento: (id: number) => estado.porId[id] ?? estado.asiento,
+}))
 vi.mock('@/features/contabilidad/hooks/usePlanCuentas', () => ({ usePlanCuentas: () => estado.plan }))
 vi.mock('@/shared/ui', () => ({
   Button: ({ children, ...props }: ComponentProps<'button'>) => <button {...props}>{children}</button>,
@@ -52,14 +56,14 @@ vi.mock('@/shared/ui', () => ({
   DialogDescription: ({ children }: ComponentProps<'p'>) => <p>{children}</p>,
 }))
 
-const cuenta = (id: number, codigo: string, nombre: string): CuentaContable => ({
+const cuenta = (id: number, codigo: string, nombre: string, esImputable = true): CuentaContable => ({
   idCuentaContable: id,
   codigoCuenta: codigo,
   nombreCuenta: nombre,
   naturaleza: 'DEUDORA',
   tipoCuenta: 'ACTIVO',
   idCuentaSuperior: null,
-  esImputable: true,
+  esImputable,
   saldo: 0,
   estado: 'Activo',
 })
@@ -71,6 +75,7 @@ const html = (idAsiento: number | null = 3) =>
 
 beforeEach(() => {
   estado.asiento = { isPending: false, isError: false, data: ASIENTO }
+  estado.porId = {}
   estado.plan = { data: [cuenta(10, '110105', 'Caja general'), cuenta(20, '210135', 'Depósitos a la vista')] }
 })
 
@@ -110,9 +115,55 @@ describe('DetalleAsientoDialog', () => {
     expect(salida).toContain('no son iguales')
   })
 
-  it('enlaza al asiento que lo revirtió', () => {
-    estado.asiento = { isPending: false, isError: false, data: { ...ASIENTO, estado: 'REVERSADO', idAsientoReversion: 9 } }
-    expect(html()).toContain('Revertido: ver el asiento de reversión')
+  const abrir = (data: Asiento) => {
+    estado.asiento = { isPending: false, isError: false, data }
+  }
+
+  it('un asiento anulado avisa que no afecta los saldos', () => {
+    abrir({ ...ASIENTO, estado: 'ANULADO' })
+    const salida = html()
+    expect(salida).toContain('Anulado')
+    expect(salida).toContain('Asiento anulado: no afecta los saldos del plan de cuentas.')
+    expect(salida).not.toContain('fue reversado')
+  })
+
+  it('un asiento reversado avisa que su reverso lo deja sin efecto y no se toma por reverso', () => {
+    abrir({ ...ASIENTO, estado: 'REVERSADO', idAsientoReversion: null })
+    const salida = html()
+    expect(salida).toContain('Este asiento fue reversado; su reverso lo deja sin efecto.')
+    expect(salida).not.toContain('Reverso del asiento')
+    expect(salida).not.toContain('Asiento anulado')
+  })
+
+  it('un reverso nombra el asiento original y ofrece abrirlo', () => {
+    abrir({ ...ASIENTO, idAsientoContable: 4, numeroAsiento: 'AS-000004', idAsientoReversion: 301 })
+    estado.porId = { 301: { isPending: false, isError: false, data: { ...ASIENTO, idAsientoContable: 301, numeroAsiento: '20260720-001-000003' } } }
+    const salida = html(4)
+    expect(salida).toContain('Reverso del asiento 20260720-001-000003')
+    expect(salida).toContain('Ver el asiento original')
+    expect(salida).not.toContain('fue reversado')
+  })
+
+  it('mientras carga el original del reverso muestra su id', () => {
+    abrir({ ...ASIENTO, idAsientoReversion: 301 })
+    estado.porId = { 301: { isPending: true, isError: false, data: undefined } }
+    expect(html()).toContain('Reverso del asiento n.º 301')
+  })
+
+  it('marca las líneas en cuentas de grupo y avisa arriba; sin plan o sin cuentas de grupo no marca nada', () => {
+    estado.plan = { data: [cuenta(10, '110105', 'Caja general'), cuenta(20, '210135', 'Depósitos a la vista', false)] }
+    const salida = html()
+    expect(salida).toContain('Hay líneas en cuentas de grupo.')
+    expect(salida.match(/Cuenta de grupo<span class="sr-only">/g)).toHaveLength(1)
+    expect(salida).toContain('Cuenta de grupo: según el catálogo de la SEPS no debería recibir movimientos.')
+
+    estado.plan = { data: [cuenta(10, '110105', 'Caja general'), cuenta(20, '210135', 'Depósitos a la vista')] }
+    expect(html()).not.toContain('Cuenta de grupo')
+
+    estado.plan = { data: undefined, isError: true }
+    expect(html()).not.toContain('Cuenta de grupo')
+    estado.plan = { data: [cuenta(99, '999999', 'Otra', false)] }
+    expect(html()).not.toContain('Cuenta de grupo')
   })
 
   it('muestra los estados de carga, sin líneas y error', () => {

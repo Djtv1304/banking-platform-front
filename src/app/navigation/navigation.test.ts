@@ -19,7 +19,7 @@ describe('vista de roles y menú comparten la configuración', () => {
     }
   })
   it('conserva contabilidad y no presenta roles desconocidos como roles del sistema', () => {
-    expect(opciones('CONTADOR')).toEqual(expect.arrayContaining(['Plan de cuentas', 'Asientos contables']))
+    expect(opciones('CONTADOR')).toEqual(expect.arrayContaining(['Plan de cuentas', 'Asientos contables', 'Fecha contable']))
     expect(opciones('NO_EXISTE')).toEqual([])
   })
 })
