@@ -56,12 +56,12 @@ export function ProductoFormDialog({ modo, onCerrar, onGuardado }: ProductoFormD
       <DialogContent className="gap-5 p-6 sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-heading">
-            {modo?.tipo === 'editar' ? `Editar producto ${modo.producto.codigoProducto}` : 'Nuevo producto'}
+            {modo?.tipo === 'editar' ? `Editar datos comunes de ${modo.producto.codigoProducto}` : 'Nueva linea comercial'}
           </DialogTitle>
           <DialogDescription>
             {editando
               ? 'Los datos se editan solo mientras el producto está en Borrador y sin uso.'
-              : 'El producto se crea en Borrador. Agrégale al menos un subproducto y actívalo para ofrecerlo.'}
+              : 'Elige el producto y su subproducto predefinido. Guarda los datos comunes en Borrador y agrega sus modelos comerciales.'}
           </DialogDescription>
         </DialogHeader>
         {modo && (
@@ -119,7 +119,7 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
     setSinCambios(false)
     if (modo.tipo === 'crear') {
       crear.mutate(payloadCrear(datos), {
-        onSuccess: (p) => onGuardado(`Creamos el producto ${p.codigoProducto}. Agrégale un subproducto para activarlo.`),
+        onSuccess: (p) => onGuardado(`Guardamos los datos comunes de ${p.codigoProducto}. Agrega un modelo comercial en Borrador.`),
         onError: alFallar,
       })
       return
@@ -153,7 +153,22 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
             {...register('codigoProducto')}
           />
         </Campo>
-        <Campo id="producto-tipo" label="Tipo" error={errors.tipoProducto?.message}>
+        <Campo id="producto-familia" label="Producto" error={errors.tipoProducto?.message}>
+          <Controller control={control} name="tipoProducto" render={({ field }) => (
+            <Select value={field.value} disabled={editando || tipos.isPending || tipos.isError} onValueChange={(valor) => {
+              field.onChange(valor)
+              const tipoPredefinido = valor === 'Cuenta' ? undefined : tipos.data?.find((t) => t.tipoProducto === valor)
+              setValue('idTipoProducto', tipoPredefinido ? String(tipoPredefinido.idTipoProducto) : '')
+              setValue('tipoCuenta', '')
+              setValue('idTipoCredito', '')
+              setValue('idRed', '')
+            }}>
+              <SelectTrigger id="producto-familia" className={selectClassName} onBlur={field.onBlur}><SelectValue placeholder="Elige el producto" /></SelectTrigger>
+              <SelectContent><SelectItem value="Cuenta">Cuentas</SelectItem><SelectItem value="Credito">Creditos</SelectItem><SelectItem value="Tarjeta">Tarjetas</SelectItem></SelectContent>
+            </Select>
+          )} />
+        </Campo>
+        {tipo === 'Cuenta' && <Campo id="producto-tipo" label="Subproducto predefinido" error={errors.idTipoProducto?.message}>
           <Controller
             control={control}
             name="idTipoProducto"
@@ -171,10 +186,10 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
                   className={selectClassName}
                   {...a11yCampo('producto-tipo', errors.tipoProducto?.message)}
                 >
-                  <SelectValue placeholder="Elige el tipo" />
+                  <SelectValue placeholder="Elige el subproducto" />
                 </SelectTrigger>
                 <SelectContent>
-                  {tipos.data?.map((t) => (
+                  {tipos.data?.filter((t) => t.tipoProducto === tipo).map((t) => (
                     <SelectItem key={t.idTipoProducto} value={String(t.idTipoProducto)}>
                       {t.nombre}
                     </SelectItem>
@@ -183,7 +198,7 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
               </Select>
             )}
           />
-        </Campo>
+        </Campo>}
         <div className="sm:col-span-2">
           <Campo id="producto-nombre" label="Nombre" error={errors.nombreProducto?.message}>
             <Input
@@ -253,7 +268,7 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
 
         {tipo === 'Credito' && (
           <div className="sm:col-span-2">
-            <Campo id="producto-tipo-credito" label="Tipo de crédito" error={errors.idTipoCredito?.message}>
+            <Campo id="producto-tipo-credito" label="Subproducto de credito" error={errors.idTipoCredito?.message}>
               <Controller
                 control={control}
                 name="idTipoCredito"
@@ -338,7 +353,7 @@ function FormularioProducto({ modo, onCancelar, onGuardado }: FormularioProducto
         </Button>
         <Button type="submit" size="lg" disabled={mutacion.isPending} className="rounded-lg px-4 font-semibold">
           {mutacion.isPending ? <LoaderCircle className="animate-spin" /> : <Save />}
-          {editando ? 'Guardar cambios' : 'Crear producto'}
+          {editando ? 'Guardar cambios' : 'Guardar datos comunes'}
         </Button>
       </DialogFooter>
     </form>

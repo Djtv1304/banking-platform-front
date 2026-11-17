@@ -97,10 +97,10 @@ describe('ProductosPage (listado)', () => {
   })
 
   it('ADMIN crea; ASESOR solo consulta', () => {
-    expect(lista()).toContain('Nuevo producto')
+    expect(lista()).toContain('Nuevo modelo comercial')
     estado.roles = ['ASESOR']
     expect(lista()).toContain('Solo consulta')
-    expect(lista()).not.toContain('Nuevo producto')
+    expect(lista()).not.toContain('Nuevo modelo comercial')
   })
 
   it('en la app solo se habla de clientes, nunca de socios', () => {
@@ -119,7 +119,7 @@ describe('DetalleProductoPage', () => {
     const salida = detalle()
     expect(salida).toContain('Editar')
     expect(salida).toContain('aria-label="Desactivar AHO001-PN"')
-    expect(salida).toContain('Subproducto</button>')
+    expect(salida).toContain('Modelo comercial</button>')
   })
 
   it('todos los subproductos se parametrizan, con la ayuda de su tipo', () => {
@@ -139,14 +139,14 @@ describe('DetalleProductoPage', () => {
     expect(salida).toContain('aria-label="Parámetros de CRE001-01"')
     expect(salida).not.toContain('Editar')
     expect(salida).not.toContain('Desactivar')
-    expect(salida).not.toContain('Subproducto</button>')
+    expect(salida).not.toContain('Modelo comercial</button>')
   })
 })
 
 
 it('sin productos:editar no ofrece escrituras aunque el rol sea ADMIN', () => {
   estado.permisos = ['productos:exportar']
-  expect(lista()).not.toContain('Nuevo producto')
+  expect(lista()).not.toContain('Nuevo modelo comercial')
   expect(detalle()).not.toContain('Editar')
 })
 it('consultar no pide permiso: sin ninguno, la lista se muestra', () => {
