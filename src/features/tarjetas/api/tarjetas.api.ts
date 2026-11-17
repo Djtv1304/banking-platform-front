@@ -1,15 +1,18 @@
+import { AxiosError, type AxiosResponse } from 'axios'
 import type { z } from 'zod'
 
-import { ApiError, apiClient } from '@/shared/api'
+import { ApiError, apiClient, toApiError } from '@/shared/api'
 import {
   clienteSchema,
   cuentaSchema,
   direccionSchema,
+  pageHistorialSchema,
   pageSchema,
   TARJETAS_ENDPOINTS,
   tarjetaResumenSchema,
   tarjetaSchema,
   type TarjetaCreate,
+  type TarjetaEstadoUpdate,
 } from '@/features/tarjetas/api/tarjetas.contract'
 
 const RESPUESTA_INVALIDA = 'No pudimos leer la respuesta del servidor. Inténtalo más tarde.'
@@ -70,4 +73,46 @@ export const getTarjeta = (idTarjeta: number) => getValidado(TARJETAS_ENDPOINTS.
 export async function solicitarTarjeta(body: TarjetaCreate) {
   const { data, status } = await apiClient.post<unknown>(TARJETAS_ENDPOINTS.tarjetas, body)
   return validar(tarjetaSchema, data, status)
+}
+
+/** TAR-04 · Devuelve la tarjeta con su nuevo estado; el backend valida la transición */
+export async function cambiarEstadoTarjeta(idTarjeta: number, body: TarjetaEstadoUpdate) {
+  const { data, status } = await apiClient.post<unknown>(TARJETAS_ENDPOINTS.estado(idTarjeta), body)
+  return validar(tarjetaSchema, data, status)
+}
+
+/** TAR-05 · Sin body (el backend rechaza uno): el HSM genera el PIN y nadie lo ve. Responde 204 */
+export async function regenerarPin(idTarjeta: number) {
+  await apiClient.post(TARJETAS_ENDPOINTS.pin(idTarjeta))
+}
+
+/** TAR-06 · `params` con page, pageSize y, si hay, fechaDesde/fechaHasta (YYYY-MM-DD) */
+export const getHistorialTarjeta = (idTarjeta: number, params: Record<string, string>) =>
+  getValidado(TARJETAS_ENDPOINTS.historial(idTarjeta), pageHistorialSchema, params)
+
+/**
+ * Con `responseType: 'blob'` el ProblemDetails de un error también llega como Blob y el
+ * interceptor no podría leer su `code` (SOBRE_PIN_ENTREGADO…): se lee aquí y se normaliza igual.
+ */
+async function errorDesdeBlob(response: AxiosResponse<Blob>) {
+  let data: unknown = null
+  try {
+    data = JSON.parse(await response.data.text())
+  } catch {
+    // Sin JSON: queda el error genérico del status
+  }
+  return toApiError(new AxiosError(undefined, undefined, response.config, response.request, { ...response, data }))
+}
+
+/**
+ * TAR-07 · PDF del sobre de PIN; el backend lo entrega una sola vez. 401 y 403 siguen por el
+ * interceptor (sesión vencida, releer el acceso); el resto de errores se leen del Blob.
+ */
+export async function descargarSobrePin(idTarjeta: number) {
+  const response = await apiClient.get<Blob>(TARJETAS_ENDPOINTS.sobrePin(idTarjeta), {
+    responseType: 'blob',
+    validateStatus: (status) => status !== 401 && status !== 403,
+  })
+  if (response.status >= 300) throw await errorDesdeBlob(response)
+  return response.data
 }
