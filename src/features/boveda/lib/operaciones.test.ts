@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { arqueoSchema, IDEMPOTENCY_KEY_REGEX, movimientosRegistradosSchema, registrarMovimientoSchema } from '@/features/boveda/api/bovedas.contract'
+import {
+  arqueoSchema,
+  crearSolicitudMovimientoSchema,
+  IDEMPOTENCY_KEY_REGEX,
+  motivoResolucionSchema,
+  movimientoBovedaSchema,
+  movimientosEjecutadosSchema,
+  paginaArqueosSchema,
+  solicitudMovimientoSchema,
+} from '@/features/boveda/api/bovedas.contract'
 import {
   ARQUEO_VACIO,
   arqueoFormSchema,
@@ -64,29 +73,30 @@ describe('cantidades', () => {
   })
 })
 
-describe('formulario de movimiento (BOV-04)', () => {
+describe('formulario de solicitud de movimiento (SMV-01)', () => {
   const schema = movimientoFormSchema(1)
 
-  it('arma el body sin contraparte ni observaciones vacías', () => {
-    const body = schema.parse({ ...MOVIMIENTO_VACIO, tipoMovimiento: 'DotacionCaja', autorizadoPor: 2, observaciones: '  ', cantidades: { d4: '50' } })
-    expect(body).toEqual({ desglose: [{ idDenominacion: 4, cantidad: 50 }], tipoMovimiento: 'DotacionCaja', autorizadoPor: 2 })
-    expect(registrarMovimientoSchema.safeParse(body).success).toBe(true)
+  it('arma el body sin contraparte, autorizador ni observaciones vacías', () => {
+    const body = schema.parse({ ...MOVIMIENTO_VACIO, tipoMovimiento: 'DotacionCaja', observaciones: '  ', cantidades: { d4: '50' } })
+    expect(body).toEqual({ desglose: [{ idDenominacion: 4, cantidad: 50 }], tipoMovimiento: 'DotacionCaja' })
+    expect(crearSolicitudMovimientoSchema.safeParse(body).success).toBe(true)
+    expect(crearSolicitudMovimientoSchema.safeParse({ ...body, autorizadoPor: 2 }).success).toBe(false)
   })
 
   it('un traslado exige otra bóveda', () => {
-    const base = { ...MOVIMIENTO_VACIO, tipoMovimiento: 'Traslado' as const, autorizadoPor: 2, cantidades: { d4: '1' } }
+    const base = { ...MOVIMIENTO_VACIO, tipoMovimiento: 'Traslado' as const, cantidades: { d4: '1' } }
     expect(schema.safeParse(base).success).toBe(false)
     expect(schema.safeParse({ ...base, idBovedaContraparte: '1' }).success).toBe(false)
     expect(schema.parse({ ...base, idBovedaContraparte: '2' })).toMatchObject({ idBovedaContraparte: 2 })
   })
 
-  it('pide tipo, autorizador y al menos una pieza', () => {
+  it('pide tipo y al menos una pieza', () => {
     const result = schema.safeParse(MOVIMIENTO_VACIO)
     expect(result.success).toBe(false)
     const rutas = result.error?.issues.map((issue) => issue.path.join('.'))
-    expect(rutas).toEqual(expect.arrayContaining(['tipoMovimiento', 'autorizadoPor', 'cantidades']))
+    expect(rutas).toEqual(['tipoMovimiento', 'cantidades'])
     expect(
-      schema.safeParse({ ...MOVIMIENTO_VACIO, tipoMovimiento: 'DotacionCaja', autorizadoPor: 2, cantidades: { d4: 'x' } }).error?.issues[0].path,
+      schema.safeParse({ ...MOVIMIENTO_VACIO, tipoMovimiento: 'DotacionCaja', cantidades: { d4: 'x' } }).error?.issues[0].path,
     ).toEqual(['cantidades', 'd4'])
   })
 })
@@ -118,10 +128,63 @@ describe('respuestas', () => {
     desglose: [{ idDenominacion: 4, cantidad: 50 }],
   }
 
-  it('BOV-04 acepta la lista (y un objeto suelto) y siempre devuelve una lista', () => {
-    expect(movimientosRegistradosSchema.parse([movimiento])).toHaveLength(1)
-    expect(movimientosRegistradosSchema.parse(movimiento)).toHaveLength(1)
-    expect(movimientosRegistradosSchema.safeParse([]).success).toBe(false)
+  it('BOV-03 lee la solicitud que originó el movimiento', () => {
+    expect(movimientoBovedaSchema.parse({ ...movimiento, idSolicitudMovimiento: 77 }).idSolicitudMovimiento).toBe(77)
+    expect(movimientoBovedaSchema.parse(movimiento).idSolicitudMovimiento).toBeUndefined()
+  })
+
+  it('SMV-04 acepta la lista (y un objeto suelto) y siempre devuelve una lista', () => {
+    expect(movimientosEjecutadosSchema.parse([movimiento, { ...movimiento, idMovimiento: 501, idBoveda: 2, naturaleza: 'I' }])).toHaveLength(2)
+    expect(movimientosEjecutadosSchema.parse(movimiento)).toHaveLength(1)
+  })
+
+  it('lee la solicitud con nulos y desglose con valor unitario', () => {
+    const solicitud = solicitudMovimientoSchema.parse({
+      idSolicitudMovimiento: 9,
+      idBoveda: 1,
+      idBovedaContraparte: null,
+      idAgencia: '001',
+      tipoMovimiento: 'DotacionCaja',
+      monto: 1000,
+      idUsuarioSolicitante: 4,
+      fechaSolicitud: '2026-11-18T18:11:06.553Z',
+      estado: 'PENDIENTE',
+      observaciones: null,
+      idUsuarioResolucion: null,
+      fechaResolucion: null,
+      motivoResolucion: null,
+      desglose: [{ idDenominacion: 4, cantidad: 50, valorUnitario: 20 }],
+      idsMovimientos: null,
+    })
+    expect(solicitud.idsMovimientos).toEqual([])
+    expect(solicitud.desglose[0].valorUnitario).toBe(20)
+  })
+
+  it('SMV-05 y SMV-06 exigen un motivo con texto', () => {
+    expect(motivoResolucionSchema.safeParse({ motivo: '   ' }).success).toBe(false)
+    expect(motivoResolucionSchema.parse({ motivo: ' Límite excedido ' })).toEqual({ motivo: 'Límite excedido' })
+  })
+
+  it('BOV-07 lee arqueos sin diferencia por denominación', () => {
+    const pagina = paginaArqueosSchema.parse({
+      items: [
+        {
+          idArqueoBoveda: 3,
+          idBoveda: 1,
+          fechaHoraArqueo: '2026-11-18T18:26:36.612Z',
+          tipoArqueo: 'Programado',
+          estado: 'APROBADO',
+          saldoTeorico: null,
+          saldoFisico: null,
+          diferencia: null,
+          idsMovimientosAjuste: [],
+        },
+      ],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+    })
+    expect(pagina.items[0].diferenciaPorDenominacion).toEqual([])
   })
 
   it('lee el arqueo y describe su diferencia', () => {
@@ -142,6 +205,8 @@ describe('respuestas', () => {
     expect(sinEspacios(textoDiferencia(arqueo))).toBe('Faltante de $20,00')
     expect(resultadoArqueo({ diferencia: 0.001 })).toBe('cuadra')
     expect(resultadoArqueo({ diferencia: 0.25 })).toBe('sobrante')
+    expect(resultadoArqueo({ diferencia: null })).toBe('sin-dato')
+    expect(textoDiferencia({ diferencia: null })).toBe('Diferencia no registrada')
   })
 })
 
@@ -150,10 +215,10 @@ describe('Idempotency-Key', () => {
     expect(IDEMPOTENCY_KEY_REGEX.test(nuevaClaveIdempotencia())).toBe(true)
   })
 
-  it('se reutiliza para el mismo body y cambia si cambia el movimiento', () => {
-    const body = { desglose: [{ idDenominacion: 4, cantidad: 50 }], tipoMovimiento: 'DotacionCaja' as const, autorizadoPor: 2 }
+  it('se reutiliza para el mismo body y cambia si cambia la solicitud', () => {
+    const body = { desglose: [{ idDenominacion: 4, cantidad: 50 }], tipoMovimiento: 'DotacionCaja' as const }
     const primero = claveParaEnvio(null, body)
     expect(claveParaEnvio(primero, { ...body })).toBe(primero)
-    expect(claveParaEnvio(primero, { ...body, autorizadoPor: 3 }).clave).not.toBe(primero.clave)
+    expect(claveParaEnvio(primero, { ...body, observaciones: 'Caja 3' }).clave).not.toBe(primero.clave)
   })
 })
