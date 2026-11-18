@@ -20,9 +20,13 @@ vi.mock('@/features/seguridad/hooks/useSeguridad', () => ({
 }))
 
 describe('CatalogoPermisos', () => {
-  it('ofrece crear permisos y lista los propios para editarlos o borrarlos, sin los de sistema', () => {
+  it('lista los permisos vigentes con su descripción para editarlos o borrarlos, sin los de sistema', () => {
     const html = renderToStaticMarkup(<CatalogoPermisos />)
-    expect(html).toContain('Crear permiso')
+    expect(html).toContain('Nuevo permiso')
+    expect(html).toContain('1 permiso vigente')
+    expect(html).toContain('Ver el catálogo')
+    // El formulario se abre con «Nuevo permiso»
+    expect(html).not.toContain('id="permiso-slug"')
     expect(html).toContain('Borrar prd-consultar')
     expect(html).toContain('Editar prd-consultar')
     expect(html).not.toContain('Manage users')

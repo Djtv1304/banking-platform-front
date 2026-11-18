@@ -5,7 +5,6 @@ import { ArrowRight, KeyRound, ListChecks, ShieldCheck, Users } from 'lucide-rea
 import { formatRol, hasAnyRole, useAuthStore } from '@/features/auth'
 import { AsignacionPermisos } from '@/features/seguridad/components/AsignacionPermisos'
 import { CatalogoPermisos } from '@/features/seguridad/components/CatalogoPermisos'
-import { slugRol } from '@/features/seguridad/api/seguridad.contract'
 import { ROLES_CONSULTA_ROLES, type SeccionAccesoRol } from '@/features/seguridad/lib/acceso'
 import { Aviso, Badge, Button } from '@/shared/ui'
 import { cn } from '@/shared/lib'
@@ -40,7 +39,7 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
   const [vista, setVista] = useState<Vista>({ tipo: 'rol', rol: roles[0] ?? '' })
 
   if (!hasAnyRole(actuales ?? [], ROLES_CONSULTA_ROLES)) {
-    return <Aviso tono="error">Solo un administrador (org-admin) puede administrar los roles y accesos del personal.</Aviso>
+    return <Aviso tono="error">Solo un administrador puede administrar los roles y accesos del personal.</Aviso>
   }
 
   return (
@@ -49,7 +48,7 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
         <div>
           <h1 className="text-[32px] leading-tight font-bold tracking-tight text-heading sm:text-[40px]">Roles y accesos</h1>
           <p className="mt-2 max-w-2xl text-base text-muted-foreground">
-            Revisa qué muestra la aplicación a cada rol de la organización (org-*) y administra sus permisos.
+            Revisa qué muestra la aplicación a cada rol y administra los permisos.
           </p>
         </div>
         <Badge variant="secondary" className="h-7 gap-1.5 px-3 text-sm">
@@ -73,10 +72,7 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
                 {roles.map((rol) => (
                   <li key={rol}>
                     <OpcionLateral activa={vista.tipo === 'rol' && vista.rol === rol} onClick={() => setVista({ tipo: 'rol', rol })}>
-                      <span className="flex flex-col">
-                        {formatRol(rol)}
-                        <code className="text-xs font-normal text-muted-foreground">{slugRol(rol)}</code>
-                      </span>
+                      {formatRol(rol)}
                     </OpcionLateral>
                   </li>
                 ))}
@@ -121,9 +117,7 @@ function DetalleRol({ rol, secciones }: { rol: string; secciones: SeccionAccesoR
     <>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-heading">
-            {formatRol(rol)} <code className="text-base font-normal text-muted-foreground">{slugRol(rol)}</code>
-          </h2>
+          <h2 className="text-2xl font-bold text-heading">{formatRol(rol)}</h2>
           <p className="mt-1 text-sm text-muted-foreground" aria-live="polite">
             {cantidad} {cantidad === 1 ? 'opción visible' : 'opciones visibles'} en el menú.
           </p>
