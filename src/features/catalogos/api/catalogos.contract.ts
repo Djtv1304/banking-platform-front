@@ -78,8 +78,8 @@ export const denominacionSchema = z.object({
 })
 
 /**
- * CAT-06 · Todas las agencias con su estado (`A` activa, `I` inactiva, `C` cerrada): los formularios
- * que crean operaciones solo deben ofrecer las `A`. Orden: Matriz primero, luego por código.
+ * CAT-06 · Agencias activas desde E0-10. El esquema admite estados anteriores por compatibilidad.
+ * Orden: Matriz primero, luego por código.
  */
 export const agenciaSchema = z.object({
   idAgencia: z.string(),

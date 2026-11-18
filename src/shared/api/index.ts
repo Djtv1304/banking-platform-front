@@ -4,3 +4,4 @@
 export { apiClient, fijarContextoAgencia, limpiarContextoAgencia, setUnauthorizedHandler, setForbiddenHandler } from '@/shared/api/client';
 export { ApiError, toApiError } from '@/shared/api/errors';
 export type { ApiFieldError } from '@/shared/api/errors';
+export { aceptadaSchema } from '@/shared/api/aprobaciones.contract'

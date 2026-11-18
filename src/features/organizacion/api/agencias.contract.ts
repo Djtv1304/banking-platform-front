@@ -1,17 +1,11 @@
 import { z } from 'zod'
 
-/*
- * Contrato de Organización · Agencias (ORG-01 y ORG-02) en camelCase. Solo ADMIN.
- *
- * La lista sale del catálogo (CAT-06, `useAgencias` de catalogos); aquí van el detalle, el alta y
- * la edición. No hay DELETE: la baja es lógica por estado. Los bodies rechazan campos desconocidos
- * (400): se envían solo los campos que se definen.
- */
+const BASE = '/api/v1/organizacion/agencias'
 
 export const AGENCIAS_ENDPOINTS = {
-  crear: '/api/v1/agencias',
-  /** GET (detalle) y PATCH (ORG-02) */
-  agencia: (idAgencia: string) => `/api/v1/agencias/${encodeURIComponent(idAgencia)}`,
+  lista: BASE,
+  agencia: (id: string) => `${BASE}/${encodeURIComponent(id)}`,
+  estado: (id: string) => `${BASE}/${encodeURIComponent(id)}/estado`,
 } as const
 
 export const tipoAgenciaSchema = z.enum(['Matriz', 'Sucursal'])
@@ -19,13 +13,23 @@ export const tipoAgenciaSchema = z.enum(['Matriz', 'Sucursal'])
 /** `A` activa, `I` inactiva, `C` cerrada (la API no llega a `C` ni sale de él) */
 export const estadoAgenciaSchema = z.enum(['A', 'I', 'C'])
 
+export const agenciaEstadoSchema = z.object({
+  idAgencia: z.string().min(1),
+  estado: estadoAgenciaSchema,
+})
+
+export interface AgenciaEstadoUpdate {
+  estado: 'A' | 'I'
+  motivo: string
+}
+
 /** Respuesta del detalle, de ORG-01 (201) y de ORG-02 (200). El valor de KeyAgencia no se publica */
 export const agenciaDetalleSchema = z.object({
   idAgencia: z.string().trim().min(1),
   codigo: z.string(),
   tipoAgencia: tipoAgenciaSchema,
   estado: estadoAgenciaSchema,
-  idCiudad: z.number(),
+  idCiudad: z.number().int().positive(),
   telefono: z.string().nullish(),
   direccion: z.string().nullish(),
   fechaCreacion: z.string(),
@@ -45,13 +49,11 @@ export interface AgenciaCreate {
   direccion?: string
 }
 
-/** ORG-02 · Parcial: solo los campos presentes cambian. `null` borra un opcional. `motivo` es obligatorio si cambia `estado` */
+/** ORG-02 · Parcial: solo los campos presentes cambian. `null` borra un opcional. */
 export interface AgenciaUpdate {
   codigo?: string
   tipoAgencia?: TipoAgencia
   idCiudad?: number
   telefono?: string | null
   direccion?: string | null
-  estado?: 'A' | 'I'
-  motivo?: string
 }
