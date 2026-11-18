@@ -27,8 +27,14 @@ export function useDetalleAprobacion(id: number) {
 
 export function useResolverAprobacion(id: number) {
   const client = useQueryClient()
-  return useMutation({ mutationFn: (datos: { accion: Accion; comentario: string }) => resolverSolicitud(id, datos.accion, datos.comentario), onSettled: async () => {
+  return useMutation({ mutationFn: (datos: { accion: Accion; comentario: string }) => resolverSolicitud(id, datos.accion, datos.comentario), onSettled: async (resultado, error, { accion }) => {
     // Tambien un 409 o una caida despues del commit exige releer el estado real.
     await client.invalidateQueries({ queryKey: ['aprobaciones'] })
+    if (resultado?.estado === 'Ejecutada' || (error && accion === 'aprobar')) {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['organizacion', 'agencias'] }),
+        client.invalidateQueries({ queryKey: ['catalogos', 'agencias'] }),
+      ])
+    }
   } })
 }

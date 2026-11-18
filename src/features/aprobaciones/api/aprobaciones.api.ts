@@ -1,5 +1,5 @@
-import { apiClient, ApiError } from '@/shared/api'
-import { aceptadaSchema, accesosSchema, bandejaSchema, detalleSchema, resultadoSchema, type Accion, type BandejaNombre, type SolicitudEntrada } from '@/features/aprobaciones/api/aprobaciones.contract'
+import { aceptadaSchema, apiClient, ApiError } from '@/shared/api'
+import { accesosSchema, bandejaSchema, detalleSchema, resultadoSchema, type Accion, type BandejaNombre, type SolicitudEntrada } from '@/features/aprobaciones/api/aprobaciones.contract'
 
 const BASE = '/api/v1/aprobaciones'
 export async function obtenerAccesos() { return accesosSchema.parse((await apiClient.get(`${BASE}/accesos`)).data) }

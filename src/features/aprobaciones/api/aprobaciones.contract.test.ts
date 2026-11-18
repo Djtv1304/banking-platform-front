@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { aceptadaSchema, comentarioSchema, resultadoSchema } from '@/features/aprobaciones/api/aprobaciones.contract'
+import { aceptadaSchema } from '@/shared/api'
+import { comentarioSchema, resultadoSchema } from '@/features/aprobaciones/api/aprobaciones.contract'
 import { toApiError } from '@/shared/api'
 
 describe('contrato de doble autorizacion', () => {

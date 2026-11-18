@@ -39,6 +39,16 @@ describe('toApiError', () => {
     expect(toApiError(axiosError(500, { title: 'Error' })).fields).toEqual([])
   })
 
+  it('conserva los bloqueos operativos válidos de un conflicto', () => {
+    const error = toApiError(axiosError(409, {
+      code: 'AGENCIA_CON_OPERACION',
+      detail: 'La agencia tiene operaciones activas.',
+      bloqueos: ['jornadas de caja abiertas', null, 'bóvedas activas', ''],
+    }))
+    expect(error.bloqueos).toEqual(['jornadas de caja abiertas', 'bóvedas activas'])
+    expect(toApiError(error)).toBe(error)
+  })
+
   it('lee el 401 del backend sin sesión', () => {
     const error = toApiError(axiosError(401, { status: 401, code: 'NO_AUTENTICADO', detail: 'Inicie sesión para continuar.' }))
     expect(error.status).toBe(401)

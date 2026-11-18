@@ -1,5 +1,7 @@
 # Agencias: identificador asignado por backend
 
+> Contrato vigente y evidencia de E0-10 en [Mantenimiento de agencias](e010-agencias.md).
+
 Adaptación de ORG-01 al contrato del backend #336. POST /api/v1/agencias recibe
 codigo, tipoAgencia e idCiudad, con telefono/direccion opcionales en esta pantalla.
 No solicita ni envía idAgencia; no calcula el próximo valor en React.
