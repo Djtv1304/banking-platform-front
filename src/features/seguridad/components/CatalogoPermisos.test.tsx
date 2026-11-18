@@ -16,13 +16,15 @@ vi.mock('@/features/seguridad/hooks/useSeguridad', () => ({
   }),
   useCrearPermiso: () => ({ isPending: false, error: null, mutate: vi.fn() }),
   useBorrarPermiso: () => ({ isPending: false, error: null, mutate: vi.fn() }),
+  useEditarPermiso: () => ({ isPending: false, error: null, mutate: vi.fn() }),
 }))
 
 describe('CatalogoPermisos', () => {
-  it('ofrece crear permisos y lista los propios para borrarlos, sin los de sistema', () => {
+  it('ofrece crear permisos y lista los propios para editarlos o borrarlos, sin los de sistema', () => {
     const html = renderToStaticMarkup(<CatalogoPermisos />)
     expect(html).toContain('Crear permiso')
     expect(html).toContain('Borrar prd-consultar')
+    expect(html).toContain('Editar prd-consultar')
     expect(html).not.toContain('Manage users')
   })
 

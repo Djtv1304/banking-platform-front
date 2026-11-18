@@ -4,9 +4,11 @@ import { ApiError, apiClient } from '@/shared/api'
 import {
   pestanaRolesSchema,
   permisoSchema,
+  edicionPermisoSchema,
   nuevoPermisoSchema,
   rolPermisosSchema,
   SEGURIDAD_ENDPOINTS,
+  type EdicionPermiso,
   type NuevoPermiso,
   type PestanaRoles,
 } from '@/features/seguridad/api/seguridad.contract'
@@ -31,6 +33,13 @@ export async function crearPermiso(permiso: NuevoPermiso) {
   const body = nuevoPermisoSchema.parse(permiso)
   const { data, status } = await apiClient.post<unknown>(SEGURIDAD_ENDPOINTS.permisos, { ...body, descripcion: body.descripcion || null })
   return leer(permisoSchema, data, status, 'No pudimos leer el permiso creado.')
+}
+
+/** SEG02 · Edita nombre y descripción de un permiso */
+export async function editarPermiso(slug: string, cambios: EdicionPermiso) {
+  const body = edicionPermisoSchema.parse(cambios)
+  const { data, status } = await apiClient.patch<unknown>(SEGURIDAD_ENDPOINTS.permiso(slug), { nombre: body.nombre, descripcion: body.descripcion ?? '' })
+  return leer(permisoSchema, data, status, 'No pudimos leer el permiso editado.')
 }
 
 /** SEG10 · Borra el permiso y lo quita de los roles; el backend no borra los que la aplicación exige */
