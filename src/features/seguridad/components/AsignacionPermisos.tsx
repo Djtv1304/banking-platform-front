@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { ListChecks } from 'lucide-react'
 
 import { formatRol } from '@/features/auth'
-import { slugRol } from '@/features/seguridad/api/seguridad.contract'
 import { PermisosRolPanel } from '@/features/seguridad/components/PermisosRolPanel'
 import { Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui'
 
@@ -29,7 +28,7 @@ export function AsignacionPermisos({ roles }: { roles: readonly string[] }) {
           <SelectContent>
             {roles.map((r) => (
               <SelectItem key={r} value={r}>
-                {formatRol(r)} ({slugRol(r)})
+                {formatRol(r)}
               </SelectItem>
             ))}
           </SelectContent>

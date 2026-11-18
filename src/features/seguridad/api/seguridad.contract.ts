@@ -32,8 +32,6 @@ export type NuevoPermiso = z.infer<typeof nuevoPermisoSchema>
 export const edicionPermisoSchema = nuevoPermisoSchema.pick({ nombre: true, descripcion: true })
 export type EdicionPermiso = z.infer<typeof edicionPermisoSchema>
 
-/** El slug del rol en WorkOS (CONTADOR → org-contador). Solo los roles org-* dan acceso. */
-export const slugRol = (rol: string) => `org-${rol.toLowerCase().replace(/_/g, '-')}`
 
 export const rolPermisosSchema = z.object({
   rol: z.string(),

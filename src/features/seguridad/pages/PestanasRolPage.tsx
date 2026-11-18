@@ -4,7 +4,7 @@ import { LayoutList, RotateCcw, Save } from 'lucide-react'
 import { formatRol, hasAnyRole, useAuthStore } from '@/features/auth'
 import { useGuardarPestanas, usePestanas } from '@/features/seguridad/hooks/useSeguridad'
 import { ROLES_CONSULTA_ROLES } from '@/features/seguridad/lib/acceso'
-import { slugRol, type PestanaRoles } from '@/features/seguridad/api/seguridad.contract'
+import type { PestanaRoles } from '@/features/seguridad/api/seguridad.contract'
 import { Aviso, Badge, Button, Cargando, Checkbox } from '@/shared/ui'
 
 export interface PestanaEditable {
@@ -37,7 +37,7 @@ export function PestanasRolPage({ pestanas, roles }: PestanasRolPageProps) {
     return Object.fromEntries(pestanas.map((p) => [p.to, configuradas.get(p.to) ?? p.rolesPorDefecto]))
   }, [guardadas.data, pestanas])
 
-  if (!esAdmin) return <Aviso tono="error">Solo un administrador (org-admin) puede configurar las pestañas por rol.</Aviso>
+  if (!esAdmin) return <Aviso tono="error">Solo un administrador puede configurar las pestañas por rol.</Aviso>
 
   const seleccion = edicion ?? base
   const cambiado = pestanas.some((p) => !igual(seleccion[p.to] ?? [], base[p.to] ?? []))
@@ -109,7 +109,6 @@ export function PestanasRolPage({ pestanas, roles }: PestanasRolPageProps) {
                   {roles.map((rol) => (
                     <th key={rol} scope="col" className="px-2 py-2 text-center font-medium">
                       {formatRol(rol)}
-                      <code className="block text-[11px] font-normal text-muted-foreground">{slugRol(rol)}</code>
                     </th>
                   ))}
                 </tr>
