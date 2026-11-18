@@ -6,9 +6,19 @@ import { z } from 'zod'
  * - BOV-01 GET  /bovedas?idAgencia&tipo
  * - BOV-02 GET  /bovedas/{idBoveda}
  * - BOV-03 GET  /bovedas/{idBoveda}/movimientos?tipoMovimiento&desde&hasta&page&pageSize&sort
- * - BOV-04 POST /bovedas/{idBoveda}/movimientos      (con cabecera Idempotency-Key)
  * - BOV-05 POST /bovedas/{idBoveda}/arqueos
  * - BOV-06 POST /arqueos/{idArqueoBoveda}/aprobacion (sin body)
+ * - BOV-07 GET  /bovedas/{idBoveda}/arqueos?desde&hasta&estado&tipoArqueo&page&pageSize
+ *
+ * Solicitudes de movimiento (el efectivo se mueve recién cuando otra sesión la aprueba):
+ * - SMV-01 POST /bovedas/{idBoveda}/solicitudes-movimiento (con cabecera Idempotency-Key)
+ * - SMV-02 GET  /solicitudes-movimiento?idAgencia&estado&page&pageSize
+ * - SMV-03 GET  /solicitudes-movimiento/{idSolicitudMovimiento}
+ * - SMV-04 POST /solicitudes-movimiento/{idSolicitudMovimiento}/aprobacion  (body `{}`, ejecuta el movimiento)
+ * - SMV-05 POST /solicitudes-movimiento/{idSolicitudMovimiento}/rechazo     ({ motivo })
+ * - SMV-06 POST /solicitudes-movimiento/{idSolicitudMovimiento}/cancelacion ({ motivo })
+ *
+ * `POST /bovedas/{idBoveda}/movimientos` responde 410: los movimientos solo se registran con SMV-01.
  *
  * El dinero llega como number JSON. Las respuestas se validan en tiempo de ejecución porque un 200
  * no garantiza JSON (si `/api` no llega al backend, el hosting puede responder `index.html`).
@@ -22,6 +32,12 @@ export const BOVEDAS_ENDPOINTS = {
   movimientos: (idBoveda: number) => `${BASE}/bovedas/${idBoveda}/movimientos`,
   arqueos: (idBoveda: number) => `${BASE}/bovedas/${idBoveda}/arqueos`,
   aprobacion: (idArqueoBoveda: number) => `${BASE}/arqueos/${idArqueoBoveda}/aprobacion`,
+  crearSolicitud: (idBoveda: number) => `${BASE}/bovedas/${idBoveda}/solicitudes-movimiento`,
+  solicitudes: `${BASE}/solicitudes-movimiento`,
+  solicitud: (idSolicitud: number) => `${BASE}/solicitudes-movimiento/${idSolicitud}`,
+  aprobarSolicitud: (idSolicitud: number) => `${BASE}/solicitudes-movimiento/${idSolicitud}/aprobacion`,
+  rechazarSolicitud: (idSolicitud: number) => `${BASE}/solicitudes-movimiento/${idSolicitud}/rechazo`,
+  cancelarSolicitud: (idSolicitud: number) => `${BASE}/solicitudes-movimiento/${idSolicitud}/cancelacion`,
 } as const
 
 /** Valores del filtro `tipo` de BOV-01 */
@@ -85,6 +101,8 @@ export const movimientoBovedaSchema = z.object({
   fechaMovimiento: z.string(),
   observaciones: z.string().nullish(),
   idAsientoContable: z.number().nullish(),
+  /** Solicitud (SMV) que originó el movimiento; null en ajustes de arqueo y movimientos anteriores al flujo */
+  idSolicitudMovimiento: z.number().nullish(),
   desglose: z
     .array(z.object({ idDenominacion: z.number(), cantidad: z.number() }))
     .nullish()
@@ -109,15 +127,14 @@ export const piezaSchema = z.object({
 
 const idPositivo = z.number().int().positive().max(INT_MAX)
 
-/** TODO(API): confirmar el máximo de `observaciones` en BOV-04 y BOV-05 */
+/** TODO(API): confirmar el máximo de `observaciones` en SMV-01 y BOV-05 */
 export const OBSERVACIONES_MAX = 500
 
-/** BOV-04 · `idBovedaContraparte` solo aplica a los traslados */
-export const registrarMovimientoSchema = z.strictObject({
+/** SMV-01 · `idBovedaContraparte` solo aplica a los traslados. Quien aprueba lo registra el backend */
+export const crearSolicitudMovimientoSchema = z.strictObject({
   desglose: z.array(piezaSchema).min(1),
   tipoMovimiento: z.enum(TIPOS_MOVIMIENTO),
   idBovedaContraparte: idPositivo.optional(),
-  autorizadoPor: idPositivo,
   observaciones: z.string().trim().min(1).max(OBSERVACIONES_MAX).optional(),
 })
 
@@ -132,13 +149,51 @@ export const registrarArqueoSchema = z.strictObject({
   observaciones: z.string().trim().min(1).max(OBSERVACIONES_MAX).optional(),
 })
 
-/** Cabecera de BOV-04: el mismo valor en un reintento evita registrar el movimiento dos veces */
+/** Cabecera de SMV-01: el mismo valor en un reintento evita crear la solicitud dos veces */
 export const IDEMPOTENCY_KEY_REGEX = /^[A-Za-z0-9_-]{1,64}$/
 
-/** BOV-04 responde una lista: un traslado registra el egreso y el ingreso de cada bóveda */
-export const movimientosRegistradosSchema = z
-  .union([z.array(movimientoBovedaSchema).min(1), movimientoBovedaSchema])
+/** SMV-04 responde los movimientos ejecutados: un traslado registra el egreso y el ingreso de cada bóveda */
+export const movimientosEjecutadosSchema = z
+  .union([z.array(movimientoBovedaSchema), movimientoBovedaSchema])
   .transform((valor) => (Array.isArray(valor) ? valor : [valor]))
+
+/** Estados de una solicitud: nace PENDIENTE y termina EJECUTADA (aprobada), RECHAZADA o CANCELADA */
+export const ESTADOS_SOLICITUD = ['PENDIENTE', 'EJECUTADA', 'RECHAZADA', 'CANCELADA'] as const
+
+/** `estado` y `tipoMovimiento` se leen como texto: un valor nuevo del backend se muestra tal cual */
+export const solicitudMovimientoSchema = z.object({
+  idSolicitudMovimiento: z.number(),
+  idBoveda: z.number(),
+  idBovedaContraparte: z.number().nullish(),
+  idAgencia: z.string().nullish(),
+  tipoMovimiento: z.string(),
+  monto: z.number(),
+  idUsuarioSolicitante: z.number().nullish(),
+  fechaSolicitud: z.string(),
+  estado: z.string(),
+  observaciones: z.string().nullish(),
+  idUsuarioResolucion: z.number().nullish(),
+  fechaResolucion: z.string().nullish(),
+  motivoResolucion: z.string().nullish(),
+  desglose: z
+    .array(z.object({ idDenominacion: z.number(), cantidad: z.number(), valorUnitario: z.number().nullish() }))
+    .nullish()
+    .transform((valor) => valor ?? []),
+  idsMovimientos: z.array(z.number()).nullish().transform((valor) => valor ?? []),
+})
+
+export const paginaSolicitudesMovimientoSchema = z.object({
+  items: z.array(solicitudMovimientoSchema),
+  page: z.number(),
+  pageSize: z.number(),
+  total: z.number(),
+})
+
+/** TODO(API): confirmar el máximo de `motivo` en SMV-05 y SMV-06 */
+export const MOTIVO_MAX = 500
+
+/** SMV-05 y SMV-06 · El motivo es obligatorio */
+export const motivoResolucionSchema = z.strictObject({ motivo: z.string().trim().min(1).max(MOTIVO_MAX) })
 
 /** Estados de un arqueo: se registra y luego se aprueba (genera los ajustes) o se anula */
 export const ESTADOS_ARQUEO = ['REGISTRADO', 'APROBADO', 'ANULADO'] as const
@@ -159,15 +214,29 @@ export const arqueoSchema = z.object({
     .nullish()
     .transform((valor) => valor ?? []),
   observaciones: z.string().nullish(),
-  saldoTeorico: z.number(),
-  saldoFisico: z.number(),
-  diferencia: z.number(),
+  /** null en arqueos históricos que no guardaron los saldos (BOV-07) */
+  saldoTeorico: z.number().nullish(),
+  saldoFisico: z.number().nullish(),
+  diferencia: z.number().nullish(),
   idUsuarioAprobador: z.number().nullish(),
   fechaHoraAprobacion: z.string().nullish(),
 })
 
+/** BOV-07 · Los arqueos del listado no traen `diferenciaPorDenominacion` (queda vacía) */
+export const paginaArqueosSchema = z.object({
+  items: z.array(arqueoSchema),
+  page: z.number(),
+  pageSize: z.number(),
+  total: z.number(),
+})
+
 export type PiezaDesglose = z.infer<typeof piezaSchema>
-export type RegistrarMovimiento = z.infer<typeof registrarMovimientoSchema>
+export type CrearSolicitudMovimiento = z.infer<typeof crearSolicitudMovimientoSchema>
+export type SolicitudMovimiento = z.infer<typeof solicitudMovimientoSchema>
+export type EstadoSolicitud = (typeof ESTADOS_SOLICITUD)[number]
+export type PaginaSolicitudesMovimiento = z.infer<typeof paginaSolicitudesMovimientoSchema>
+export type EstadoArqueo = (typeof ESTADOS_ARQUEO)[number]
+export type PaginaArqueos = z.infer<typeof paginaArqueosSchema>
 export type TipoArqueo = (typeof TIPOS_ARQUEO)[number]
 export type RegistrarArqueo = z.infer<typeof registrarArqueoSchema>
 export type Arqueo = z.infer<typeof arqueoSchema>

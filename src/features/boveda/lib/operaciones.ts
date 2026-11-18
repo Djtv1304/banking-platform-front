@@ -6,15 +6,15 @@ import {
   TIPOS_ARQUEO,
   TIPOS_MOVIMIENTO,
   type Arqueo,
+  type CrearSolicitudMovimiento,
   type DenominacionBoveda,
   type PiezaDesglose,
   type RegistrarArqueo,
-  type RegistrarMovimiento,
   type TipoMovimientoBoveda,
 } from '@/features/boveda/api/bovedas.contract'
 import { formatearMonto } from '@/features/boveda/lib/formato'
 
-/* Reglas de los formularios de BOV-04, BOV-05 y BOV-06, sin UI para poder probarlas aparte */
+/* Reglas de los formularios de SMV-01, BOV-05 y BOV-06, sin UI para poder probarlas aparte */
 
 export type Naturaleza = 'I' | 'E'
 
@@ -87,7 +87,7 @@ export function piezasInsuficientes(desglose: readonly PiezaDesglose[], enBoveda
   })
 }
 
-/** Saldo de la bóveda después del movimiento */
+/** Saldo de la bóveda después del movimiento (o cuando se apruebe la solicitud) */
 export const saldoResultante = (saldo: number, total: number, naturaleza: Naturaleza) =>
   Math.round((naturaleza === 'I' ? saldo + total : saldo - total) * 100) / 100
 
@@ -113,12 +113,11 @@ const observaciones = z
   .max(OBSERVACIONES_MAX, `Usa hasta ${OBSERVACIONES_MAX} caracteres.`)
   .transform((valor) => valor || undefined)
 
-/* ── BOV-04 · Registrar movimiento ───────────────────────────────────── */
+/* ── SMV-01 · Solicitar movimiento ───────────────────────────────────── */
 
 export interface MovimientoForm {
   tipoMovimiento: '' | TipoMovimientoBoveda
   idBovedaContraparte: string
-  autorizadoPor: number | null
   observaciones: string
   cantidades: Cantidades
 }
@@ -126,18 +125,16 @@ export interface MovimientoForm {
 export const MOVIMIENTO_VACIO: MovimientoForm = {
   tipoMovimiento: '',
   idBovedaContraparte: '',
-  autorizadoPor: null,
   observaciones: '',
   cantidades: {},
 }
 
-/** El formulario ya convertido en el body de BOV-04 */
+/** El formulario ya convertido en el body de SMV-01 */
 export const movimientoFormSchema = (idBoveda: number) =>
   z
     .object({
       tipoMovimiento: z.union([z.literal(''), z.enum(TIPOS_MOVIMIENTO)]),
       idBovedaContraparte: z.string(),
-      autorizadoPor: z.number().nullable(),
       observaciones,
       cantidades: cantidadesSchema,
     })
@@ -151,17 +148,13 @@ export const movimientoFormSchema = (idBoveda: number) =>
           ctx.addIssue({ code: 'custom', path: ['idBovedaContraparte'], message: 'Elige una bóveda distinta de esta.' })
         }
       }
-      if (valor.autorizadoPor === null) {
-        ctx.addIssue({ code: 'custom', path: ['autorizadoPor'], message: 'Elige quién autoriza el movimiento.' })
-      }
       validarCantidades(valor.cantidades, ctx, 'Ingresa cuántas piezas de cada denominación se mueven.')
     })
     .transform(
-      (valor): RegistrarMovimiento => ({
+      (valor): CrearSolicitudMovimiento => ({
         desglose: armarDesglose(valor.cantidades),
         tipoMovimiento: valor.tipoMovimiento as TipoMovimientoBoveda,
         ...(pideContraparte(valor.tipoMovimiento) ? { idBovedaContraparte: Number(valor.idBovedaContraparte) } : {}),
-        autorizadoPor: valor.autorizadoPor as number,
         ...(valor.observaciones ? { observaciones: valor.observaciones } : {}),
       }),
     )
@@ -216,22 +209,27 @@ export const etiquetaEstadoArqueo = (estado: string) => ESTADOS_ARQUEO[estado.tr
 
 export const arqueoPendiente = (arqueo: Pick<Arqueo, 'estado'>) => arqueo.estado.trim().toUpperCase() === 'REGISTRADO'
 
-export type ResultadoArqueo = 'cuadra' | 'faltante' | 'sobrante'
+/** `sin-dato`: arqueos históricos que no guardaron saldos ni diferencia (llegan en null) */
+export type ResultadoArqueo = 'cuadra' | 'faltante' | 'sobrante' | 'sin-dato'
 
 export const resultadoArqueo = ({ diferencia }: Pick<Arqueo, 'diferencia'>): ResultadoArqueo =>
-  Math.abs(diferencia) < 0.005 ? 'cuadra' : diferencia < 0 ? 'faltante' : 'sobrante'
+  diferencia == null ? 'sin-dato' : Math.abs(diferencia) < 0.005 ? 'cuadra' : diferencia < 0 ? 'faltante' : 'sobrante'
 
-/** «Faltante de $10,00», «Sobrante de $0,25» o «El conteo cuadra» */
+/** «Faltante de $10,00», «Sobrante de $0,25», «El conteo cuadra» o «Diferencia no registrada» */
 export function textoDiferencia(arqueo: Pick<Arqueo, 'diferencia'>) {
   const resultado = resultadoArqueo(arqueo)
+  if (resultado === 'sin-dato') return 'Diferencia no registrada'
   if (resultado === 'cuadra') return 'El conteo cuadra con el sistema'
-  return `${resultado === 'faltante' ? 'Faltante' : 'Sobrante'} de ${formatearMonto(Math.abs(arqueo.diferencia))}`
+  return `${resultado === 'faltante' ? 'Faltante' : 'Sobrante'} de ${formatearMonto(Math.abs(arqueo.diferencia ?? 0))}`
 }
+
+/** Monto o «—» cuando el arqueo no lo guardó */
+export const montoArqueo = (valor: number | null | undefined) => (valor == null ? '—' : formatearMonto(valor))
 
 /** «+3» o «−2» piezas */
 export const piezasConSigno = (cantidad: number) => `${cantidad > 0 ? '+' : '−'}${Math.abs(cantidad)}`
 
-/* ── Idempotencia de BOV-04 ──────────────────────────────────────────── */
+/* ── Idempotencia de SMV-01 ──────────────────────────────────────────── */
 
 /** UUID v4 (letras, números y guiones: cumple `^[A-Za-z0-9_-]{1,64}$`) */
 export function nuevaClaveIdempotencia() {
@@ -240,10 +238,10 @@ export function nuevaClaveIdempotencia() {
 }
 
 /**
- * Misma clave para el mismo body (un reintento tras una respuesta perdida no duplica el movimiento) y
- * una nueva si cambió algo (es otro movimiento).
+ * Misma clave para el mismo body (un reintento tras una respuesta perdida no duplica la solicitud) y
+ * una nueva si cambió algo (es otra solicitud).
  */
-export function claveParaEnvio(anterior: { firma: string; clave: string } | null, body: RegistrarMovimiento) {
+export function claveParaEnvio(anterior: { firma: string; clave: string } | null, body: CrearSolicitudMovimiento) {
   const firma = JSON.stringify(body)
   return anterior && anterior.firma === firma ? anterior : { firma, clave: nuevaClaveIdempotencia() }
 }
