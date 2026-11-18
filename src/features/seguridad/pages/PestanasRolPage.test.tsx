@@ -12,9 +12,9 @@ vi.mock('@/features/auth', async (original) => ({
   ...(await original<typeof import('@/features/auth')>()),
   useAuthStore: (selector: (s: { user: { roles: string[] } }) => unknown) => selector({ user: { roles: estado.roles } }),
 }))
-vi.mock('@/features/seguridad/hooks/useSeguridad', () => ({
-  usePestanas: () => ({ data: estado.guardadas, error: null, isPending: false }),
-  useGuardarPestanas: () => ({ isPending: false, error: null, mutate: vi.fn() }),
+vi.mock('@/features/seguridad/hooks/useConfiguracionAccesos', () => ({
+  useConfiguracionAccesos: () => ({ data: { version: 'a'.repeat(64), activa: true, pestanas: estado.guardadas, secciones: pestanas.map((p) => ({ ruta: p.to, nombre: p.label, roles: p.rolesPorDefecto })) }, error: null, isPending: false, isFetching: false, refetch: vi.fn() }),
+  useGuardarConfiguracionAccesos: () => ({ isPending: false, error: null, mutate: vi.fn() }),
 }))
 
 const pestanas = [

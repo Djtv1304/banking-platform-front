@@ -133,5 +133,6 @@ describe('pestañas por rol (SEG07)', () => {
     expect(catalogos?.rolesPorDefecto).toContain('ADMIN')
     expect(catalogos?.rolesPorDefecto).not.toContain('CAJERO')
     expect(getPestanasConfigurables().find((p) => p.to === '/cuentas/abrir')?.requiereAccion).toBe(true)
+    expect(getPestanasConfigurables().find((p) => p.to === '/solicitar-tarjeta')?.rolesPorDefecto).toEqual(['ADMIN', 'ASESOR'])
   })
 })

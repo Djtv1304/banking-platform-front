@@ -14,7 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-import { CLIENTES_ROLES, formatRol, hasAnyRole, PERMISOS, useAuthStore, usePermisos, type Permiso } from '@/features/auth'
+import { CLIENTES_ROLES, formatRol, hasAnyRole, permiteSeccion, PERMISOS, useAuthStore, usePermisos, type Permiso } from '@/features/auth'
 import { cn } from '@/shared/lib'
 import { Badge } from '@/shared/ui'
 
@@ -141,7 +141,8 @@ export function StaffHome() {
             <h2 className="font-semibold text-heading">Accesos rápidos</h2>
             <div className="mt-4 grid grid-cols-2 gap-3">
               {QUICK_ACTIONS.filter(
-                (action) => (!action.roles || hasAnyRole(user.roles, action.roles)) && (!action.permiso || permisos.includes(action.permiso)),
+                (action) => (!action.roles || hasAnyRole(user.roles, action.roles)) && (!action.permiso || permisos.includes(action.permiso))
+                  && (!action.to || permiteSeccion(action.to, user.accesosSecciones)),
               ).map(({ label, Icon, to }) => {
                 const content = (
                   <>

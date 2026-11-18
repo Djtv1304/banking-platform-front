@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router'
 
-import { canAccess, hasAnyRole, hasPermission, sanitizeReturnTo, useAccessProfile, useAuthStatus, useAuthStore, usePermisos, type AccessProfile, type Permiso } from '@/features/auth'
+import { canAccess, hasAnyRole, hasPermission, permiteSeccion, sanitizeReturnTo, useAccessProfile, useAuthStatus, useAuthStore, usePermisos, type AccessProfile, type Permiso } from '@/features/auth'
 
 // Pantalla vacía mientras GET /api/v1/auth/me responde
 function SessionRestoring() {
@@ -13,6 +13,7 @@ function SessionRestoring() {
  */
 export function RequireAuth() {
   const status = useAuthStatus()
+  const accesos = useAuthStore((state) => state.user?.accesosSecciones)
   const { pathname, search } = useLocation()
 
   if (status === 'restoring') return <SessionRestoring />
@@ -21,6 +22,7 @@ export function RequireAuth() {
     const query = returnTo && returnTo !== '/' ? `?${new URLSearchParams({ return_to: returnTo })}` : ''
     return <Navigate to={`/login${query}`} replace />
   }
+  if (!permiteSeccion(pathname, accesos)) return <Navigate to="/" replace />
   return <Outlet />
 }
 

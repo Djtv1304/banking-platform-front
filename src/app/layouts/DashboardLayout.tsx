@@ -10,7 +10,7 @@ import {
   Sun,
 } from 'lucide-react'
 
-import { AvisoInactividad, obtenerContextoAgencias, SelectorAgencia, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, usePermisos } from '@/features/auth'
+import { ActualizarAccesosButton, AvisoInactividad, obtenerContextoAgencias, SelectorAgencia, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, usePermisos } from '@/features/auth'
 import { getVisibleSections, type NavItem } from '@/app/navigation/navigation'
 import { usePestanas } from '@/features/seguridad'
 import { cn } from '@/shared/lib'
@@ -47,9 +47,10 @@ export function DashboardLayout() {
   const { pathname } = useLocation()
   const roles = useAuthStore((state) => state.user?.roles)
   const permisos = usePermisos()
+  const accesos = useAuthStore((state) => state.user?.accesosSecciones)
   // Si la configuración no llega (error o tabla sin crear) se usa el menú por defecto
   const pestanas = usePestanas(Boolean(roles?.length)).data
-  const sections = getVisibleSections(useAccessProfile(), roles ?? [], permisos, pestanas && Object.fromEntries(pestanas.map((p) => [p.pestana, p.roles])))
+  const sections = getVisibleSections(useAccessProfile(), roles ?? [], permisos, pestanas && Object.fromEntries(pestanas.map((p) => [p.pestana, p.roles])), accesos)
   const currentPage = sections
     .flatMap((section) => section.items.map((item) => ({ ...item, sectionTitle: section.title })))
     .filter(({ to, end }) => (end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)))
@@ -146,6 +147,7 @@ export function DashboardLayout() {
           )}
 
           <div className="ml-auto flex items-center gap-1">
+            <ActualizarAccesosButton />
             <Button
               variant="ghost"
               size="icon"

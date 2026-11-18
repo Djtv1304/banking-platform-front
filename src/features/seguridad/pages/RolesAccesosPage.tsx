@@ -8,10 +8,11 @@ import { CatalogoPermisos } from '@/features/seguridad/components/CatalogoPermis
 import { ROLES_CONSULTA_ROLES, type SeccionAccesoRol } from '@/features/seguridad/lib/acceso'
 import { Aviso, Badge, Button } from '@/shared/ui'
 import { cn } from '@/shared/lib'
+import { useConfiguracionAccesos } from '@/features/seguridad/hooks/useConfiguracionAccesos'
 
 interface RolesAccesosPageProps {
   roles: readonly string[]
-  seccionesParaRol: (rol: string) => SeccionAccesoRol[]
+  seccionesParaRol: (rol: string, pestanas?: Readonly<Record<string, readonly string[]>>) => SeccionAccesoRol[]
 }
 
 type Vista = { tipo: 'rol'; rol: string } | { tipo: 'catalogo' } | { tipo: 'asignacion' }
@@ -36,6 +37,7 @@ function OpcionLateral({ activa, onClick, children }: { activa: boolean; onClick
 /** Solo org-admin: opciones del menú de cada rol y permisos de WorkOS (catálogo y asignación a roles). */
 export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPageProps) {
   const actuales = useAuthStore((state) => state.user?.roles)
+  const configuracion = useConfiguracionAccesos(hasAnyRole(actuales ?? [], ROLES_CONSULTA_ROLES))
   const [vista, setVista] = useState<Vista>({ tipo: 'rol', rol: roles[0] ?? '' })
 
   if (!hasAnyRole(actuales ?? [], ROLES_CONSULTA_ROLES)) {
@@ -102,7 +104,8 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
             ) : vista.tipo === 'asignacion' ? (
               <AsignacionPermisos roles={roles} />
             ) : (
-              <DetalleRol rol={vista.rol} secciones={seccionesParaRol(vista.rol)} />
+              configuracion.data ? <DetalleRol rol={vista.rol} secciones={seccionesParaRol(vista.rol, Object.fromEntries(configuracion.data.pestanas.map((p) => [p.pestana, p.roles])))} />
+                : <Aviso>{configuracion.isPending ? 'Consultando los accesos configurados…' : 'No pudimos consultar los accesos configurados.'}<Button variant="outline" onClick={() => void configuracion.refetch()}>Reintentar consulta</Button></Aviso>
             )}
           </section>
         </div>

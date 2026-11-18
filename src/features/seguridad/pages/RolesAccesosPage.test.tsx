@@ -6,6 +6,9 @@ import { RolesAccesosPage } from '@/features/seguridad/pages/RolesAccesosPage'
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
 vi.mock('@/features/seguridad/components/CatalogoPermisos', () => ({ CatalogoPermisos: () => <p>catalogo-permisos</p> }))
 vi.mock('@/features/seguridad/components/AsignacionPermisos', () => ({ AsignacionPermisos: () => <p>asignacion-permisos</p> }))
+vi.mock('@/features/seguridad/hooks/useConfiguracionAccesos', () => ({
+  useConfiguracionAccesos: () => ({ data: { pestanas: [{ pestana: '/clientes-busqueda', roles: ['ADMIN'] }] }, isPending: false, refetch: vi.fn() }),
+}))
 
 const estado = vi.hoisted(() => ({ roles: ['ADMIN'] as string[] }))
 vi.mock('@/features/auth', async (original) => ({
@@ -32,6 +35,7 @@ describe('Roles y accesos de consulta', () => {
     // Por defecto se ve el detalle del rol; catálogo y asignación se abren desde su bloque
     expect(salida).not.toContain('catalogo-permisos')
     expect(salida).not.toContain('asignacion-permisos')
+    expect(seccionesParaRol).toHaveBeenCalledWith('ADMIN', { '/clientes-busqueda': ['ADMIN'] })
   })
   it.each(['SUPERVISOR', 'ASESOR', 'AUDITOR', 'DESCONOCIDO'])('no muestra el catálogo a %s', (rol) => {
     estado.roles = [rol]

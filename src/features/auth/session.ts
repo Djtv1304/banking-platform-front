@@ -9,7 +9,7 @@ import { sanitizeReturnTo } from '@/features/auth/lib/return-to'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 
 let sessionCache: Pick<QueryClient, 'clear'> | null = null
-let pending: { user: MeResponse; promise: Promise<void> } | null = null
+let pending: { user: MeResponse; promise: Promise<boolean> } | null = null
 
 function compareAccessValues(a: string, b: string) {
   if (a === b) return 0
@@ -25,6 +25,7 @@ function accessKey(user: MeResponse) {
     user.idAgencia,
     roles,
     permissions,
+    user.accesosSecciones?.version ?? null,
   ])
 }
 
@@ -42,23 +43,25 @@ function cerrarSesionLocal(motivo: MotivoCierre | null) {
 }
 
 /** Relee /me tras una acción del usuario (403, cambio de rol propio). Nunca con temporizador. */
-export function refreshSession(): Promise<void> {
+export function refreshSession(): Promise<boolean> {
   const previous = useAuthStore.getState().user
-  if (!previous) return Promise.resolve()
+  if (!previous) return Promise.resolve(false)
   if (pending?.user === previous) return pending.promise
 
   const promise = (async () => {
     try {
       const current = await getMe()
       // Un logout o una sesión nueva prevalecen sobre una respuesta antigua.
-      if (useAuthStore.getState().user !== previous) return
+      if (useAuthStore.getState().user !== previous) return false
       if (accessKey(previous) !== accessKey(current)) sessionCache?.clear()
       useAuthStore.getState().setSession(current)
+      return true
     } catch (error) {
       // Un 401 ya lo atendió el interceptor (con su motivo)
-      if (useAuthStore.getState().user !== previous) return
+      if (useAuthStore.getState().user !== previous) return false
       if (toApiError(error).status === 403) cerrarSesionLocal(null)
       // Una caída temporal no significa que la sesión haya terminado.
+      return false
     }
   })()
   pending = { user: previous, promise }
@@ -117,6 +120,7 @@ export function startSessionSync() {
       sessionCache?.clear()
     }
     if (mensaje.tipo === 'iniciada' && status === 'anonymous') void restoreSession()
+    if (mensaje.tipo === 'accesos-cambiados' && status === 'authenticated') void refreshSession()
   })
 
   return () => {
