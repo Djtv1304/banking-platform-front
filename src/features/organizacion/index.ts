@@ -3,4 +3,3 @@ export { DatosCooperativaPage } from '@/features/organizacion/pages/DatosCoopera
 export { ProductosPage } from '@/features/organizacion/pages/ProductosPage'
 export { DetalleProductoPage } from '@/features/organizacion/pages/DetalleProductoPage'
 export { FichaSubProductoPage } from '@/features/organizacion/pages/FichaSubProductoPage'
-export { PRODUCTOS_ROLES } from '@/features/organizacion/api/productos.contract'

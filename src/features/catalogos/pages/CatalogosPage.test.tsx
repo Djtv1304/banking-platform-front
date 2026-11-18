@@ -10,7 +10,7 @@ vi.mock('@/features/auth', async () => {
   return {
     hasPermission,
     PERMISOS,
-    usePermisos: () => (estado.roles.includes('ADMIN') ? ['catalogos:editar'] : []),
+    usePermisos: () => (estado.roles.includes('ADMIN') ? ['catalogosEditar'] : []),
   }
 })
 vi.mock('react-router', () => ({ useSearchParams: () => [new URLSearchParams(), vi.fn()] }))

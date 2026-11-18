@@ -23,8 +23,8 @@ describe('acceso a Clientes compartido por menú y rutas', () => {
   })
 
   it('registrar lo decide el permiso clientes:editar, no el rol', () => {
-    expect(hasPermission(['clientes:editar'], PERMISOS.clientesEditar)).toBe(true)
-    expect(hasPermission(['clientes:estado'], PERMISOS.clientesEditar)).toBe(false)
+    expect(hasPermission(['clientesEditar'], PERMISOS.clientesEditar)).toBe(true)
+    expect(hasPermission(['clientesEstado'], PERMISOS.clientesEditar)).toBe(false)
     expect(hasPermission([], PERMISOS.clientesEditar)).toBe(false)
   })
 })

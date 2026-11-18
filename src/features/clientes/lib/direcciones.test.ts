@@ -9,8 +9,8 @@ const direccion = {
 }
 
 describe('C-07 contrato y decisiones de gestión', () => {
-  it('gestiona con clientes:editar', () => expect(puedeGestionarDirecciones(['clientes:editar'])).toBe(true))
-  it.each([['clientes:estado'], ['ADMIN'], []])('no gestiona con %j', (...permisos) => expect(puedeGestionarDirecciones(permisos)).toBe(false))
+  it('gestiona con clientes:editar', () => expect(puedeGestionarDirecciones(['clientesEditar'])).toBe(true))
+  it.each([['clientesEstado'], ['ADMIN'], []])('no gestiona con %j', (...permisos) => expect(puedeGestionarDirecciones(permisos)).toBe(false))
   it('conserva país, ciudad y estado necesarios para editar', () => expect(direccionGestionSchema.parse(direccion)).toEqual(direccion))
   it('convierte la ciudad a número y vacíos opcionales a null sin campos UI', () => {
     const form = direccionFormSchema.parse({ ...valoresDireccion(direccion), calleDireccion: '  Nueva calle 9  ' })

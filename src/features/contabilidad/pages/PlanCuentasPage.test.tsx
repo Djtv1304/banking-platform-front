@@ -27,7 +27,7 @@ vi.mock('@/features/auth', async () => {
   return {
     hasPermission,
     PERMISOS,
-    usePermisos: () => (estado.roles.includes('CONTADOR') ? ['contabilidad:editar'] : []),
+    usePermisos: () => (estado.roles.includes('CONTADOR') ? ['contabilidadEditar'] : []),
   }
 })
 vi.mock('@/features/contabilidad/hooks/usePlanCuentas', () => ({ usePlanCuentas: () => estado.plan }))

@@ -8,7 +8,6 @@ import {
   DatosCooperativaPage,
   DetalleProductoPage,
   FichaSubProductoPage,
-  PRODUCTOS_ROLES,
   ProductosPage,
 } from '@/features/organizacion'
 import { CATALOGOS_ROLES, CatalogosPage } from '@/features/catalogos'
@@ -97,7 +96,7 @@ export const router = createBrowserRouter([
           },
           {
             // La URL directa respeta los mismos roles que el menú; las acciones son solo de ADMIN
-            element: <RequireRoles allowed={PRODUCTOS_ROLES.consultar} />,
+            element: <RequirePermiso permiso={PERMISOS.productosConsultar} />,
             children: [
               { path: '/productos', element: <ProductosPage /> },
               { path: '/productos/:idProducto', element: <DetalleProductoPage /> },

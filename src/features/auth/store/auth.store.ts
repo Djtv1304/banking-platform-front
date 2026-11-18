@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 import type { MeResponse, MotivoCierre } from '@/features/auth/api/auth.contract'
 import { getAccessProfile, type AccessProfile } from '@/features/auth/lib/access'
+import { accionesPermitidas, type Permiso } from '@/shared/lib'
 
 export type AuthStatus = 'restoring' | 'authenticated' | 'anonymous'
 
@@ -30,9 +31,15 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
 export const useAuthStatus = () => useAuthStore((state) => state.status)
 
-/** Permisos de escritura del usuario (arreglo estable del store; vacío sin sesión) */
-const SIN_PERMISOS: readonly string[] = []
-export const usePermisos = (): readonly string[] => useAuthStore((state) => state.user?.permisos ?? SIN_PERMISOS)
+/** Escrituras que la UI muestra a este usuario: permiso de WorkOS (prd-, con-) o rol; ver shared/lib/permisos */
+const SIN_PERMISOS: readonly Permiso[] = []
+let cache: { user: MeResponse | null; acciones: readonly Permiso[] } = { user: null, acciones: SIN_PERMISOS }
+function accionesDe(user: MeResponse | null): readonly Permiso[] {
+  // Arreglo estable por sesión: el selector de zustand no debe devolver uno nuevo en cada render
+  if (user !== cache.user) cache = { user, acciones: user ? accionesPermitidas(user.roles, user.permisos) : SIN_PERMISOS }
+  return cache.acciones
+}
+export const usePermisos = (): readonly Permiso[] => useAuthStore((state) => accionesDe(state.user))
 
 /** Perfil de acceso del usuario autenticado (null mientras no hay sesión) */
 export const useAccessProfile = (): AccessProfile | null =>
