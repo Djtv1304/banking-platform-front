@@ -1,7 +1,6 @@
 /*
  * Roles de cada operación de bóveda.
  *
- * TODO(API): el backend no fijó aún quién lista y consulta solicitudes (SMV-02, SMV-03) ni arqueos
  * (BOV-07); se usan los mismos roles que consultan movimientos. Si alguno lo rechaza, la pantalla
  * muestra el 403 como «Tu rol no tiene permiso». Crear y cancelar solicitudes queda en SUPERVISOR y
  * ADMIN hasta que se defina el rol solicitante.
