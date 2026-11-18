@@ -38,7 +38,7 @@ describe('Pestañas por rol', () => {
     expect(casilla(salida, 'Abrir cuenta: Asesor')).toBe('true')
     expect(casilla(salida, 'Abrir cuenta: Cajero')).toBe('false')
     expect(salida).not.toContain('Personalizada')
-    expect(salida).toContain('org-cajero')
+    expect(salida).not.toContain('org-') // nombres internos de WorkOS no se muestran
   })
 
   it('la configuración guardada reemplaza al valor por defecto', () => {

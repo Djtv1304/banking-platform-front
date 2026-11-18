@@ -16,3 +16,9 @@ describe('AsignacionPermisos', () => {
     expect(html).toContain('permisos-de-CONTADOR')
   })
 })
+
+describe('AsignacionPermisos sin datos internos', () => {
+  it('el selector muestra solo el nombre del rol', () => {
+    expect(renderToStaticMarkup(<AsignacionPermisos roles={['SUPERVISOR']} />)).not.toContain('org-')
+  })
+})
