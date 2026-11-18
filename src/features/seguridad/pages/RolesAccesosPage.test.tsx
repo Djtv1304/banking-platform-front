@@ -4,6 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { RolesAccesosPage } from '@/features/seguridad/pages/RolesAccesosPage'
 
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
+vi.mock('@/features/seguridad/components/PermisosRolPanel', () => ({
+  PermisosRolPanel: ({ rol }: { rol: string }) => <p>panel-permisos-{rol}</p>,
+}))
 
 const estado = vi.hoisted(() => ({ roles: ['ADMIN'] as string[] }))
 vi.mock('@/features/auth', async (original) => ({
@@ -17,14 +20,13 @@ const html = (roles = ['ADMIN', 'ASESOR']) => renderToStaticMarkup(
 beforeEach(() => { estado.roles = ['ADMIN']; seccionesParaRol.mockClear() })
 
 describe('Roles y accesos de consulta', () => {
-  it('muestra las opciones, enlaza el filtro por rol y no tiene controles de concesión de accesos', () => {
+  it('muestra las opciones, enlaza el filtro por rol y los permisos del rol elegido', () => {
     const salida = html()
     expect(salida).toContain('Roles y accesos')
     expect(salida).toContain('Consultar clientes')
     expect(salida).toContain('/usuarios?rol=ADMIN')
     expect(salida).toContain('aria-pressed="true"')
-    expect(salida).not.toContain('type="checkbox"')
-    expect(salida).not.toContain('Aprobar')
+    expect(salida).toContain('panel-permisos-ADMIN')
   })
   it.each(['SUPERVISOR', 'ASESOR', 'AUDITOR', 'DESCONOCIDO'])('no muestra el catálogo a %s', (rol) => {
     estado.roles = [rol]
