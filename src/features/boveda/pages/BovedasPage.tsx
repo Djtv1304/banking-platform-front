@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
-import { ArrowRight, RefreshCw } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router'
+import { ArrowRight, FileClock, RefreshCw, Vault } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
 import { Aviso, Button, Cargando, Input } from '@/shared/ui'
@@ -9,22 +9,39 @@ import { useAgencias } from '@/features/catalogos'
 import { mensajeErrorBoveda } from '@/features/boveda/api/bovedas.api'
 import { TIPOS_BOVEDA, type Boveda } from '@/features/boveda/api/bovedas.contract'
 import { Campo } from '@/features/boveda/components/Campo'
+import { PanelPestana, Pestanas, type Pestana } from '@/features/boveda/components/Pestanas'
+import { SolicitudesMovimiento } from '@/features/boveda/components/solicitudes/SolicitudesMovimiento'
 import { TarjetaBoveda } from '@/features/boveda/components/TarjetaBoveda'
-import { useBovedas } from '@/features/boveda/hooks/useBovedas'
+import { useBovedas, useSolicitudesMovimiento } from '@/features/boveda/hooks/useBovedas'
 import { accesoBoveda } from '@/features/boveda/lib/acceso'
 import { campoClassName, selectClassName } from '@/features/boveda/lib/campos'
 import {
   armarParametrosBovedas,
+  armarParametrosSolicitudes,
   FILTROS_BOVEDAS_VACIOS,
   leerIdBoveda,
   type FiltrosBovedas,
 } from '@/features/boveda/lib/filtros'
 import { etiquetaTipoBoveda, formatearMonto, nivelSaldo, nombreAgencia } from '@/features/boveda/lib/formato'
 
-/** BOV-01 · Bóvedas de la cooperativa con su saldo frente a los límites */
+type Vista = 'bovedas' | 'solicitudes'
+
+/** Solo para el contador de la pestaña: basta el `total` de la primera página */
+const PARAMS_PENDIENTES = armarParametrosSolicitudes({ idAgencia: '', estado: 'PENDIENTE' }, 1, 1)
+
+/** BOV-01 · Bóvedas de la cooperativa con su saldo frente a los límites, y SMV-02 · cola de solicitudes de movimiento */
 export function BovedasPage() {
   const roles = useAuthStore((state) => state.user?.roles)
   const acceso = accesoBoveda(roles ?? [])
+  // La pestaña vive en la URL: al volver del detalle de una solicitud se sigue en la cola
+  const [busqueda, setBusqueda] = useSearchParams()
+  const vista: Vista = acceso.solicitudes && busqueda.get('vista') === 'solicitudes' ? 'solicitudes' : 'bovedas'
+  const cambiarVista = (nueva: Vista) => setBusqueda(nueva === 'bovedas' ? {} : { vista: nueva }, { replace: true })
+  const pendientes = useSolicitudesMovimiento(PARAMS_PENDIENTES, acceso.solicitudes)
+  const pestanas: Pestana<Vista>[] = [
+    { id: 'bovedas', texto: 'Bóvedas', Icono: Vault },
+    { id: 'solicitudes', texto: 'Solicitudes de movimiento', Icono: FileClock, contador: pendientes.data?.total },
+  ]
   const [filtros, setFiltros] = useState<FiltrosBovedas>(FILTROS_BOVEDAS_VACIOS)
   const bovedas = useBovedas(armarParametrosBovedas(filtros), acceso.listar)
   const agencias = useAgencias()
@@ -70,19 +87,23 @@ export function BovedasPage() {
     )
   })()
 
+  const listado = acceso.listar ? <section aria-label="Bóvedas">{resultado}</section> : <AbrirPorId puedeMovimientos={acceso.movimientos} />
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
         <div>
           <h1 className="text-[32px] leading-tight font-bold tracking-tight text-heading sm:text-[40px]">Bóvedas</h1>
           <p className="mt-2 max-w-2xl text-base text-muted-foreground">
-            {acceso.listar
-              ? 'Efectivo que custodia cada bóveda y cómo está frente a sus límites.'
-              : 'Consulta los movimientos de efectivo de una bóveda.'}
+            {vista === 'solicitudes'
+              ? 'Movimientos de efectivo solicitados que esperan aprobación, y cómo se resolvieron los anteriores.'
+              : acceso.listar
+                ? 'Efectivo que custodia cada bóveda y cómo está frente a sus límites.'
+                : 'Consulta los movimientos de efectivo de una bóveda.'}
           </p>
         </div>
 
-        {acceso.listar && (
+        {acceso.listar && vista === 'bovedas' && (
           <form aria-label="Filtrar bóvedas" onSubmit={(event) => event.preventDefault()} className="grid w-full gap-4 sm:w-auto sm:grid-cols-2">
             <Campo id="bovedas-agencia" label="Agencia" error={agencias.isError ? 'No pudimos cargar las agencias.' : undefined}>
               <select
@@ -118,7 +139,15 @@ export function BovedasPage() {
         )}
       </header>
 
-      {acceso.listar ? <section aria-label="Bóvedas">{resultado}</section> : <AbrirPorId puedeMovimientos={acceso.movimientos} />}
+      {acceso.solicitudes && <Pestanas id="vista-bovedas" etiqueta="Secciones de bóvedas" pestanas={pestanas} activa={vista} onCambiar={cambiarVista} />}
+
+      {acceso.solicitudes ? (
+        <PanelPestana id="vista-bovedas" valor={vista}>
+          {vista === 'solicitudes' ? <SolicitudesMovimiento puedeListarBovedas={acceso.listar} /> : listado}
+        </PanelPestana>
+      ) : (
+        listado
+      )}
     </div>
   )
 }

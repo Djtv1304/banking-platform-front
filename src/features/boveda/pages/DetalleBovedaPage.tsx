@@ -1,25 +1,28 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
-import { ArrowLeft, ArrowRightLeft, CircleCheck, ClipboardCheck, RefreshCw, ShieldCheck, Vault, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowRightLeft, CircleCheck, ClipboardCheck, ClipboardList, History, RefreshCw, Vault, X } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
 import { Aviso, Badge, Button, Cargando } from '@/shared/ui'
 import { useAuthStore } from '@/features/auth'
 import { useAgencias, useDenominaciones } from '@/features/catalogos'
 import { esBovedaInexistente, mensajeErrorBoveda } from '@/features/boveda/api/bovedas.api'
-import type { Arqueo, Boveda } from '@/features/boveda/api/bovedas.contract'
+import type { Arqueo, Boveda, SolicitudMovimiento } from '@/features/boveda/api/bovedas.contract'
+import { ArqueosBoveda } from '@/features/boveda/components/ArqueosBoveda'
 import { BarraLimites, NivelSaldo } from '@/features/boveda/components/BarraLimites'
 import { Denominaciones } from '@/features/boveda/components/Denominaciones'
 import { MovimientosBoveda } from '@/features/boveda/components/MovimientosBoveda'
 import { AprobarArqueoDialog } from '@/features/boveda/components/operaciones/AprobarArqueoDialog'
 import { RegistrarArqueoDialog } from '@/features/boveda/components/operaciones/RegistrarArqueoDialog'
-import { RegistrarMovimientoDialog } from '@/features/boveda/components/operaciones/RegistrarMovimientoDialog'
+import { SolicitarMovimientoDialog } from '@/features/boveda/components/operaciones/SolicitarMovimientoDialog'
+import { PanelPestana, Pestanas, type Pestana } from '@/features/boveda/components/Pestanas'
 import { useBoveda, useBovedas } from '@/features/boveda/hooks/useBovedas'
 import { accesoBoveda } from '@/features/boveda/lib/acceso'
 import { leerIdBoveda } from '@/features/boveda/lib/filtros'
 import {
   cupoDisponible,
   estaActiva,
+  etiquetaMovimiento,
   etiquetaEstadoBoveda,
   etiquetaTipoBoveda,
   formatearMonto,
@@ -32,13 +35,21 @@ const SIN_FILTROS = {}
 
 type Dialogo = 'movimiento' | 'arqueo' | 'aprobar' | null
 
-/** Aviso tras una operación; un arqueo pendiente ofrece aprobarlo desde ahí */
+type Historial = 'movimientos' | 'arqueos'
+
+/** Aviso tras una operación; un arqueo pendiente ofrece aprobarlo y una solicitud, revisarla */
 interface Confirmacion {
   mensaje: string
   arqueo?: Arqueo
+  solicitud?: SolicitudMovimiento
 }
 
-/** BOV-02 (saldo y denominaciones) y BOV-03 (movimientos) de una bóveda; cada bloque según el rol */
+const NOTAS_HISTORIAL: Record<Historial, string> = {
+  movimientos: 'Ingresos y egresos de efectivo ya ejecutados, del más reciente al más antiguo.',
+  arqueos: 'Conteos físicos de la bóveda frente al saldo del sistema. Los pendientes se aprueban desde su fila.',
+}
+
+/** BOV-02 (saldo y denominaciones), BOV-03 (movimientos) y BOV-07 (arqueos) de una bóveda; cada bloque según el rol */
 export function DetalleBovedaPage() {
   const { idBoveda: param } = useParams()
   const idBoveda = leerIdBoveda(param)
@@ -53,6 +64,12 @@ export function DetalleBovedaPage() {
   const [dialogo, setDialogo] = useState<Dialogo>(null)
   const [arqueoAprobar, setArqueoAprobar] = useState<Arqueo | null>(null)
   const [confirmacion, setConfirmacion] = useState<Confirmacion | null>(null)
+  const pestanasHistorial: Pestana<Historial>[] = [
+    ...(acceso.movimientos ? [{ id: 'movimientos' as const, texto: 'Movimientos', Icono: History }] : []),
+    ...(acceso.arqueos ? [{ id: 'arqueos' as const, texto: 'Arqueos', Icono: ClipboardList }] : []),
+  ]
+  const [historialElegido, setHistorial] = useState<Historial>('movimientos')
+  const historial = pestanasHistorial.some((item) => item.id === historialElegido) ? historialElegido : pestanasHistorial[0]?.id
 
   const abrirAprobacion = (arqueo: Arqueo | null) => {
     setArqueoAprobar(arqueo)
@@ -130,10 +147,9 @@ export function DetalleBovedaPage() {
               )}
             </div>
             <Acciones
-              puedeMovimiento={acceso.registrarMovimiento && !!boveda.data}
+              puedeMovimiento={acceso.solicitarMovimiento && !!boveda.data}
               puedeArqueo={acceso.registrarArqueo}
-              puedeAprobar={acceso.aprobarArqueo}
-              onAbrir={(nuevo) => (nuevo === 'aprobar' ? abrirAprobacion(null) : setDialogo(nuevo))}
+              onAbrir={setDialogo}
             />
           </header>
 
@@ -154,6 +170,18 @@ export function DetalleBovedaPage() {
                     </button>
                   </>
                 )}
+                {confirmacion.solicitud && (
+                  <>
+                    {' '}
+                    <Link
+                      to={`/bovedas/solicitudes/${confirmacion.solicitud.idSolicitudMovimiento}`}
+                      className="inline-flex items-center gap-1 rounded-sm font-semibold text-link underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Ver solicitud
+                      <ArrowRight aria-hidden className="size-3.5" />
+                    </Link>
+                  </>
+                )}
               </p>
               <button
                 type="button"
@@ -168,21 +196,39 @@ export function DetalleBovedaPage() {
 
           {saldo}
 
-          {acceso.movimientos && (
-            <Bloque id="movimientos" titulo="Movimientos" nota="Ingresos y egresos de efectivo, del más reciente al más antiguo.">
-              <MovimientosBoveda key={idBoveda} idBoveda={idBoveda} valores={valores} />
+          {historial && (
+            <Bloque
+              id="historial"
+              titulo="Historial"
+              nota={NOTAS_HISTORIAL[historial]}
+              accion={
+                pestanasHistorial.length > 1 && (
+                  <Pestanas id="historial" etiqueta="Historial de la bóveda" pestanas={pestanasHistorial} activa={historial} onCambiar={setHistorial} />
+                )
+              }
+            >
+              <PanelPestana id="historial" valor={historial}>
+                {historial === 'movimientos' ? (
+                  <MovimientosBoveda key={idBoveda} idBoveda={idBoveda} valores={valores} />
+                ) : (
+                  <ArqueosBoveda key={idBoveda} idBoveda={idBoveda} puedeAprobar={acceso.aprobarArqueo} onAprobar={abrirAprobacion} />
+                )}
+              </PanelPestana>
             </Bloque>
           )}
 
-          {boveda.data && acceso.registrarMovimiento && (
-            <RegistrarMovimientoDialog
+          {boveda.data && acceso.solicitarMovimiento && (
+            <SolicitarMovimientoDialog
               boveda={boveda.data}
               open={dialogo === 'movimiento'}
               puedeListar={acceso.listar}
               onCerrar={() => setDialogo(null)}
-              onRegistrado={(mensaje) => {
+              onCreada={(solicitud) => {
                 setDialogo(null)
-                setConfirmacion({ mensaje })
+                setConfirmacion({
+                  mensaje: `Enviamos la solicitud N.º ${solicitud.idSolicitudMovimiento}: ${etiquetaMovimiento(solicitud.tipoMovimiento).toLowerCase()} por ${formatearMonto(solicitud.monto)}. El saldo cambiará cuando se apruebe.`,
+                  solicitud,
+                })
               }}
             />
           )}
@@ -229,27 +275,19 @@ export function DetalleBovedaPage() {
   )
 }
 
-/** Operaciones que el rol puede hacer sobre la bóveda (BOV-04 a BOV-06) */
+/** Operaciones que el rol puede iniciar sobre la bóveda (SMV-01 y BOV-05); los arqueos se aprueban desde su historial */
 function Acciones({
   puedeMovimiento,
   puedeArqueo,
-  puedeAprobar,
   onAbrir,
 }: {
   puedeMovimiento: boolean
   puedeArqueo: boolean
-  puedeAprobar: boolean
-  onAbrir: (dialogo: Exclude<Dialogo, null>) => void
+  onAbrir: (dialogo: 'movimiento' | 'arqueo') => void
 }) {
-  if (!puedeMovimiento && !puedeArqueo && !puedeAprobar) return null
+  if (!puedeMovimiento && !puedeArqueo) return null
   return (
     <div className="flex w-full flex-wrap gap-3 sm:w-auto">
-      {puedeAprobar && (
-        <Button variant="ghost" size="lg" onClick={() => onAbrir('aprobar')} className="h-11 rounded-xl px-4 text-muted-foreground">
-          <ShieldCheck />
-          Aprobar arqueo
-        </Button>
-      )}
       {puedeArqueo && (
         <Button variant="outline" size="lg" onClick={() => onAbrir('arqueo')} className="h-11 rounded-xl px-4 font-semibold">
           <ClipboardCheck />
@@ -259,7 +297,7 @@ function Acciones({
       {puedeMovimiento && (
         <Button size="lg" onClick={() => onAbrir('movimiento')} className="h-11 rounded-xl px-5 font-semibold">
           <ArrowRightLeft />
-          Registrar movimiento
+          Solicitar movimiento
         </Button>
       )}
     </div>
@@ -323,14 +361,17 @@ function EnlaceBoveda({ idBoveda, codigo }: { idBoveda: number; codigo?: string 
   )
 }
 
-function Bloque({ id, titulo, nota, children }: { id: string; titulo: string; nota?: string; children: ReactNode }) {
+function Bloque({ id, titulo, nota, accion, children }: { id: string; titulo: string; nota?: string; accion?: ReactNode; children: ReactNode }) {
   return (
     <section aria-labelledby={id} className="flex min-w-0 flex-col gap-6 rounded-3xl border border-border bg-card p-6 sm:p-8">
-      <header className="flex flex-col gap-1">
-        <h2 id={id} className="text-lg font-semibold text-heading">
-          {titulo}
-        </h2>
-        {nota && <p className="text-sm text-muted-foreground">{nota}</p>}
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 id={id} className="text-lg font-semibold text-heading">
+            {titulo}
+          </h2>
+          {nota && <p className="text-sm text-muted-foreground">{nota}</p>}
+        </div>
+        {accion}
       </header>
       {children}
     </section>
