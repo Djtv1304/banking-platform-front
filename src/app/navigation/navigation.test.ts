@@ -5,7 +5,7 @@ import { SelectorAgencia } from '@/features/auth/components/SelectorAgencia'
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
 import { getRoleNavigation, getVisibleSections } from '@/app/navigation/navigation'
-import { getAccessProfile } from '@/features/auth'
+import { getAccessProfile, PERMISOS } from '@/features/auth'
 import { ROLES_USUARIO } from '@/features/usuarios'
 
 const opciones = (rol: string) => getRoleNavigation(rol).flatMap((s) => s.opciones.map((o) => o.titulo))
@@ -59,7 +59,7 @@ describe('contratos de consulta por rol', () => {
   it('los permisos reales siguen determinando las entradas de escritura', () => {
     const secciones = getVisibleSections(getAccessProfile(['ASESOR']), ['ASESOR'], [])
     expect(secciones.flatMap((s) => s.items.map((i) => i.to))).not.toContain('/cuentas/abrir')
-    const conPermiso = getVisibleSections(getAccessProfile(['ASESOR']), ['ASESOR'], ['cuentas:abrir'])
+    const conPermiso = getVisibleSections(getAccessProfile(['ASESOR']), ['ASESOR'], ['cuentasAbrir'])
     expect(conPermiso.flatMap((s) => s.items.map((i) => i.to))).toContain('/cuentas/abrir')
   })
 
@@ -78,12 +78,14 @@ describe('matriz completa de consultas del menu por rol', () => {
     ASESOR: ['/', '/organizacion/entidad', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas'],
     CAJERO: ['/', '/clientes-busqueda', '/cuentas'],
     SUPERVISOR: ['/', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas'],
-    APROBADOR_CREDITO: ['/'],
-    CONTADOR: ['/', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
-    AUDITOR: ['/', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
+    APROBADOR_CREDITO: ['/', '/productos'],
+    CONTADOR: ['/', '/productos', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
+    AUDITOR: ['/', '/productos', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
   }
   it.each(Object.entries(rutas))('%s respeta todos los contratos de consulta disponibles', (rol, esperadas) => {
-    const actuales = getVisibleSections(getAccessProfile([rol]), [rol], []).flatMap((s) => s.items.map((i) => i.to))
+    // Productos se consulta con prd-consultar, que en WorkOS tienen todos los roles menos CAJERO
+    const acciones = rol === 'CAJERO' ? [] : [PERMISOS.productosConsultar]
+    const actuales = getVisibleSections(getAccessProfile([rol]), [rol], acciones).flatMap((s) => s.items.map((i) => i.to))
     expect(actuales).toEqual(esperadas)
   })
 })

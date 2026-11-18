@@ -2,7 +2,6 @@ import { Building2, BookOpenText, Calculator, CalendarDays, CreditCard, HandCoin
 
 import { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
 import { ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
-import { PRODUCTOS_ROLES } from '@/features/organizacion'
 import { CATALOGOS_ROLES } from '@/features/catalogos'
 import { CONTABILIDAD_ROLES } from '@/features/contabilidad'
 import { ROLES_CONSULTA_ROLES } from '@/features/seguridad'
@@ -16,7 +15,7 @@ export interface NavItem {
   /** Perfiles que ven la opción. Sin valor = todos. El admin ve todas. */
   profiles?: readonly AccessProfile[]
   roles?: readonly string[]
-  /** Opción que solo sirve para escribir: se muestra con este permiso de WorkOS */
+  /** Se muestra solo si el usuario puede esta acción (permiso de WorkOS o rol; ver shared/lib/permisos) */
   permiso?: Permiso
   /** Módulo sin pantallas todavía: abre «Módulo en preparación» y muestra la etiqueta «Pronto» */
   enPreparacion?: boolean
@@ -33,9 +32,9 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   },
   {
     title: 'Productos y Catálogos',
-    // ADMIN, SUPERVISOR y ASESOR consultan; editar depende del permiso (las páginas ocultan las acciones)
+    // Productos: consultar exige prd-consultar y editar prd-editar (las páginas ocultan las acciones)
     items: [
-      { to: '/productos', label: 'Productos', Icon: Package, roles: PRODUCTOS_ROLES.consultar },
+      { to: '/productos', label: 'Productos', Icon: Package, permiso: PERMISOS.productosConsultar },
       { to: '/catalogos', label: 'Catálogos', Icon: Library, roles: CATALOGOS_ROLES.consultar },
     ],
   },

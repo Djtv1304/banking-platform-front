@@ -70,8 +70,8 @@ describe('PIN y sobre', () => {
 
 describe('permisosTarjeta', () => {
   it('cambiar estado y regenerar PIN dependen de los permisos de WorkOS', () => {
-    expect(permisosTarjeta(['ASESOR'], ['tarjetas:estado'])).toMatchObject({ estado: true, pin: false })
-    expect(permisosTarjeta(['ASESOR'], ['tarjetas:emitir'])).toMatchObject({ estado: false, pin: true })
+    expect(permisosTarjeta(['ASESOR'], ['tarjetasEstado'])).toMatchObject({ estado: true, pin: false })
+    expect(permisosTarjeta(['ASESOR'], ['tarjetasEmitir'])).toMatchObject({ estado: false, pin: true })
   })
 
   it('el sobre es para ASESOR, SUPERVISOR y ADMIN; el historial para SUPERVISOR, AUDITOR y ADMIN', () => {
