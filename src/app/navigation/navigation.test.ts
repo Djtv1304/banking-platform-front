@@ -11,6 +11,12 @@ import { ROLES_USUARIO } from '@/features/usuarios'
 const opciones = (rol: string) => getRoleNavigation(rol).flatMap((s) => s.opciones.map((o) => o.titulo))
 
 describe('vista de roles y menú comparten la configuración', () => {
+  it('Aprobaciones requiere capacidad efectiva y no se ofrece como seccion configurable', () => {
+    const rutas = (efectiva: boolean) => getVisibleSections(getAccessProfile(['CONTADOR']), ['CONTADOR'], [], { '/aprobaciones': ['CONTADOR'] }, undefined, { aprobaciones: efectiva }).flatMap(s => s.items.map(i => i.to))
+    expect(rutas(false)).not.toContain('/aprobaciones')
+    expect(rutas(true)).toContain('/aprobaciones')
+    expect(getPestanasConfigurables().map(p => p.to)).not.toContain('/aprobaciones')
+  })
   it.each(ROLES_USUARIO)('%s muestra exactamente las opciones del menú, sin mantener otra matriz', (rol) => {
     const menu = getVisibleSections(getAccessProfile([rol]), [rol], []).flatMap((s) => s.items.map((i) => i.label))
     expect(opciones(rol)).toEqual(menu)
