@@ -12,8 +12,8 @@ import {
 } from '@/features/organizacion'
 import { CATALOGOS_ROLES, CatalogosPage } from '@/features/catalogos'
 import { DetalleUsuarioPage, UsuariosPage, ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
-import { RolesAccesosPage, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
-import { getRoleNavigation } from '@/app/navigation/navigation'
+import { PestanasRolPage, RolesAccesosPage, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
+import { getPestanasConfigurables, getRoleNavigation } from '@/app/navigation/navigation'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
@@ -134,6 +134,7 @@ export const router = createBrowserRouter([
             element: <RequireRoles allowed={ROLES_CONSULTA_ROLES} />,
             children: [
               { path: '/seguridad/roles', element: <RolesAccesosPage roles={ROLES_USUARIO} seccionesParaRol={getRoleNavigation} /> },
+              { path: '/seguridad/pestanas', element: <PestanasRolPage pestanas={getPestanasConfigurables()} roles={ROLES_USUARIO} /> },
             ],
           },
           {

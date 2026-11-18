@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { ArrowRight, ShieldCheck, Users } from 'lucide-react'
 
 import { formatRol, hasAnyRole, useAuthStore } from '@/features/auth'
+import { PermisosRolPanel } from '@/features/seguridad/components/PermisosRolPanel'
 import { ROLES_CONSULTA_ROLES, type SeccionAccesoRol } from '@/features/seguridad/lib/acceso'
 import { Aviso, Badge, Button } from '@/shared/ui'
 import { cn } from '@/shared/lib'
@@ -12,7 +13,7 @@ interface RolesAccesosPageProps {
   seccionesParaRol: (rol: string) => SeccionAccesoRol[]
 }
 
-/** Consulta la configuración de navegación; no modifica roles ni accesos. */
+/** Opciones del menú de cada rol y sus permisos de WorkOS (asignar y quitar). */
 export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPageProps) {
   const actuales = useAuthStore((state) => state.user?.roles)
   const [seleccionado, setSeleccionado] = useState(roles[0] ?? '')
@@ -30,7 +31,7 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
         <div>
           <h1 className="text-[32px] leading-tight font-bold tracking-tight text-heading sm:text-[40px]">Roles y accesos</h1>
           <p className="mt-2 max-w-2xl text-base text-muted-foreground">
-            Consulta los roles del personal y las opciones que muestra la aplicación para cada uno.
+            Consulta las opciones que muestra la aplicación a cada rol y administra sus permisos de WorkOS.
           </p>
         </div>
         <Badge variant="secondary" className="h-7 gap-1.5 px-3 text-sm">
@@ -40,7 +41,7 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
       </header>
 
       <Aviso>
-        Esta vista lista las opciones de consulta por rol. Las opciones de escritura del menu personal dependen de los permisos reales de WorkOS. Para cambiar un rol, abre la ficha en Usuarios del sistema.
+        Para elegir qué pestañas ve cada rol usa «Pestañas por rol». Para cambiar el rol de una persona, abre su ficha en Usuarios del sistema.
       </Aviso>
 
       {roles.length === 0 ? (
@@ -103,6 +104,7 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
                 </div>
               ))}
             </div>
+            <PermisosRolPanel rol={seleccionado} />
           </section>
         </div>
       )}

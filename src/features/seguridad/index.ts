@@ -1,3 +1,7 @@
 export { RolesAccesosPage } from '@/features/seguridad/pages/RolesAccesosPage'
 export { ROLES_CONSULTA_ROLES } from '@/features/seguridad/lib/acceso'
 export type { SeccionAccesoRol } from '@/features/seguridad/lib/acceso'
+export { PESTANAS_FIJAS } from '@/features/seguridad/api/seguridad.contract'
+export type { PestanaRoles } from '@/features/seguridad/api/seguridad.contract'
+export { usePestanas } from '@/features/seguridad/hooks/useSeguridad'
+export { PestanasRolPage } from '@/features/seguridad/pages/PestanasRolPage'
