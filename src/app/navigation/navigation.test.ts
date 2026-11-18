@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SelectorAgencia } from '@/features/auth/components/SelectorAgencia'
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
-import { getRoleNavigation, getVisibleSections } from '@/app/navigation/navigation'
+import { getPestanasConfigurables, getRoleNavigation, getVisibleSections } from '@/app/navigation/navigation'
 import { getAccessProfile, PERMISOS } from '@/features/auth'
 import { ROLES_USUARIO } from '@/features/usuarios'
 
@@ -74,7 +74,7 @@ describe('contratos de consulta por rol', () => {
 
 describe('matriz completa de consultas del menu por rol', () => {
   const rutas: Record<string, string[]> = {
-    ADMIN: ['/', '/organizacion/entidad', '/organizacion/agencias', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/roles'],
+    ADMIN: ['/', '/organizacion/entidad', '/organizacion/agencias', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/roles', '/seguridad/pestanas'],
     ASESOR: ['/', '/organizacion/entidad', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas'],
     CAJERO: ['/', '/clientes-busqueda', '/cuentas'],
     SUPERVISOR: ['/', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas'],
@@ -106,5 +106,32 @@ describe('presentacion del alcance de agencias', () => {
     if (todas) expect(html).toContain('Acceso a todas las agencias')
     if (cantidad === 1) expect(html).toContain('Agencia operativa: Agencia 1')
     client.clear()
+  })
+})
+
+describe('pestañas por rol (SEG07)', () => {
+  const rutas = (rol: string, pestanas?: Record<string, readonly string[]>) =>
+    getVisibleSections(getAccessProfile([rol]), [rol], [], pestanas).flatMap((s) => s.items.map((i) => i.to))
+
+  it('la configuración reemplaza los roles por defecto de la pestaña', () => {
+    expect(rutas('CAJERO')).not.toContain('/catalogos')
+    expect(rutas('CAJERO', { '/catalogos': ['CAJERO'] })).toContain('/catalogos')
+    expect(rutas('ASESOR', { '/catalogos': ['CAJERO'] })).not.toContain('/catalogos')
+  })
+
+  it('las pestañas de Seguridad e Inicio no se personalizan', () => {
+    expect(rutas('ADMIN', { '/seguridad/roles': [], '/seguridad/pestanas': [], '/': [] })).toEqual(
+      expect.arrayContaining(['/', '/seguridad/roles', '/seguridad/pestanas']),
+    )
+    const configurables = getPestanasConfigurables().map((p) => p.to)
+    expect(configurables).not.toContain('/')
+    expect(configurables).not.toContain('/seguridad/roles')
+  })
+
+  it('cada pestaña configurable trae los roles que la ven por defecto', () => {
+    const catalogos = getPestanasConfigurables().find((p) => p.to === '/catalogos')
+    expect(catalogos?.rolesPorDefecto).toContain('ADMIN')
+    expect(catalogos?.rolesPorDefecto).not.toContain('CAJERO')
+    expect(getPestanasConfigurables().find((p) => p.to === '/cuentas/abrir')?.requiereAccion).toBe(true)
   })
 })

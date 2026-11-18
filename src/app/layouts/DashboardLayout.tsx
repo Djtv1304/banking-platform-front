@@ -12,6 +12,7 @@ import {
 
 import { AvisoInactividad, obtenerContextoAgencias, SelectorAgencia, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, usePermisos } from '@/features/auth'
 import { getVisibleSections, type NavItem } from '@/app/navigation/navigation'
+import { usePestanas } from '@/features/seguridad'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
 import { useAgencias } from '@/features/catalogos'
@@ -46,7 +47,9 @@ export function DashboardLayout() {
   const { pathname } = useLocation()
   const roles = useAuthStore((state) => state.user?.roles)
   const permisos = usePermisos()
-  const sections = getVisibleSections(useAccessProfile(), roles ?? [], permisos)
+  // Si la configuración no llega (error o tabla sin crear) se usa el menú por defecto
+  const pestanas = usePestanas(Boolean(roles?.length)).data
+  const sections = getVisibleSections(useAccessProfile(), roles ?? [], permisos, pestanas && Object.fromEntries(pestanas.map((p) => [p.pestana, p.roles])))
   const currentPage = sections
     .flatMap((section) => section.items.map((item) => ({ ...item, sectionTitle: section.title })))
     .filter(({ to, end }) => (end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)))
