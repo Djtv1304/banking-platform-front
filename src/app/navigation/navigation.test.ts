@@ -38,10 +38,18 @@ it('consultar cuentas conserva los roles del backend y no aparece para contador'
 
 
 describe('contratos de consulta por rol', () => {
-  it('contador y auditor solo reciben consultas contables del menu disponible', () => {
+  it('contador y auditor solo reciben consultas contables y de bóvedas del menu disponible', () => {
     for (const rol of ['CONTADOR', 'AUDITOR']) {
-      expect(opciones(rol)).toEqual(['Inicio', 'Plan de cuentas', 'Asientos contables', 'Fecha contable'])
+      expect(opciones(rol)).toEqual(['Inicio', 'Bóvedas', 'Plan de cuentas', 'Asientos contables', 'Fecha contable'])
     }
+  })
+
+  it.each(['SUPERVISOR', 'CONTADOR', 'AUDITOR', 'ADMIN'])('%s ve Bóvedas (BOV-01 a BOV-03)', (rol) => {
+    expect(opciones(rol)).toContain('Bóvedas')
+  })
+
+  it.each(['ASESOR', 'CAJERO', 'APROBADOR_CREDITO'])('%s no ve Bóvedas', (rol) => {
+    expect(opciones(rol)).not.toContain('Bóvedas')
   })
 
   it.each(['ASESOR', 'SUPERVISOR', 'ADMIN'])('%s puede consultar tarjetas', (rol) => {
@@ -74,13 +82,13 @@ describe('contratos de consulta por rol', () => {
 
 describe('matriz completa de consultas del menu por rol', () => {
   const rutas: Record<string, string[]> = {
-    ADMIN: ['/', '/organizacion/entidad', '/organizacion/agencias', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/roles', '/seguridad/pestanas'],
+    ADMIN: ['/', '/organizacion/entidad', '/organizacion/agencias', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/bovedas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/roles', '/seguridad/pestanas'],
     ASESOR: ['/', '/organizacion/entidad', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas'],
     CAJERO: ['/', '/clientes-busqueda', '/cuentas'],
-    SUPERVISOR: ['/', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas'],
+    SUPERVISOR: ['/', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas', '/bovedas'],
     APROBADOR_CREDITO: ['/', '/productos'],
-    CONTADOR: ['/', '/productos', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
-    AUDITOR: ['/', '/productos', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
+    CONTADOR: ['/', '/productos', '/bovedas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
+    AUDITOR: ['/', '/productos', '/bovedas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
   }
   it.each(Object.entries(rutas))('%s respeta todos los contratos de consulta disponibles', (rol, esperadas) => {
     // Productos se consulta con prd-consultar, que en WorkOS tienen todos los roles menos CAJERO

@@ -172,7 +172,8 @@ export function DashboardLayout() {
         </header>
 
         <div className="print:hidden border-b border-border bg-card px-4 py-2 sm:px-6"><SelectorAgencia /></div>
-        <main className="print:overflow-visible print:p-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
+        {/* `relative`: lo absoluto sin ancestro posicionado (p. ej. `sr-only`) queda dentro del scroll y no alarga el documento */}
+        <main className="relative print:overflow-visible print:p-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           <Outlet />
         </main>
       </div>
