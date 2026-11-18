@@ -1,4 +1,4 @@
-import { Building2, BookOpenText, Calculator, CalendarDays, CreditCard, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, Vault, WalletCards, type LucideIcon } from 'lucide-react'
+import { ClipboardCheck, Building2, BookOpenText, Calculator, CalendarDays, CreditCard, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, Vault, WalletCards, type LucideIcon } from 'lucide-react'
 
 import { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
 import { ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
@@ -10,6 +10,7 @@ import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { permiteSeccion, type MeResponse } from '@/features/auth'
 
 export interface NavItem {
+  capacidad?: 'aprobaciones'
   to: string
   label: string
   Icon: LucideIcon
@@ -24,7 +25,7 @@ export interface NavItem {
 }
 
 export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
-  { items: [{ to: '/', label: 'Inicio', Icon: House, end: true }] },
+  { items: [{ to: '/', label: 'Inicio', Icon: House, end: true }, { to: '/aprobaciones', label: 'Aprobaciones', Icon: ClipboardCheck, capacidad: 'aprobaciones' }] },
   {
     title: 'Organización',
     items: [
@@ -138,12 +139,13 @@ function rolPuedeVer(item: NavItem, roles: readonly string[], pestanas?: Pestana
  * (vista de un rol en «Roles y accesos») no se filtra por permiso: eso se configura en WorkOS.
  * Solo decide qué se muestra: cada API valida su propio rol o permiso.
  */
-export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[], pestanas?: PestanasPorRol, accesos?: MeResponse['accesosSecciones']) {
+export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[], pestanas?: PestanasPorRol, accesos?: MeResponse['accesosSecciones'], capacidades: { aprobaciones?: boolean } = {}) {
   if (!profile) return []
   return NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter(
       (item) =>
+        (!item.capacidad || Boolean(capacidades[item.capacidad])) &&
         canAccess(profile, item.profiles) &&
         rolPuedeVer(item, roles, accesos ? undefined : pestanas) &&
         permiteSeccion(item.to, accesos) &&
@@ -165,7 +167,7 @@ export interface PestanaConfigurable {
 export function getPestanasConfigurables(): PestanaConfigurable[] {
   const menu = NAV_SECTIONS.flatMap((section) =>
     section.items
-      .filter((item) => !PESTANAS_FIJAS.includes(item.to))
+      .filter((item) => !item.capacidad && !PESTANAS_FIJAS.includes(item.to))
       .map((item) => ({
         to: item.to,
         label: item.label,

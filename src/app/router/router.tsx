@@ -1,3 +1,4 @@
+import { AprobacionesPage, DetalleAprobacionPage } from '@/features/aprobaciones'
 import { createBrowserRouter, Navigate } from 'react-router'
 
 import { DashboardLayout } from '@/app/layouts/DashboardLayout'
@@ -36,6 +37,8 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/', element: <HomePage /> },
+          { path: '/aprobaciones', element: <AprobacionesPage /> },
+          { path: '/aprobaciones/:idSolicitud', element: <DetalleAprobacionPage /> },
           {
             element: <RequireRoles allowed={ORGANIZACION_ROLES.entidad} />,
             children: [{ path: '/organizacion/entidad', element: <DatosCooperativaPage /> }],
