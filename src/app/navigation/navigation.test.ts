@@ -80,10 +80,10 @@ describe('contratos de consulta por rol', () => {
 
 describe('matriz completa de consultas del menu por rol', () => {
   const rutas: Record<string, string[]> = {
-    ADMIN: ['/', '/organizacion/entidad', '/organizacion/agencias', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/roles', '/seguridad/pestanas'],
-    ASESOR: ['/', '/organizacion/entidad', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas'],
+    ADMIN: ['/', '/organizacion/entidad', '/parametros', '/organizacion/agencias', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/roles', '/seguridad/pestanas'],
+    ASESOR: ['/', '/organizacion/entidad', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas'],
     CAJERO: ['/', '/clientes-busqueda', '/cuentas'],
-    SUPERVISOR: ['/', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas'],
+    SUPERVISOR: ['/', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas'],
     APROBADOR_CREDITO: ['/', '/productos'],
     CONTADOR: ['/', '/productos', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
     AUDITOR: ['/', '/productos', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
