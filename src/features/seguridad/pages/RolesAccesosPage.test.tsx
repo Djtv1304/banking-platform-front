@@ -25,7 +25,7 @@ describe('Roles y accesos de consulta', () => {
     expect(salida).toContain('Consultar clientes')
     expect(salida).toContain('/usuarios?rol=ADMIN')
     expect(salida).toContain('aria-pressed="true"')
-    expect(salida).toContain('org-admin')
+    expect(salida).not.toContain('org-admin') // el bloque de roles muestra solo el nombre
     expect(salida).toContain('>Permisos</h2>')
     expect(salida).toContain('Catálogo')
     expect(salida).toContain('Asignación')
