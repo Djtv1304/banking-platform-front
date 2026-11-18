@@ -3,8 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { bovedaSchema, paginaMovimientosBovedaSchema } from '@/features/boveda/api/bovedas.contract'
 import { accesoBoveda } from '@/features/boveda/lib/acceso'
 import {
+  armarParametrosArqueos,
   armarParametrosBovedas,
   armarParametrosMovimientos,
+  armarParametrosSolicitudes,
+  FILTROS_ARQUEOS_VACIOS,
+  filtrosArqueosSchema,
   FILTROS_MOVIMIENTOS_VACIOS,
   filtrosMovimientosSchema,
   leerIdBoveda,
@@ -84,19 +88,30 @@ describe('contrato', () => {
 })
 
 describe('accesoBoveda', () => {
-  it('el AUDITOR consulta movimientos y registra arqueos, pero no lista ni ve saldos', () => {
+  it('el AUDITOR consulta movimientos, arqueos y solicitudes y registra arqueos, pero no lista, no ve saldos ni resuelve', () => {
     expect(accesoBoveda(['AUDITOR'])).toEqual({
       listar: false,
       consultar: false,
       movimientos: true,
-      registrarMovimiento: false,
       registrarArqueo: true,
       aprobarArqueo: false,
+      arqueos: true,
+      solicitarMovimiento: false,
+      solicitudes: true,
+      resolverSolicitud: false,
+      cancelarSolicitud: false,
     })
   })
 
   it('el CONTADOR solo consulta; ADMIN y SUPERVISOR entran a todo', () => {
-    expect(accesoBoveda(['contador'])).toMatchObject({ listar: true, movimientos: true, registrarMovimiento: false })
+    expect(accesoBoveda(['contador'])).toMatchObject({
+      listar: true,
+      movimientos: true,
+      solicitudes: true,
+      solicitarMovimiento: false,
+      resolverSolicitud: false,
+      cancelarSolicitud: false,
+    })
     for (const rol of ['ADMIN', 'SUPERVISOR']) {
       expect(Object.values(accesoBoveda([rol])).every(Boolean)).toBe(true)
     }
@@ -231,5 +246,23 @@ describe('filtros', () => {
     expect(leerIdBoveda(undefined)).toBeNull()
     expect(resumenPaginacion(2, 212)).toBe('Página 2 de 11 · 212 movimientos')
     expect(resumenPaginacion(1, 1)).toBe('Página 1 de 1 · 1 movimiento')
+  })
+})
+
+describe('parámetros de arqueos (BOV-07) y solicitudes (SMV-02)', () => {
+  it('arqueos: solo envía los filtros con valor y valida el rango', () => {
+    expect(armarParametrosArqueos(FILTROS_ARQUEOS_VACIOS, 2)).toEqual({ page: '2', pageSize: '20' })
+    expect(armarParametrosArqueos({ estado: 'REGISTRADO', tipoArqueo: '', desde: '2026-11-01', hasta: '' }, 1)).toEqual({
+      page: '1',
+      pageSize: '20',
+      estado: 'REGISTRADO',
+      desde: '2026-11-01',
+    })
+    expect(filtrosArqueosSchema.safeParse({ ...FILTROS_ARQUEOS_VACIOS, desde: '2026-11-10', hasta: '2026-11-01' }).success).toBe(false)
+  })
+
+  it('solicitudes: ignora una agencia inválida y «todas» no envía estado', () => {
+    expect(armarParametrosSolicitudes({ idAgencia: '001', estado: 'PENDIENTE' }, 1)).toEqual({ page: '1', pageSize: '20', idAgencia: '001', estado: 'PENDIENTE' })
+    expect(armarParametrosSolicitudes({ idAgencia: '1', estado: '' }, 3, 1)).toEqual({ page: '3', pageSize: '1' })
   })
 })

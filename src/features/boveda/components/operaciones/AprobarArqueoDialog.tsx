@@ -9,8 +9,7 @@ import { Campo } from '@/features/boveda/components/Campo'
 import { DialogoOperacion, ErrorOperacion } from '@/features/boveda/components/operaciones/DialogoOperacion'
 import { ResumenArqueo } from '@/features/boveda/components/operaciones/ResumenArqueo'
 import { useAprobarArqueo } from '@/features/boveda/hooks/useBovedas'
-import { ariaCampo, campoClassName } from '@/features/boveda/lib/campos'
-import { leerIdBoveda } from '@/features/boveda/lib/filtros'
+import { campoClassName } from '@/features/boveda/lib/campos'
 import { valoresPorDenominacion } from '@/features/boveda/lib/formato'
 import { textoDiferencia } from '@/features/boveda/lib/operaciones'
 
@@ -21,7 +20,7 @@ type Paso = 'revisar' | 'confirmar'
 
 interface AprobarArqueoDialogProps {
   open: boolean
-  /** El arqueo recién registrado; sin él se pide su número (lo registró otra persona) */
+  /** El arqueo a aprobar (recién registrado o elegido en el listado); sin él no se muestra nada */
   arqueo: Arqueo | null
   onCerrar: () => void
   onAprobado: (arqueo: Arqueo) => void
@@ -35,20 +34,16 @@ export function AprobarArqueoDialog({ open, arqueo, onCerrar, onAprobado }: Apro
   const aprobacion = useAprobarArqueo()
   const catalogo = useDenominaciones()
   const [paso, setPaso] = useState<Paso>('revisar')
-  const [numero, setNumero] = useState('')
-  const [errorNumero, setErrorNumero] = useState<string>()
   const [palabra, setPalabra] = useState('')
   const pendiente = aprobacion.isPending
   const resultado = aprobacion.data
   const valores = valoresPorDenominacion(catalogo.data)
-  const idArqueo = arqueo?.idArqueoBoveda ?? leerIdBoveda(numero)
+  const idArqueo = arqueo?.idArqueoBoveda ?? null
   const confirmado = palabra.trim().toUpperCase() === PALABRA
 
   const cerrar = () => {
     if (pendiente) return
     setPaso('revisar')
-    setNumero('')
-    setErrorNumero(undefined)
     setPalabra('')
     aprobacion.reset()
     onCerrar()
@@ -56,7 +51,7 @@ export function AprobarArqueoDialog({ open, arqueo, onCerrar, onAprobado }: Apro
 
   const continuar = (event: FormEvent) => {
     event.preventDefault()
-    if (idArqueo === null) return setErrorNumero('Escribe el número del arqueo, por ejemplo 15.')
+    if (idArqueo === null) return
     aprobacion.reset()
     setPaso('confirmar')
   }
@@ -98,6 +93,8 @@ export function AprobarArqueoDialog({ open, arqueo, onCerrar, onAprobado }: Apro
     </ul>
   )
 
+  if (!arqueo) return null
+
   if (paso === 'revisar') {
     return (
       <DialogoOperacion
@@ -105,7 +102,7 @@ export function AprobarArqueoDialog({ open, arqueo, onCerrar, onAprobado }: Apro
         ocupado={false}
         onCerrar={cerrar}
         titulo="Aprobar arqueo"
-        descripcion={arqueo ? 'Revisa el resultado antes de continuar.' : 'Indica qué arqueo vas a aprobar y revisa lo que implica.'}
+        descripcion="Revisa el resultado antes de continuar."
         pie={
           <>
             <Button type="button" variant="outline" onClick={cerrar} className="min-h-11 rounded-xl px-6">
@@ -118,26 +115,7 @@ export function AprobarArqueoDialog({ open, arqueo, onCerrar, onAprobado }: Apro
         }
       >
         <form id="form-revisar-arqueo" onSubmit={continuar} noValidate className="flex flex-col gap-6">
-          {arqueo ? (
-            <ResumenArqueo arqueo={arqueo} valores={valores} />
-          ) : (
-            <Campo id="arqueo-numero" label="N.º de arqueo" error={errorNumero} ayuda="Lo ves al registrar el arqueo.">
-              <Input
-                id="arqueo-numero"
-                inputMode="numeric"
-                autoComplete="off"
-                maxLength={10}
-                placeholder="Ej.: 15"
-                value={numero}
-                onChange={(event) => {
-                  setNumero(event.target.value)
-                  setErrorNumero(undefined)
-                }}
-                className={campoClassName}
-                {...ariaCampo('arqueo-numero', errorNumero, true)}
-              />
-            </Campo>
-          )}
+          <ResumenArqueo arqueo={arqueo} valores={valores} />
           <div className="flex flex-col gap-2 rounded-2xl border border-border bg-field p-5">
             <p className="text-sm font-semibold text-heading">Al aprobar</p>
             {consecuencias}
@@ -153,7 +131,7 @@ export function AprobarArqueoDialog({ open, arqueo, onCerrar, onAprobado }: Apro
       ocupado={pendiente}
       onCerrar={cerrar}
       titulo={`¿Aprobar el arqueo N.º ${idArqueo}?`}
-      descripcion={arqueo ? `${textoDiferencia(arqueo)}. Esta es la última confirmación.` : 'Esta es la última confirmación.'}
+      descripcion={`${textoDiferencia(arqueo)}. Esta es la última confirmación.`}
       pie={
         <>
           <Button type="button" variant="outline" disabled={pendiente} onClick={() => setPaso('revisar')} className="mr-auto min-h-11 rounded-xl px-4">

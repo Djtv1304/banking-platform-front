@@ -1,4 +1,5 @@
 import { Fragment, useState, type ReactNode } from 'react'
+import { Link } from 'react-router'
 import { ArrowDown, ArrowDownLeft, ArrowUp, ArrowUpRight, ChevronDown } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
@@ -141,6 +142,16 @@ function DetalleMovimiento({ movimiento, valores }: { movimiento: MovimientoBove
         <Dato label="N.º de movimiento">{movimiento.idMovimiento}</Dato>
         {movimiento.idBovedaContraparte != null && <Dato label="Bóveda contraparte">Bóveda {movimiento.idBovedaContraparte}</Dato>}
         {movimiento.idMovimientoRelacionado != null && <Dato label="Movimiento relacionado">N.º {movimiento.idMovimientoRelacionado}</Dato>}
+        {movimiento.idSolicitudMovimiento != null && (
+          <Dato label="Solicitud">
+            <Link
+              to={`/bovedas/solicitudes/${movimiento.idSolicitudMovimiento}`}
+              className="rounded-sm font-semibold text-link underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              N.º {movimiento.idSolicitudMovimiento}
+            </Link>
+          </Dato>
+        )}
         <Dato label="Asiento contable">
           {movimiento.idAsientoContable == null ? <span className="font-normal text-muted-foreground">Sin asiento</span> : `N.º ${movimiento.idAsientoContable}`}
         </Dato>

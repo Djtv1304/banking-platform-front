@@ -1,22 +1,27 @@
 import { useRef } from 'react'
-import { Controller, useForm, useWatch } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowDownLeft, ArrowUpRight, LoaderCircle, TriangleAlert } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, LoaderCircle, Send, ShieldCheck, TriangleAlert } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
 import { Button, Input } from '@/shared/ui'
 import { useDenominaciones } from '@/features/catalogos'
 import { mensajeErrorOperacion } from '@/features/boveda/api/bovedas.api'
-import { OBSERVACIONES_MAX, type Boveda, type RegistrarMovimiento } from '@/features/boveda/api/bovedas.contract'
+import {
+  OBSERVACIONES_MAX,
+  type Boveda,
+  type CrearSolicitudMovimiento,
+  type SolicitudMovimiento,
+} from '@/features/boveda/api/bovedas.contract'
 import { Campo } from '@/features/boveda/components/Campo'
 import { CuadriculaDenominaciones } from '@/features/boveda/components/operaciones/CuadriculaDenominaciones'
 import { DialogoOperacion, ErrorOperacion } from '@/features/boveda/components/operaciones/DialogoOperacion'
-import { SelectorUsuario } from '@/features/boveda/components/operaciones/SelectorUsuario'
-import { useBovedas, useRegistrarMovimiento } from '@/features/boveda/hooks/useBovedas'
+import { useBovedas, useCrearSolicitudMovimiento } from '@/features/boveda/hooks/useBovedas'
 import { ariaCampo, campoClassName, selectClassName, textareaClassName } from '@/features/boveda/lib/campos'
 import {
   etiquetaMovimiento,
+  etiquetaTipoBoveda,
   formatearMonto,
   nivelSaldo,
   textoNivel,
@@ -39,18 +44,21 @@ import {
 
 const SIN_FILTROS = {}
 
-interface RegistrarMovimientoDialogProps {
+interface SolicitarMovimientoDialogProps {
   boveda: Boveda
   open: boolean
   /** Puede listar bóvedas (BOV-01): ofrece las contrapartes de un traslado */
   puedeListar: boolean
   onCerrar: () => void
-  onRegistrado: (mensaje: string) => void
+  onCreada: (solicitud: SolicitudMovimiento) => void
 }
 
-/** BOV-04 · Traslados, provisiones, dotaciones, devoluciones, ATM y ajustes con su desglose */
-export function RegistrarMovimientoDialog({ boveda, open, puedeListar, onCerrar, onRegistrado }: RegistrarMovimientoDialogProps) {
-  const registro = useRegistrarMovimiento(boveda.idBoveda)
+/**
+ * SMV-01 · Traslados, provisiones, dotaciones, devoluciones, ATM y ajustes con su desglose. No mueve
+ * efectivo: crea una solicitud PENDIENTE que otra sesión aprueba (y ahí se ejecuta) o rechaza.
+ */
+export function SolicitarMovimientoDialog({ boveda, open, puedeListar, onCerrar, onCreada }: SolicitarMovimientoDialogProps) {
+  const registro = useCrearSolicitudMovimiento(boveda.idBoveda)
   const ultimoEnvio = useRef<{ firma: string; clave: string } | null>(null)
   const catalogo = useDenominaciones()
   const {
@@ -60,7 +68,7 @@ export function RegistrarMovimientoDialog({ boveda, open, puedeListar, onCerrar,
     reset,
     setError,
     formState: { errors },
-  } = useForm<MovimientoForm, unknown, RegistrarMovimiento>({
+  } = useForm<MovimientoForm, unknown, CrearSolicitudMovimiento>({
     resolver: zodResolver(movimientoFormSchema(boveda.idBoveda)),
     defaultValues: MOVIMIENTO_VACIO,
   })
@@ -94,24 +102,20 @@ export function RegistrarMovimientoDialog({ boveda, open, puedeListar, onCerrar,
     onCerrar()
   }
 
-  const enviar = async (movimiento: RegistrarMovimiento) => {
-    const envio = claveParaEnvio(ultimoEnvio.current, movimiento)
+  const enviar = async (solicitud: CrearSolicitudMovimiento) => {
+    const envio = claveParaEnvio(ultimoEnvio.current, solicitud)
     ultimoEnvio.current = envio
     try {
-      const registrados = await registro.mutateAsync({ movimiento, clave: envio.clave })
-      const propio = registrados.find((item) => item.idBoveda === boveda.idBoveda) ?? registrados[0]
+      const creada = await registro.mutateAsync({ solicitud, clave: envio.clave })
       reset(MOVIMIENTO_VACIO)
       registro.reset()
       ultimoEnvio.current = null
-      onRegistrado(
-        `Registramos ${etiquetaMovimiento(propio.tipoMovimiento).toLowerCase()} por ${formatearMonto(propio.monto)}. ` +
-          `El saldo de ${boveda.codigoBoveda} quedó en ${formatearMonto(propio.idBoveda === boveda.idBoveda ? propio.saldoPosterior : saldoDespues)}.`,
-      )
+      onCreada(creada)
     } catch (error) {
       for (const { field, message } of toApiError(error).fields) {
         const campo = field.split('.').pop() ?? field
         if (field.includes('desglose') || campo === 'cantidad' || campo === 'idDenominacion') setError('cantidades', { message })
-        else if (campo === 'tipoMovimiento' || campo === 'idBovedaContraparte' || campo === 'autorizadoPor' || campo === 'observaciones') {
+        else if (campo === 'tipoMovimiento' || campo === 'idBovedaContraparte' || campo === 'observaciones') {
           setError(campo, { message }, { shouldFocus: true })
         }
       }
@@ -124,8 +128,8 @@ export function RegistrarMovimientoDialog({ boveda, open, puedeListar, onCerrar,
       ocupado={pendiente}
       onCerrar={cerrar}
       ancho="amplio"
-      titulo="Registrar movimiento"
-      descripcion={`Efectivo que entra o sale de ${boveda.codigoBoveda}. Saldo actual: ${formatearMonto(boveda.saldoActual)}.`}
+      titulo="Solicitar movimiento"
+      descripcion={`Efectivo que entrará o saldrá de ${boveda.codigoBoveda}. Saldo actual: ${formatearMonto(boveda.saldoActual)}.`}
       pie={
         <>
           <div className="mr-auto flex min-w-0 flex-col gap-0.5 text-sm" aria-live="polite">
@@ -134,7 +138,7 @@ export function RegistrarMovimientoDialog({ boveda, open, puedeListar, onCerrar,
             </span>
             {naturaleza && total > 0 && (
               <span className={cn('tabular-nums', nivelSaldo(limitesDespues) === 'normal' ? 'text-muted-foreground' : 'font-medium text-destructive')}>
-                Saldo después: {formatearMonto(saldoDespues)}
+                Saldo al aprobarse: {formatearMonto(saldoDespues)}
                 {nivelSaldo(limitesDespues) !== 'normal' && ` · ${textoNivel(limitesDespues).toLowerCase()}`}
               </span>
             )}
@@ -143,8 +147,8 @@ export function RegistrarMovimientoDialog({ boveda, open, puedeListar, onCerrar,
             Cancelar
           </Button>
           <Button type="submit" form="form-movimiento" disabled={pendiente} className="min-h-11 rounded-xl px-6 font-semibold">
-            {pendiente && <LoaderCircle className="animate-spin" />}
-            {pendiente ? 'Registrando…' : 'Registrar movimiento'}
+            {pendiente ? <LoaderCircle className="animate-spin" /> : <Send />}
+            {pendiente ? 'Enviando…' : 'Enviar solicitud'}
           </Button>
         </>
       }
@@ -207,7 +211,7 @@ export function RegistrarMovimientoDialog({ boveda, open, puedeListar, onCerrar,
                   <option value="">Elige la bóveda</option>
                   {contrapartes.map((item) => (
                     <option key={item.idBoveda} value={String(item.idBoveda)}>
-                      {item.codigoBoveda} · {item.tipoBoveda}
+                      {item.codigoBoveda} · {etiquetaTipoBoveda(item.tipoBoveda)}
                     </option>
                   ))}
                 </select>
@@ -226,23 +230,6 @@ export function RegistrarMovimientoDialog({ boveda, open, puedeListar, onCerrar,
             </Campo>
           )}
 
-          <Campo id="mov-autoriza" label="Autorizado por" error={errors.autorizadoPor?.message}>
-            <Controller
-              control={control}
-              name="autorizadoPor"
-              render={({ field }) => (
-                <SelectorUsuario
-                  id="mov-autoriza"
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  error={errors.autorizadoPor?.message}
-                  disabled={pendiente}
-                />
-              )}
-            />
-          </Campo>
-
           <Campo id="mov-observaciones" label="Observaciones (opcional)" error={errors.observaciones?.message}>
             <textarea
               id="mov-observaciones"
@@ -254,6 +241,13 @@ export function RegistrarMovimientoDialog({ boveda, open, puedeListar, onCerrar,
               {...register('observaciones')}
             />
           </Campo>
+          <div className="flex items-start gap-3 rounded-2xl border border-info/60 bg-info/15 p-4 text-sm text-foreground">
+            <ShieldCheck aria-hidden className="mt-0.5 size-5 shrink-0 text-heading" />
+            <p>
+              <span className="font-semibold text-heading">Queda pendiente de aprobación.</span> El saldo no cambia hasta que un
+              Supervisor o Administrador la apruebe desde otra sesión. Mientras tanto se puede rechazar o cancelar.
+            </p>
+          </div>
         </fieldset>
 
         <section aria-labelledby="mov-piezas" className="flex min-w-0 flex-col gap-4">
@@ -290,7 +284,7 @@ export function RegistrarMovimientoDialog({ boveda, open, puedeListar, onCerrar,
 
       {registro.isError && (
         <div className="mt-6">
-          <ErrorOperacion>{mensajeErrorOperacion(registro.error, 'registrar movimientos de bóveda', true)}</ErrorOperacion>
+          <ErrorOperacion>{mensajeErrorOperacion(registro.error, 'solicitar movimientos de bóveda', true)}</ErrorOperacion>
         </div>
       )}
     </DialogoOperacion>

@@ -5,13 +5,17 @@ import {
   arqueoSchema,
   BOVEDAS_ENDPOINTS,
   bovedaSchema,
+  crearSolicitudMovimientoSchema,
   IDEMPOTENCY_KEY_REGEX,
-  movimientosRegistradosSchema,
+  motivoResolucionSchema,
+  movimientosEjecutadosSchema,
+  paginaArqueosSchema,
   paginaMovimientosBovedaSchema,
+  paginaSolicitudesMovimientoSchema,
   registrarArqueoSchema,
-  registrarMovimientoSchema,
+  solicitudMovimientoSchema,
+  type CrearSolicitudMovimiento,
   type RegistrarArqueo,
-  type RegistrarMovimiento,
 } from '@/features/boveda/api/bovedas.contract'
 
 const RESPUESTA_INVALIDA = 'No pudimos leer la respuesta del servidor. Inténtalo más tarde.'
@@ -42,13 +46,33 @@ export async function listarMovimientosBoveda(idBoveda: number, params: Record<s
   return validar(paginaMovimientosBovedaSchema, data, status)
 }
 
+/** BOV-07 · Arqueos paginados de una bóveda */
+export async function listarArqueosBoveda(idBoveda: number, params: Record<string, string>, signal?: AbortSignal) {
+  const { data, status } = await apiClient.get<unknown>(BOVEDAS_ENDPOINTS.arqueos(idBoveda), { params, signal })
+  return validar(paginaArqueosSchema, data, status)
+}
+
+/** SMV-02 · `params` trae solo los filtros con valor (`idAgencia`, `estado`) más la página */
+export async function listarSolicitudesMovimiento(params: Record<string, string>, signal?: AbortSignal) {
+  const { data, status } = await apiClient.get<unknown>(BOVEDAS_ENDPOINTS.solicitudes, { params, signal })
+  return validar(paginaSolicitudesMovimientoSchema, data, status)
+}
+
+/** SMV-03 · Solicitud inexistente → 404 */
+export async function obtenerSolicitudMovimiento(idSolicitud: number, signal?: AbortSignal) {
+  const { data, status } = await apiClient.get<unknown>(BOVEDAS_ENDPOINTS.solicitud(idSolicitud), { signal })
+  const solicitud = validar(solicitudMovimientoSchema, data, status)
+  if (solicitud.idSolicitudMovimiento !== idSolicitud) throw new ApiError(RESPUESTA_INVALIDA, status, 'respuesta_invalida')
+  return solicitud
+}
+
 export const esBovedaInexistente = (error: unknown) => toApiError(error).status === 404
 
-/** Mensaje de un error de BOV-01, BOV-02 o BOV-03. `que` completa «No tienes permiso para …» */
-export function mensajeErrorBoveda(error: unknown, que: string) {
+/** Mensaje de un error de consulta (BOV-01 a BOV-03, BOV-07, SMV-02 y SMV-03). `que` completa «No tienes permiso para …» */
+export function mensajeErrorBoveda(error: unknown, que: string, inexistente = 'No existe una bóveda con ese ID.') {
   const e = toApiError(error)
   if (e.status === 403) return `Tu rol no tiene permiso para ${que}.`
-  if (e.status === 404) return 'No existe una bóveda con ese ID.'
+  if (e.status === 404) return inexistente
   if (e.status === 429) return 'Hiciste demasiadas consultas seguidas. Espera un momento y vuelve a intentarlo.'
   return e.message
 }
@@ -63,17 +87,41 @@ function confirmar<T extends z.ZodType>(schema: T, data: unknown, status: number
 }
 
 /**
- * BOV-04 · La clave de idempotencia viaja siempre: si la respuesta se pierde, reintentar con la misma
- * clave y el mismo body no registra el movimiento dos veces.
+ * SMV-01 · La clave de idempotencia viaja siempre: si la respuesta se pierde, reintentar con la misma
+ * clave y el mismo body no crea la solicitud dos veces. No mueve efectivo: queda PENDIENTE.
  */
-export async function registrarMovimiento(idBoveda: number, movimiento: RegistrarMovimiento, idempotencyKey: string) {
+export async function crearSolicitudMovimiento(idBoveda: number, solicitud: CrearSolicitudMovimiento, idempotencyKey: string) {
   if (!IDEMPOTENCY_KEY_REGEX.test(idempotencyKey)) throw new Error('Idempotency-Key inválida')
-  const body = registrarMovimientoSchema.parse(movimiento)
-  const { data, status } = await apiClient.post<unknown>(BOVEDAS_ENDPOINTS.movimientos(idBoveda), body, {
+  const body = crearSolicitudMovimientoSchema.parse(solicitud)
+  const { data, status } = await apiClient.post<unknown>(BOVEDAS_ENDPOINTS.crearSolicitud(idBoveda), body, {
     headers: { 'Idempotency-Key': idempotencyKey },
   })
-  return confirmar(movimientosRegistradosSchema, data, status, 'No pudimos confirmar el registro del movimiento.')
+  const creada = confirmar(solicitudMovimientoSchema, data, status, 'No pudimos confirmar la creación de la solicitud.')
+  if (creada.idBoveda !== idBoveda) throw new ApiError('No pudimos confirmar la creación de la solicitud.', status, SIN_CONFIRMAR)
+  return creada
 }
+
+/** SMV-04 · Body `{}`. Ejecuta el movimiento: responde los movimientos registrados en cada bóveda */
+export async function aprobarSolicitudMovimiento(idSolicitud: number) {
+  const { data, status } = await apiClient.post<unknown>(BOVEDAS_ENDPOINTS.aprobarSolicitud(idSolicitud), {})
+  return confirmar(movimientosEjecutadosSchema, data, status, 'No pudimos confirmar la aprobación de la solicitud.')
+}
+
+async function resolverSolicitud(url: string, idSolicitud: number, motivo: string, mensaje: string) {
+  const body = motivoResolucionSchema.parse({ motivo })
+  const { data, status } = await apiClient.post<unknown>(url, body)
+  const solicitud = confirmar(solicitudMovimientoSchema, data, status, mensaje)
+  if (solicitud.idSolicitudMovimiento !== idSolicitud) throw new ApiError(mensaje, status, SIN_CONFIRMAR)
+  return solicitud
+}
+
+/** SMV-05 · Rechazo con motivo obligatorio */
+export const rechazarSolicitudMovimiento = (idSolicitud: number, motivo: string) =>
+  resolverSolicitud(BOVEDAS_ENDPOINTS.rechazarSolicitud(idSolicitud), idSolicitud, motivo, 'No pudimos confirmar el rechazo de la solicitud.')
+
+/** SMV-06 · Cancelación con motivo obligatorio */
+export const cancelarSolicitudMovimiento = (idSolicitud: number, motivo: string) =>
+  resolverSolicitud(BOVEDAS_ENDPOINTS.cancelarSolicitud(idSolicitud), idSolicitud, motivo, 'No pudimos confirmar la cancelación de la solicitud.')
 
 /** BOV-05 · Nunca se reintenta solo: una respuesta perdida no prueba que el arqueo no se haya registrado */
 export async function registrarArqueo(idBoveda: number, arqueo: RegistrarArqueo) {
@@ -101,20 +149,22 @@ export function operacionSinConfirmar(error: unknown) {
 }
 
 /**
- * Mensaje general de un error de BOV-04, BOV-05 o BOV-06; los errores por campo se muestran junto
- * a cada campo. `seguroReintentar`: el reintento no duplica la operación (BOV-04 con la misma clave).
+ * Mensaje general de un error de BOV-05, BOV-06 o SMV-01, SMV-04 a SMV-06; los errores por campo se
+ * muestran junto a cada campo. `seguroReintentar`: el reintento no duplica la operación (SMV-01 con
+ * la misma clave).
  */
 export function mensajeErrorOperacion(error: unknown, que: string, seguroReintentar = false) {
   const e = toApiError(error)
   if (e.status === 403) return `Tu rol no tiene permiso para ${que}.`
-  if (e.status === 404) return e.message || 'No encontramos la bóveda o el arqueo. Puede que ya no exista.'
+  if (e.status === 404) return e.message || 'No encontramos la bóveda, el arqueo o la solicitud. Puede que ya no exista.'
   if (e.status === 429) return 'Hiciste demasiados intentos seguidos. Espera un momento y vuelve a intentarlo.'
   if (operacionSinConfirmar(error)) {
     return seguroReintentar
       ? 'No pudimos confirmar si quedó registrado. Puedes reintentar sin cambiar nada: no se registrará dos veces.'
-      : 'No pudimos confirmar si quedó registrado. Revisa los movimientos de la bóveda antes de volver a intentarlo.'
+      : 'No pudimos confirmar si quedó registrado. Actualiza la pantalla y revisa antes de volver a intentarlo.'
   }
   if ((e.status === 400 || e.status === 422) && e.fields.length > 0) return 'Revisa los campos marcados.'
-  // 409 (p. ej. piezas insuficientes, arqueo ya aprobado o anulado) trae un detalle legible del backend
+  // 409 (p. ej. piezas insuficientes, arqueo o solicitud ya resueltos, aprobar la propia solicitud)
+  // trae un detalle legible del backend
   return e.message
 }
