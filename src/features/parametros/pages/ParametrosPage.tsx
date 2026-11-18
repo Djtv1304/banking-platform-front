@@ -5,7 +5,7 @@ import { Search, SlidersHorizontal } from 'lucide-react'
 import { obtenerContextoAgencias, useAuthStore } from '@/features/auth'
 import { toApiError } from '@/shared/api'
 import { Aviso, Cargando, Input, Paginacion } from '@/shared/ui'
-import { listarParametros } from '../api/parametros.api'
+import { listarParametros } from '@/features/parametros/api/parametros.api'
 
 export function ParametrosPage() {
   const usuario = useAuthStore(s => s.user)

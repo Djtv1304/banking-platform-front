@@ -1,4 +1,4 @@
-import { aceptadaSchema } from '@/features/aprobaciones/api/aprobaciones.contract'
+import { aceptadaSchema } from '@/shared/api/aprobaciones.contract'
 import { z } from 'zod'
 
 export const PARAMETROS_ROLES = ['ADMIN', 'SUPERVISOR', 'ASESOR'] as const

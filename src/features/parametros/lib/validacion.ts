@@ -1,4 +1,4 @@
-import type { EntradaValor, Parametro } from '../api/parametros.contract'
+import type { EntradaValor, Parametro } from '@/features/parametros/api/parametros.contract'
 
 export function hoyEcuador() {
   const partes = new Intl.DateTimeFormat('en', { timeZone: 'America/Guayaquil', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { entradaSchema, pendienteSchema, registradoSchema } from './parametros.contract'
-import { validarValor } from '../lib/validacion'
+import { entradaSchema, pendienteSchema, registradoSchema } from '@/features/parametros/api/parametros.contract'
+import { validarValor } from '@/features/parametros/lib/validacion'
 
 describe('contratos y validaciones de parametros', () => {
   it('202 exige una solicitud real, no un valor registrado', () => {

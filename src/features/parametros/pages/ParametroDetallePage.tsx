@@ -6,9 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '@/features/auth'
 import { toApiError } from '@/shared/api'
 import { Aviso, AvisoRequiereAprobacion, LineaDeTiempo, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input } from '@/shared/ui'
-import { cancelarValor, consultarParametro, programarValor } from '../api/parametros.api'
-import { entradaSchema, type EntradaValor, type Parametro, type ValorParametro } from '../api/parametros.contract'
-import { hoyEcuador, validarValor } from '../lib/validacion'
+import { cancelarValor, consultarParametro, programarValor } from '@/features/parametros/api/parametros.api'
+import { entradaSchema, type EntradaValor, type Parametro, type ValorParametro } from '@/features/parametros/api/parametros.contract'
+import { hoyEcuador, validarValor } from '@/features/parametros/lib/validacion'
 
 export function ParametroDetallePage() {
   const { clave = '' } = useParams()

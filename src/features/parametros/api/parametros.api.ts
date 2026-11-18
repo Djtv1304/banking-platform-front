@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 import { ApiError, apiClient } from '@/shared/api'
-import { entradaSchema, listaSchema, parametroSchema, pendienteSchema, registradoSchema, type EntradaValor } from './parametros.contract'
+import { entradaSchema, listaSchema, parametroSchema, pendienteSchema, registradoSchema, type EntradaValor } from '@/features/parametros/api/parametros.contract'
 
 export interface FiltrosParametros { buscar?: string; modulo?: string; estado?: string; idAgencia?: string; page?: number }
 const base = '/api/v1/parametros'
