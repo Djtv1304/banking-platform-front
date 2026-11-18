@@ -7,6 +7,10 @@ import { AvisoRequiereAprobacion } from '@/shared/ui/aviso-requiere-aprobacion'
 import { LineaDeTiempo } from '@/shared/ui/linea-de-tiempo'
 
 describe('componentes reutilizables de aprobaciones', () => {
+  it('ordena los campos alfabeticamente para la lectura del usuario', () => {
+    const html = renderToStaticMarkup(<ComparadorCambios antes={{ Zeta: 1, alfabeta: 2 }} despues={{ Zeta: 1, alfabeta: 2 }} />)
+    expect(html.indexOf('alfabeta')).toBeLessThan(html.indexOf('Zeta'))
+  })
   it('compara antes y despues sin depender solo del color y escapa texto', () => {
     const html = renderToStaticMarkup(<ComparadorCambios antes={{ valor: 10 }} despues={{ valor: '<script>fixture</script>' }} />)
     expect(html).toContain('Antes')
