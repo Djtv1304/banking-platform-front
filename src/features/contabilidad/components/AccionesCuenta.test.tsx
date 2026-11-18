@@ -37,14 +37,27 @@ describe('AccionesCuenta', () => {
     expect(salida).toContain('aria-describedby="accion-nombre-motivo"')
   })
 
-  it('una cuenta propia sin saldo tiene todas las acciones', () => {
-    expect(deshabilitados(html(nodo('21014001')))).toBe(0)
+  it('una cuenta de 6 dígitos sin saldo deja crear subcuentas', () => {
+    const salida = html(nodo('210140'))
+    expect(salida).not.toContain('accion-subcuenta-motivo')
   })
 
-  it('con saldo no deja crear subcuentas, desactivar ni eliminar', () => {
-    const salida = html(nodo('21014001', 50))
-    expect(deshabilitados(salida)).toBe(3)
-    expect(salida).toContain('saldo distinto de cero')
+  it('una cuenta de 8 dígitos no recibe subcuentas y dice bajo cuál crearla; lo demás sigue disponible', () => {
+    const salida = html(nodo('21014001'))
+    expect(deshabilitados(salida)).toBe(1)
+    expect(salida).toContain('aria-describedby="accion-subcuenta-motivo"')
+    expect(salida).toContain('créala bajo 210140.')
+  })
+
+  it('bajo una cuenta de 4 dígitos sigue bloqueado por el catálogo del regulador', () => {
+    const salida = html(nodo('2101'))
+    expect(salida).toContain('aria-describedby="accion-subcuenta-motivo"')
+    expect(salida).toContain('Debajo de este nivel solo van cuentas del catálogo del regulador')
+  })
+
+  it('una cuenta de 6 dígitos con saldo no deja crear subcuentas ni cambiar nada', () => {
+    const salida = html(nodo('210135', 50))
+    expect(deshabilitados(salida)).toBe(4)
     expect(salida).toContain('no se divide en subcuentas')
   })
 })
