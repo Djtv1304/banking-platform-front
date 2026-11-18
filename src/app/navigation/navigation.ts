@@ -6,6 +6,7 @@ import { CATALOGOS_ROLES } from '@/features/catalogos'
 import { CONTABILIDAD_ROLES } from '@/features/contabilidad'
 import { PESTANAS_FIJAS, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
+import { permiteSeccion, type MeResponse } from '@/features/auth'
 
 export interface NavItem {
   to: string
@@ -131,14 +132,15 @@ function rolPuedeVer(item: NavItem, roles: readonly string[], pestanas?: Pestana
  * (vista de un rol en «Roles y accesos») no se filtra por permiso: eso se configura en WorkOS.
  * Solo decide qué se muestra: cada API valida su propio rol o permiso.
  */
-export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[], pestanas?: PestanasPorRol) {
+export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[], pestanas?: PestanasPorRol, accesos?: MeResponse['accesosSecciones']) {
   if (!profile) return []
   return NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter(
       (item) =>
         canAccess(profile, item.profiles) &&
-        rolPuedeVer(item, roles, pestanas) &&
+        rolPuedeVer(item, roles, accesos ? undefined : pestanas) &&
+        permiteSeccion(item.to, accesos) &&
         (!item.permiso || !permisos || permisos.includes(item.permiso)),
     ),
   })).filter((section) => section.items.length > 0)
@@ -155,7 +157,7 @@ export interface PestanaConfigurable {
 
 /** Pestañas que un ADMIN puede personalizar, con los roles que las ven por defecto. */
 export function getPestanasConfigurables(): PestanaConfigurable[] {
-  return NAV_SECTIONS.flatMap((section) =>
+  const menu = NAV_SECTIONS.flatMap((section) =>
     section.items
       .filter((item) => !PESTANAS_FIJAS.includes(item.to))
       .map((item) => ({
@@ -166,12 +168,14 @@ export function getPestanasConfigurables(): PestanaConfigurable[] {
         requiereAccion: Boolean(item.permiso),
       })),
   )
+  // Existe como ruta de operación, aunque no tenga entrada propia en el menú lateral.
+  return [...menu, { to: '/solicitar-tarjeta', label: 'Solicitar tarjeta', seccion: 'Tarjetas', rolesPorDefecto: ['ADMIN', 'ASESOR'], requiereAccion: true }]
 }
 
 /** Opciones del menú para un rol reconocido. No sustituye la autorización de las APIs. */
-export function getRoleNavigation(role: string) {
+export function getRoleNavigation(role: string, pestanas?: PestanasPorRol) {
   if (!(ROLES_USUARIO as readonly string[]).includes(role)) return []
-  return getVisibleSections(getAccessProfile([role]), [role], []).map((section) => ({
+  return getVisibleSections(getAccessProfile([role]), [role], [], pestanas).map((section) => ({
     titulo: section.title ?? 'General',
     opciones: section.items.map((item) => ({
       titulo: item.label,

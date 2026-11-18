@@ -16,3 +16,6 @@ export { SelectorAgencia } from '@/features/auth/components/SelectorAgencia';
 export { agenciaAsignadaSchema } from '@/features/auth/api/auth.contract';
 
 export { obtenerContextoAgencias } from '@/features/auth/api/auth.api';
+export { permiteSeccion } from '@/features/auth/lib/accesos-secciones';
+export { ActualizarAccesosButton } from '@/features/auth/components/ActualizarAccesosButton';
+export { publicar as publicarEventoSesion } from '@/features/auth/lib/canal-sesion';
