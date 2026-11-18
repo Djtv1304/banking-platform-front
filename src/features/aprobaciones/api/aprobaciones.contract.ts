@@ -20,6 +20,5 @@ export type BandejaNombre = 'pendientes' | 'mias' | 'resueltas'
 export type Solicitud = z.infer<typeof solicitudSchema>
 export type DetalleSolicitud = z.infer<typeof detalleSchema>
 export type Accion = 'aprobar' | 'rechazar' | 'cancelar'
-export const aceptadaSchema = z.object({ idSolicitud: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), estado: z.literal('Pendiente'), requiereAprobacion: z.literal(true) })
 export interface SolicitudEntrada { codigoTransaccion: string; tipoObjetivo: string; idObjetivo: string; idAgencia: string | null; contenido: Record<string, unknown> }
 export const comentarioSchema = (accion: Accion) => z.object({ comentario: z.string().trim().max(300, 'El comentario admite hasta 300 caracteres.').refine((s) => accion !== 'rechazar' || s.length > 0, 'Escribe el motivo del rechazo.') })

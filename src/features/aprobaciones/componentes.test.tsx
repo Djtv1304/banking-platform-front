@@ -23,7 +23,7 @@ describe('componentes reutilizables de aprobaciones', () => {
   it('un 202 se anuncia como pendiente y enlaza a su solicitud', () => {
     const html = renderToStaticMarkup(<MemoryRouter><AvisoRequiereAprobacion idSolicitud={12} /></MemoryRouter>)
     expect(html).toContain('role="status"')
-    expect(html).toContain('aun no se aplica')
+    expect(html).toContain('aún no se aplica')
     expect(html).toContain('/aprobaciones/12')
   })
   it('el historial incluye responsable y fecha semantica', () => {

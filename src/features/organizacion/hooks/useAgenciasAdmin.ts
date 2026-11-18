@@ -1,43 +1,61 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { actualizarAgencia, crearAgencia, obtenerAgencia } from '@/features/organizacion/api/agencias.api'
-import type { AgenciaUpdate } from '@/features/organizacion/api/agencias.contract'
+import { actualizarAgencia, cambiarEstadoAgencia, crearAgencia, listarAgencias, obtenerAgencia } from '@/features/organizacion/api/agencias.api'
+import type { AgenciaEstadoUpdate, AgenciaUpdate } from '@/features/organizacion/api/agencias.contract'
 
-/** Lista que muestra la página (y el resto de la app): el catálogo CAT-06 */
-const CLAVE_AGENCIAS = ['catalogos', 'agencias'] as const
-const CLAVE_DETALLE = ['organizacion', 'agencia'] as const
+const CLAVE_ADMIN = ['organizacion', 'agencias'] as const
+const CLAVE_CATALOGO = ['catalogos', 'agencias'] as const
 
-/** Detalle para precargar la edición. Siempre fresco: es la base para saber qué cambió */
+export function useAgenciasAdmin() {
+  return useQuery({
+    queryKey: [...CLAVE_ADMIN, 'lista'],
+    queryFn: ({ signal }) => listarAgencias(signal),
+    staleTime: 0,
+    retry: false,
+  })
+}
+
 export function useAgenciaDetalle(idAgencia: string | null) {
   return useQuery({
-    queryKey: [...CLAVE_DETALLE, idAgencia],
-    queryFn: () => obtenerAgencia(idAgencia ?? ''),
+    queryKey: [...CLAVE_ADMIN, 'detalle', idAgencia],
+    queryFn: ({ signal }) => obtenerAgencia(idAgencia ?? '', signal),
     enabled: idAgencia !== null,
     staleTime: 0,
     gcTime: 0,
-  })
-}
-
-/** ORG-01 · Sin reintento; al crear se vuelve a pedir el catálogo de agencias */
-export function useCrearAgencia() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: crearAgencia,
     retry: false,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: CLAVE_AGENCIAS }),
   })
 }
 
-/** ORG-02 · Edición parcial o cambio de estado; sin reintento */
+function useInvalidarAgencias() {
+  const client = useQueryClient()
+  return () => Promise.all([
+    client.invalidateQueries({ queryKey: CLAVE_ADMIN }),
+    client.invalidateQueries({ queryKey: CLAVE_CATALOGO }),
+  ])
+}
+
+export function useCrearAgencia() {
+  const invalidar = useInvalidarAgencias()
+  return useMutation({ mutationFn: crearAgencia, retry: false, onSuccess: invalidar })
+}
+
 export function useActualizarAgencia() {
-  const queryClient = useQueryClient()
+  const invalidar = useInvalidarAgencias()
   return useMutation({
     mutationFn: ({ idAgencia, body }: { idAgencia: string; body: AgenciaUpdate }) => actualizarAgencia(idAgencia, body),
     retry: false,
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: CLAVE_AGENCIAS }),
-        queryClient.invalidateQueries({ queryKey: CLAVE_DETALLE }),
-      ]),
+    onSuccess: invalidar,
+  })
+}
+
+export function useCambiarEstadoAgencia() {
+  const client = useQueryClient()
+  const invalidar = useInvalidarAgencias()
+  return useMutation({
+    mutationFn: ({ idAgencia, body }: { idAgencia: string; body: AgenciaEstadoUpdate }) => cambiarEstadoAgencia(idAgencia, body),
+    retry: false,
+    onSuccess: (resultado) => 'idSolicitud' in resultado
+      ? client.invalidateQueries({ queryKey: ['aprobaciones'] })
+      : invalidar(),
   })
 }
