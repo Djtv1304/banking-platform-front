@@ -5,13 +5,14 @@ import {
   asignarPermiso,
   borrarPermiso,
   crearPermiso,
+  editarPermiso,
   guardarPestanas,
   listarPermisos,
   listarPestanas,
   listarRolesPermisos,
   quitarPermiso,
 } from '@/features/seguridad/api/seguridad.api'
-import type { PestanaRoles, RolPermisos } from '@/features/seguridad/api/seguridad.contract'
+import type { EdicionPermiso, PestanaRoles, RolPermisos } from '@/features/seguridad/api/seguridad.contract'
 
 const SEGURIDAD_KEY = ['seguridad'] as const
 const PERMISOS_KEY = [...SEGURIDAD_KEY, 'permisos'] as const
@@ -32,6 +33,16 @@ export const useRolesPermisos = (habilitado: boolean) =>
 export function useCrearPermiso() {
   const cache = useQueryClient()
   return useMutation({ mutationFn: crearPermiso, retry: false, onSuccess: () => cache.invalidateQueries({ queryKey: PERMISOS_KEY }) })
+}
+
+/** SEG02 · Editar nombre o descripción; también cambia cómo se ve en la asignación */
+export function useEditarPermiso() {
+  const cache = useQueryClient()
+  return useMutation({
+    mutationFn: ({ slug, cambios }: { slug: string; cambios: EdicionPermiso }) => editarPermiso(slug, cambios),
+    retry: false,
+    onSuccess: () => cache.invalidateQueries({ queryKey: PERMISOS_KEY }),
+  })
 }
 
 /** SEG10 · Al borrar cambian el catálogo y los roles que lo tenían */

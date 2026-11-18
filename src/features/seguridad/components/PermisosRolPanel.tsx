@@ -1,5 +1,4 @@
-import { KeyRound } from 'lucide-react'
-
+import { formatRol } from '@/features/auth'
 import { useCambiarPermisoRol, usePermisosWorkOS, useRolesPermisos } from '@/features/seguridad/hooks/useSeguridad'
 import { Aviso, Cargando, Checkbox, Label } from '@/shared/ui'
 
@@ -14,14 +13,9 @@ export function PermisosRolPanel({ rol }: { rol: string }) {
   const error = permisos.error ?? roles.error
 
   return (
-    <section aria-labelledby="permisos-rol" className="mt-8 border-t border-border pt-6">
-      <h3 id="permisos-rol" className="flex items-center gap-2 text-lg font-semibold text-heading">
-        <KeyRound aria-hidden className="size-5 text-link" />
-        Permisos de WorkOS
-      </h3>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Los permisos son generales (productos, contabilidad). Un cambio aplica cuando el usuario vuelve a iniciar sesión o se renueva su sesión.
-      </p>
+    <section aria-labelledby="permisos-rol" className="mt-6 border-t border-border pt-5">
+      <h3 id="permisos-rol" className="text-lg font-semibold text-heading">Permisos de {formatRol(rol)}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{asignados.size} de {catalogo.length} permisos asignados.</p>
 
       {error ? (
         <div className="mt-4"><Aviso tono="error">{error.message}</Aviso></div>
