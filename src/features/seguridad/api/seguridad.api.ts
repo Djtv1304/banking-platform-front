@@ -4,8 +4,10 @@ import { ApiError, apiClient } from '@/shared/api'
 import {
   pestanaRolesSchema,
   permisoSchema,
+  nuevoPermisoSchema,
   rolPermisosSchema,
   SEGURIDAD_ENDPOINTS,
+  type NuevoPermiso,
   type PestanaRoles,
 } from '@/features/seguridad/api/seguridad.contract'
 
@@ -22,6 +24,18 @@ const ROL_INVALIDO = 'No pudimos leer los permisos del rol. Inténtalo más tard
 export async function listarPermisos(signal?: AbortSignal) {
   const { data, status } = await apiClient.get<unknown>(SEGURIDAD_ENDPOINTS.permisos, { signal })
   return leer(z.array(permisoSchema), data, status, 'No pudimos leer los permisos. Inténtalo más tarde.')
+}
+
+/** SEG09 · Crea un permiso general (sin asignarlo a ningún rol) */
+export async function crearPermiso(permiso: NuevoPermiso) {
+  const body = nuevoPermisoSchema.parse(permiso)
+  const { data, status } = await apiClient.post<unknown>(SEGURIDAD_ENDPOINTS.permisos, { ...body, descripcion: body.descripcion || null })
+  return leer(permisoSchema, data, status, 'No pudimos leer el permiso creado.')
+}
+
+/** SEG10 · Borra el permiso y lo quita de los roles; el backend no borra los que la aplicación exige */
+export async function borrarPermiso(slug: string) {
+  await apiClient.delete(SEGURIDAD_ENDPOINTS.permiso(slug))
 }
 
 /** SEG03 */

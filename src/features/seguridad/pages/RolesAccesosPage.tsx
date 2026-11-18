@@ -3,7 +3,9 @@ import { Link } from 'react-router'
 import { ArrowRight, ShieldCheck, Users } from 'lucide-react'
 
 import { formatRol, hasAnyRole, useAuthStore } from '@/features/auth'
+import { CatalogoPermisos } from '@/features/seguridad/components/CatalogoPermisos'
 import { PermisosRolPanel } from '@/features/seguridad/components/PermisosRolPanel'
+import { slugRol } from '@/features/seguridad/api/seguridad.contract'
 import { ROLES_CONSULTA_ROLES, type SeccionAccesoRol } from '@/features/seguridad/lib/acceso'
 import { Aviso, Badge, Button } from '@/shared/ui'
 import { cn } from '@/shared/lib'
@@ -13,13 +15,13 @@ interface RolesAccesosPageProps {
   seccionesParaRol: (rol: string) => SeccionAccesoRol[]
 }
 
-/** Opciones del menú de cada rol y sus permisos de WorkOS (asignar y quitar). */
+/** Solo org-admin: permisos de WorkOS (crear, borrar, asignar a cada rol) y opciones del menú por rol. */
 export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPageProps) {
   const actuales = useAuthStore((state) => state.user?.roles)
   const [seleccionado, setSeleccionado] = useState(roles[0] ?? '')
 
   if (!hasAnyRole(actuales ?? [], ROLES_CONSULTA_ROLES)) {
-    return <Aviso tono="error">Solo un administrador puede consultar los roles y accesos del personal.</Aviso>
+    return <Aviso tono="error">Solo un administrador (org-admin) puede administrar los roles y accesos del personal.</Aviso>
   }
 
   const secciones = seccionesParaRol(seleccionado)
@@ -31,7 +33,7 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
         <div>
           <h1 className="text-[32px] leading-tight font-bold tracking-tight text-heading sm:text-[40px]">Roles y accesos</h1>
           <p className="mt-2 max-w-2xl text-base text-muted-foreground">
-            Consulta las opciones que muestra la aplicación a cada rol y administra sus permisos de WorkOS.
+            Crea permisos, asígnalos a los roles de la organización (org-*) y revisa qué muestra la aplicación a cada uno.
           </p>
         </div>
         <Badge variant="secondary" className="h-7 gap-1.5 px-3 text-sm">
@@ -62,7 +64,10 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
                       seleccionado === rol ? 'bg-primary/10 font-semibold text-heading' : 'text-muted-foreground hover:bg-muted/60 hover:text-heading',
                     )}
                   >
-                    {formatRol(rol)}
+                    <span className="flex flex-col">
+                      {formatRol(rol)}
+                      <code className="text-xs font-normal text-muted-foreground">{slugRol(rol)}</code>
+                    </span>
                     {seleccionado === rol && <ArrowRight aria-hidden className="size-4 shrink-0 text-link" />}
                   </button>
                 </li>
@@ -73,7 +78,9 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
           <section aria-labelledby="detalle-rol" className="min-w-0 rounded-3xl border border-border bg-card p-6 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 id="detalle-rol" className="text-2xl font-bold text-heading">{formatRol(seleccionado)}</h2>
+                <h2 id="detalle-rol" className="text-2xl font-bold text-heading">
+                  {formatRol(seleccionado)} <code className="text-base font-normal text-muted-foreground">{slugRol(seleccionado)}</code>
+                </h2>
                 <p className="mt-1 text-sm text-muted-foreground" aria-live="polite">
                   {cantidad} {cantidad === 1 ? 'opción visible' : 'opciones visibles'} en el menú.
                 </p>
@@ -108,6 +115,8 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
           </section>
         </div>
       )}
+
+      <CatalogoPermisos />
     </div>
   )
 }

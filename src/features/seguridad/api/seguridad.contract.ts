@@ -19,6 +19,18 @@ export const permisoSchema = z.object({
 })
 export type PermisoWorkOS = z.infer<typeof permisoSchema>
 
+/** SEG09 · Permisos generales: <área>-<acción>, p. ej. prd-aprobar o con-cerrar (igual que el backend) */
+export const SLUG_PERMISO = /^[a-z][a-z0-9]{1,9}-[a-z0-9][a-z0-9-]{1,40}$/
+export const nuevoPermisoSchema = z.object({
+  slug: z.string().trim().regex(SLUG_PERMISO, 'Usa <área>-<acción> en minúsculas, p. ej. prd-aprobar.'),
+  nombre: z.string().trim().min(1, 'Escribe un nombre.').max(80),
+  descripcion: z.string().trim().max(255).optional(),
+})
+export type NuevoPermiso = z.infer<typeof nuevoPermisoSchema>
+
+/** El slug del rol en WorkOS (CONTADOR → org-contador). Solo los roles org-* dan acceso. */
+export const slugRol = (rol: string) => `org-${rol.toLowerCase().replace(/_/g, '-')}`
+
 export const rolPermisosSchema = z.object({
   rol: z.string(),
   slug: z.string(),

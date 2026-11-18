@@ -4,7 +4,7 @@ import { LayoutList, RotateCcw, Save } from 'lucide-react'
 import { formatRol, hasAnyRole, useAuthStore } from '@/features/auth'
 import { useGuardarPestanas, usePestanas } from '@/features/seguridad/hooks/useSeguridad'
 import { ROLES_CONSULTA_ROLES } from '@/features/seguridad/lib/acceso'
-import type { PestanaRoles } from '@/features/seguridad/api/seguridad.contract'
+import { slugRol, type PestanaRoles } from '@/features/seguridad/api/seguridad.contract'
 import { Aviso, Badge, Button, Cargando, Checkbox } from '@/shared/ui'
 
 export interface PestanaEditable {
@@ -37,7 +37,7 @@ export function PestanasRolPage({ pestanas, roles }: PestanasRolPageProps) {
     return Object.fromEntries(pestanas.map((p) => [p.to, configuradas.get(p.to) ?? p.rolesPorDefecto]))
   }, [guardadas.data, pestanas])
 
-  if (!esAdmin) return <Aviso tono="error">Solo un administrador puede configurar las pestañas por rol.</Aviso>
+  if (!esAdmin) return <Aviso tono="error">Solo un administrador (org-admin) puede configurar las pestañas por rol.</Aviso>
 
   const seleccion = edicion ?? base
   const cambiado = pestanas.some((p) => !igual(seleccion[p.to] ?? [], base[p.to] ?? []))
@@ -45,6 +45,23 @@ export function PestanasRolPage({ pestanas, roles }: PestanasRolPageProps) {
   function alternar(to: string, rol: string, ver: boolean) {
     const actual = seleccion[to] ?? []
     setEdicion({ ...seleccion, [to]: ver ? [...actual, rol] : actual.filter((r) => r !== rol) })
+  }
+
+  /** Grupo de módulos (sección del menú): marca o desmarca todas sus pestañas para ese rol */
+  function alternarGrupo(seccion: string, rol: string, ver: boolean) {
+    const nueva = { ...seleccion }
+    for (const p of pestanas.filter((x) => x.seccion === seccion)) {
+      const actual = nueva[p.to] ?? []
+      nueva[p.to] = ver ? [...new Set([...actual, rol])] : actual.filter((r) => r !== rol)
+    }
+    setEdicion(nueva)
+  }
+
+  function estadoGrupo(seccion: string, rol: string): boolean | 'indeterminate' {
+    const delGrupo = pestanas.filter((p) => p.seccion === seccion)
+    const marcadas = delGrupo.filter((p) => (seleccion[p.to] ?? []).includes(rol)).length
+    if (marcadas === 0) return false
+    return marcadas === delGrupo.length ? true : 'indeterminate'
   }
 
   function enviar(nueva: Seleccion) {
@@ -62,7 +79,9 @@ export function PestanasRolPage({ pestanas, roles }: PestanasRolPageProps) {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[32px] leading-tight font-bold tracking-tight text-heading sm:text-[40px]">Pestañas por rol</h1>
-          <p className="mt-2 max-w-2xl text-base text-muted-foreground">Elige qué pestañas del menú ve cada rol del personal.</p>
+          <p className="mt-2 max-w-2xl text-base text-muted-foreground">
+            Elige qué grupos de módulos y qué pestañas ve cada rol. La casilla del grupo marca o desmarca todas sus pestañas; un grupo sin pestañas visibles desaparece del menú.
+          </p>
         </div>
         <Badge variant="secondary" className="h-7 gap-1.5 px-3 text-sm">
           <LayoutList aria-hidden className="size-4" />
@@ -88,16 +107,30 @@ export function PestanasRolPage({ pestanas, roles }: PestanasRolPageProps) {
                 <tr className="border-b border-border text-left text-muted-foreground">
                   <th scope="col" className="py-2 pr-4 font-medium">Pestaña</th>
                   {roles.map((rol) => (
-                    <th key={rol} scope="col" className="px-2 py-2 text-center font-medium">{formatRol(rol)}</th>
+                    <th key={rol} scope="col" className="px-2 py-2 text-center font-medium">
+                      {formatRol(rol)}
+                      <code className="block text-[11px] font-normal text-muted-foreground">{slugRol(rol)}</code>
+                    </th>
                   ))}
                 </tr>
               </thead>
               {secciones.map((seccion) => (
                 <tbody key={seccion}>
-                  <tr>
-                    <th scope="rowgroup" colSpan={roles.length + 1} className="pt-5 pb-2 text-left text-xs font-semibold tracking-wide text-heading uppercase">
+                  <tr className="bg-muted/40">
+                    <th scope="rowgroup" className="py-2.5 pr-4 pl-2 text-left text-xs font-semibold tracking-wide text-heading uppercase">
                       {seccion}
                     </th>
+                    {roles.map((rol) => (
+                      <td key={rol} className="px-2 py-2.5 text-center">
+                        <Checkbox
+                          aria-label={`Grupo ${seccion}: ${formatRol(rol)}`}
+                          checked={estadoGrupo(seccion, rol)}
+                          disabled={guardar.isPending}
+                          onCheckedChange={(valor) => alternarGrupo(seccion, rol, valor === true)}
+                          className="mx-auto"
+                        />
+                      </td>
+                    ))}
                   </tr>
                   {pestanas.filter((p) => p.seccion === seccion).map((p) => (
                     <tr key={p.to} className="border-b border-border/60">

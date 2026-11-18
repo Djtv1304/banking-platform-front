@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '@/shared/api'
 import {
   asignarPermiso,
+  borrarPermiso,
+  crearPermiso,
   guardarPestanas,
   listarPermisos,
   listarPestanas,
@@ -25,6 +27,22 @@ export const usePermisosWorkOS = (habilitado: boolean) =>
 
 export const useRolesPermisos = (habilitado: boolean) =>
   useQuery({ queryKey: ROLES_KEY, queryFn: ({ signal }) => listarRolesPermisos(signal), enabled: habilitado, retry: reintentar })
+
+/** SEG09 · Al crear, el catálogo se vuelve a pedir */
+export function useCrearPermiso() {
+  const cache = useQueryClient()
+  return useMutation({ mutationFn: crearPermiso, retry: false, onSuccess: () => cache.invalidateQueries({ queryKey: PERMISOS_KEY }) })
+}
+
+/** SEG10 · Al borrar cambian el catálogo y los roles que lo tenían */
+export function useBorrarPermiso() {
+  const cache = useQueryClient()
+  return useMutation({
+    mutationFn: borrarPermiso,
+    retry: false,
+    onSuccess: () => Promise.all([cache.invalidateQueries({ queryKey: PERMISOS_KEY }), cache.invalidateQueries({ queryKey: ROLES_KEY })]),
+  })
+}
 
 /** Asigna o quita un permiso; la respuesta (el rol actualizado) reemplaza al rol en la caché */
 export function useCambiarPermisoRol() {
