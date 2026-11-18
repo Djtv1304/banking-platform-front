@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Building2, CircleAlert, LoaderCircle, Pencil, Plus } from 'lucide-react'
 
-import { useAuthStore, usePermisos } from '@/features/auth'
+import { usePuedeFuncion, useAuthStore, usePermisos } from '@/features/auth'
 import { Button } from '@/shared/ui'
 import {
   accesoEntidad,
@@ -20,7 +20,9 @@ import { datosCrearEntidad, fechaEntidad, type EntidadForm as Valores } from '@/
 
 export function DatosCooperativaPage() {
   const roles = useAuthStore((store) => store.user?.roles)
-  const acceso = accesoEntidad(roles ?? [], usePermisos())
+  const anterior = accesoEntidad(roles ?? [], usePermisos())
+  const acceso = { consulta: usePuedeFuncion('entidad.consultar', anterior.consulta), edicion: usePuedeFuncion('entidad.editar', anterior.edicion) }
+  const puedeCrear = usePuedeFuncion('entidad.crear', anterior.edicion)
   const cache = useQueryClient()
   const [baseEdicion, setBaseEdicion] = useState<Entidad | null>(null)
   const editando = baseEdicion !== null
@@ -35,14 +37,14 @@ export function DatosCooperativaPage() {
     const resultado = await alta.registrar(datosCrearEntidad(datos))
     setCreando(false)
     setAviso(resultado === 'creada'
-      ? 'La cooperativa se creó correctamente.'
-      : 'La cooperativa ya está registrada. Mostramos sus datos actuales; no se ha creado otra ni se han sustituido sus datos.')
+      ? 'La cooperativa se creÃ³ correctamente.'
+      : 'La cooperativa ya estÃ¡ registrada. Mostramos sus datos actuales; no se ha creado otra ni se han sustituido sus datos.')
   }
 
   async function guardar(cambios: EntidadPatch) {
     if (!Object.keys(cambios).length) {
       setBaseEdicion(null)
-      setAviso('No había cambios para guardar.')
+      setAviso('No habÃ­a cambios para guardar.')
       return
     }
 
@@ -59,7 +61,7 @@ export function DatosCooperativaPage() {
             Datos de la cooperativa
           </h1>
           <p className="mt-2 text-base text-muted-foreground">
-            Consulta la información institucional y mantén actualizados sus datos.
+            Consulta la informaciÃ³n institucional y mantÃ©n actualizados sus datos.
           </p>
         </div>
         {acceso.edicion && consulta.isSuccess && consulta.data && !editando && !creando && (
@@ -82,11 +84,11 @@ export function DatosCooperativaPage() {
         <p role="alert" className="rounded-2xl border border-border bg-card p-6">
           No tienes permiso para consultar los datos de la cooperativa.
         </p>
-      ) : creando && acceso.edicion ? (
+      ) : creando && puedeCrear ? (
         <section className="rounded-2xl border border-border bg-card p-5 sm:p-8">
           <h2 className="mb-2 text-xl font-semibold text-heading">Crear cooperativa</h2>
           <p className="mb-6 text-sm text-muted-foreground">
-            Registra la información institucional. Este paso se realiza una sola vez.
+            Registra la informaciÃ³n institucional. Este paso se realiza una sola vez.
           </p>
           <EntidadForm
             modo="creacion"
@@ -102,7 +104,7 @@ export function DatosCooperativaPage() {
           className="flex items-center gap-2 rounded-2xl border border-border bg-card p-6 text-muted-foreground"
         >
           <LoaderCircle className="size-5 animate-spin" />
-          Cargando datos de la cooperativa…
+          Cargando datos de la cooperativaâ€¦
         </p>
       ) : !editando && consulta.isError ? (
         <section
@@ -115,12 +117,12 @@ export function DatosCooperativaPage() {
           </h2>
           <p className="text-sm text-muted-foreground">
             {sinEntidad
-              ? (acceso.edicion
-                ? 'Todavía no se ha registrado la información institucional. Crea la cooperativa para consultar y actualizar sus datos.'
-                : 'Todavía no se ha registrado la cooperativa. Solicita a un administrador que complete la configuración inicial.')
+              ? (puedeCrear
+                ? 'TodavÃ­a no se ha registrado la informaciÃ³n institucional. Crea la cooperativa para consultar y actualizar sus datos.'
+                : 'TodavÃ­a no se ha registrado la cooperativa. Solicita a un administrador que complete la configuraciÃ³n inicial.')
               : mensajeErrorEntidad(consulta.error)}
           </p>
-          {sinEntidad ? acceso.edicion && (
+          {sinEntidad ? puedeCrear && (
             <Button
               className="min-h-11 rounded-xl"
               onClick={() => { alta.reset(); setAviso(''); setCreando(true) }}
@@ -145,7 +147,7 @@ export function DatosCooperativaPage() {
           {editando && acceso.edicion ? (
             <section className="rounded-2xl border border-border bg-card p-5 sm:p-8">
               <h2 className="mb-5 text-xl font-semibold text-heading">
-                Editar información institucional
+                Editar informaciÃ³n institucional
               </h2>
               <EntidadForm
                 entidad={baseEdicion ?? consulta.data}
@@ -205,34 +207,34 @@ function FichaEntidad({ entidad: e }: { entidad: Entidad }) {
           La cooperativa figura como inactiva en el registro institucional.
         </p>
       )}
-      <Bloque titulo="Identificación institucional">
+      <Bloque titulo="IdentificaciÃ³n institucional">
         <Dato label="RUC" valor={e.ruc} />
-        <Dato label="Razón social" valor={e.razonSocial} />
+        <Dato label="RazÃ³n social" valor={e.razonSocial} />
         <Dato label="Nombre comercial" valor={e.nombreComercial} />
-        <Dato label="Tipo de organización" valor={e.tipoOrganizacion} />
+        <Dato label="Tipo de organizaciÃ³n" valor={e.tipoOrganizacion} />
       </Bloque>
-      <Bloque titulo="Información institucional">
+      <Bloque titulo="InformaciÃ³n institucional">
         <Dato label="Segmento" valor={e.segmento} />
-        <Dato label="Número de resolución SEPS" valor={e.numeroResolucionSeps} />
-        <Dato label="Fecha de constitución" valor={fechaEntidad(e.fechaConstitucion)} />
+        <Dato label="NÃºmero de resoluciÃ³n SEPS" valor={e.numeroResolucionSeps} />
+        <Dato label="Fecha de constituciÃ³n" valor={fechaEntidad(e.fechaConstitucion)} />
       </Bloque>
-      <Bloque titulo="Representación legal">
+      <Bloque titulo="RepresentaciÃ³n legal">
         <Dato label="Representante legal" valor={e.representanteLegal} />
-        <Dato label="Identificación del representante" valor={e.identificacionRepresentante} />
+        <Dato label="IdentificaciÃ³n del representante" valor={e.identificacionRepresentante} />
       </Bloque>
       <Bloque titulo="Contacto">
-        <Dato label="Teléfono" valor={e.telefono} />
-        <Dato label="Correo electrónico" valor={e.email} />
+        <Dato label="TelÃ©fono" valor={e.telefono} />
+        <Dato label="Correo electrÃ³nico" valor={e.email} />
         <Dato label="Sitio web" valor={e.sitioWeb} />
       </Bloque>
       <section
-        aria-label="Información del registro"
+        aria-label="InformaciÃ³n del registro"
         className="rounded-2xl border border-border bg-card p-5 sm:p-6"
       >
-        <h2 className="mb-5 text-lg font-semibold text-heading">Información del registro</h2>
+        <h2 className="mb-5 text-lg font-semibold text-heading">InformaciÃ³n del registro</h2>
         <dl className="grid gap-5 sm:grid-cols-2">
           <Dato label="Fecha de registro" valor={fechaEntidad(e.fechaRegistro)} />
-          <Dato label="Último modificador" valor={`Usuario interno #${e.modificadoPor}`} />
+          <Dato label="Ãšltimo modificador" valor={`Usuario interno #${e.modificadoPor}`} />
         </dl>
       </section>
     </>

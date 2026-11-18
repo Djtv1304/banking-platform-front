@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useAuthStore, usePermisos } from '@/features/auth'
+import { usePuedeFuncion, useAuthStore, usePermisos } from '@/features/auth'
 import { Badge, Button } from '@/shared/ui'
 import { accesoRiesgo, fechaRiesgoVisible, listarRiesgos, registrarRiesgo, riesgoKey, type RiesgoCreate } from '@/features/clientes/api/riesgo'
 import { EvaluacionRiesgoForm } from '@/features/clientes/components/EvaluacionRiesgoForm'
 
 export function GestionRiesgo({ id, nombre, estado }: { id: number; nombre: string; estado?: string }) {
   const roles = useAuthStore((store) => store.user?.roles)
-  const acceso = accesoRiesgo(roles ?? [], usePermisos())
+  const anterior = accesoRiesgo(roles ?? [], usePermisos())
+  const acceso = { registro: usePuedeFuncion('clientes.riesgo.evaluar', anterior.registro), historial: usePuedeFuncion('clientes.riesgo.consultar', anterior.historial) }
   const cache = useQueryClient()
   const [formulario, setFormulario] = useState(false)
   const [aviso, setAviso] = useState('')

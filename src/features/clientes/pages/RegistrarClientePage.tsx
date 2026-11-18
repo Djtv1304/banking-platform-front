@@ -1,10 +1,10 @@
 import { RegistroClienteWizard } from '@/features/clientes/components/RegistroClienteWizard'
-import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
+import { usePuedeFuncion, hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import { Aviso } from '@/shared/ui'
 
 export function RegistrarClientePage() {
-  if (!hasPermission(usePermisos(), PERMISOS.clientesEditar)) {
-    return <Aviso tono="error">No tienes permiso para registrar clientes. Pide el permiso «clientes:editar» al administrador.</Aviso>
+  if (!usePuedeFuncion('clientes.registrar', hasPermission(usePermisos(), PERMISOS.clientesEditar))) {
+    return <Aviso tono="error">No tienes acceso a Registrar cliente. Consulta al administrador.</Aviso>
   }
   return (
     <div className="relative mx-auto w-full max-w-4xl">

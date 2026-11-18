@@ -2,17 +2,19 @@ import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ArrowRight, KeyRound, ListChecks, ShieldCheck, Users } from 'lucide-react'
 
-import { formatRol, hasAnyRole, useAuthStore } from '@/features/auth'
+import { formatRol, hasAnyRole, useAuthStore, type MeResponse } from '@/features/auth'
 import { AsignacionPermisos } from '@/features/seguridad/components/AsignacionPermisos'
 import { CatalogoPermisos } from '@/features/seguridad/components/CatalogoPermisos'
 import { ROLES_CONSULTA_ROLES, type SeccionAccesoRol } from '@/features/seguridad/lib/acceso'
 import { Aviso, Badge, Button } from '@/shared/ui'
 import { cn } from '@/shared/lib'
+import { useConfiguracionFunciones } from '@/features/seguridad/hooks/useConfiguracionFunciones'
+import { valorSeleccionado } from '@/features/seguridad/lib/borrador-funciones'
 import { useConfiguracionAccesos } from '@/features/seguridad/hooks/useConfiguracionAccesos'
 
 interface RolesAccesosPageProps {
   roles: readonly string[]
-  seccionesParaRol: (rol: string, pestanas?: Readonly<Record<string, readonly string[]>>) => SeccionAccesoRol[]
+  seccionesParaRol: (rol: string, pestanas?: Readonly<Record<string, readonly string[]>>, autorizacion?: MeResponse['autorizacion']) => SeccionAccesoRol[]
 }
 
 type Vista = { tipo: 'rol'; rol: string } | { tipo: 'catalogo' } | { tipo: 'asignacion' }
@@ -37,7 +39,10 @@ function OpcionLateral({ activa, onClick, children }: { activa: boolean; onClick
 /** Solo org-admin: opciones del menú de cada rol y permisos de WorkOS (catálogo y asignación a roles). */
 export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPageProps) {
   const actuales = useAuthStore((state) => state.user?.roles)
-  const configuracion = useConfiguracionAccesos(hasAnyRole(actuales ?? [], ROLES_CONSULTA_ROLES))
+  const porFunciones = useAuthStore((state) => state.user?.autorizacion?.activa === true)
+  const admin = hasAnyRole(actuales ?? [], ROLES_CONSULTA_ROLES)
+  const configuracion = useConfiguracionAccesos(admin && !porFunciones)
+  const funciones = useConfiguracionFunciones(admin && porFunciones)
   const [vista, setVista] = useState<Vista>({ tipo: 'rol', rol: roles[0] ?? '' })
 
   if (!hasAnyRole(actuales ?? [], ROLES_CONSULTA_ROLES)) {
@@ -59,8 +64,15 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
         </Badge>
       </header>
 
+      {porFunciones && (
+        <Aviso>
+          Las funciones migradas se autorizan con la configuración de «Accesos por función».
+          Los permisos de WorkOS se conservan para las operaciones que aún usan las reglas anteriores.
+        </Aviso>
+      )}
       <Aviso>
-        Para elegir qué pestañas ve cada rol usa «Pestañas por rol». Para cambiar el rol de una persona, abre su ficha en Usuarios del sistema.
+        Para configurar consultas y operaciones de cada rol usa «Accesos por función».
+        Para cambiar el rol de una persona, abre su ficha en Usuarios del sistema.
       </Aviso>
 
       {roles.length === 0 ? (
@@ -104,7 +116,13 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
             ) : vista.tipo === 'asignacion' ? (
               <AsignacionPermisos roles={roles} />
             ) : (
-              configuracion.data ? <DetalleRol rol={vista.rol} secciones={seccionesParaRol(vista.rol, Object.fromEntries(configuracion.data.pestanas.map((p) => [p.pestana, p.roles])))} />
+              porFunciones ? (
+                funciones.data ? <DetalleRol rol={vista.rol} secciones={seccionesParaRol(vista.rol, undefined, {
+                  activa: true, version: funciones.data.version,
+                  funciones: funciones.data.funciones.filter((f) => valorSeleccionado(funciones.data!, {}, f, vista.rol)).map((f) => f.id),
+                  rutas: [],
+                })} /> : <Aviso>{funciones.isPending ? 'Consultando funciones...' : 'No pudimos consultar las funciones.'}<Button variant="outline" onClick={() => void funciones.refetch()}>Reintentar consulta</Button></Aviso>
+              ) : configuracion.data ? <DetalleRol rol={vista.rol} secciones={seccionesParaRol(vista.rol, Object.fromEntries(configuracion.data.pestanas.map((p) => [p.pestana, p.roles])))} />
                 : <Aviso>{configuracion.isPending ? 'Consultando los accesos configurados…' : 'No pudimos consultar los accesos configurados.'}<Button variant="outline" onClick={() => void configuracion.refetch()}>Reintentar consulta</Button></Aviso>
             )}
           </section>

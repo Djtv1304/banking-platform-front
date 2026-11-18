@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { Building2, KeyRound } from 'lucide-react'
 
 import { Button } from '@/shared/ui'
-import { formatRol } from '@/features/auth'
+import { formatRol, usePuedeFuncion, usePermisos, hasPermission, PERMISOS } from '@/features/auth'
 import { useAgencias } from '@/features/catalogos'
 import type { UsuarioDetalle } from '@/features/usuarios/api/usuarios.contract'
 import { Bloque } from '@/features/usuarios/components/detalle/Bloques'
@@ -18,6 +18,7 @@ interface RolYAgenciaProps {
 
 /** Qué opera (rol, AUT-09) y dónde (agencia, AUT-08): cada uno con su propio cambio */
 export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps) {
+  const puedeEditar = usePuedeFuncion('usuarios.administrar', hasPermission(usePermisos(), PERMISOS.usuariosEditar))
   const [dialogo, setDialogo] = useState<'rol' | 'agencia' | null>(null)
   const { data: agencias } = useAgencias()
   const agencia = agencias.find((item) => item.idAgencia === usuario.idAgencia)
@@ -36,7 +37,7 @@ export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps)
           valor={usuario.rol ? formatRol(usuario.rol) : 'Sin rol asignado'}
           sinValor={!usuario.rol}
           nota="Define los módulos que puede operar."
-          accion={
+          accion={puedeEditar &&
             <Button variant="outline" size="lg" onClick={() => setDialogo('rol')} className="rounded-lg px-3">
               {usuario.rol ? 'Cambiar' : 'Asignar'}
             </Button>
@@ -52,7 +53,7 @@ export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps)
               ? `Código ${agencia.idAgencia}${agencia.ciudad ? `, ${agencia.ciudad}` : ''}${agencia.estado !== 'A' ? '. La agencia no está activa.' : ''}`
               : 'Donde registra sus operaciones.'
           }
-          accion={
+          accion={puedeEditar &&
             <Button variant="outline" size="lg" disabled={usuario.rol !== 'CAJERO'} onClick={() => setDialogo('agencia')} className="rounded-lg px-3">
               {usuario.idAgencia ? 'Cambiar' : 'Asignar'}
             </Button>
@@ -64,13 +65,13 @@ export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps)
       <CambiarRolDialog
         usuario={usuario}
         esPropio={esPropio}
-        open={dialogo === 'rol'}
+        open={puedeEditar && dialogo === 'rol'}
         onOpenChange={(abierto) => setDialogo(abierto ? 'rol' : null)}
         onGuardado={guardado}
       />
       <CambiarAgenciaDialog
         usuario={usuario}
-        open={dialogo === 'agencia'}
+        open={puedeEditar && dialogo === 'agencia'}
         onOpenChange={(abierto) => setDialogo(abierto ? 'agencia' : null)}
         onGuardado={guardado}
       />

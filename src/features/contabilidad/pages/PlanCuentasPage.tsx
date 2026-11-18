@@ -3,7 +3,7 @@ import { Search } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando, Checkbox, Input, Label } from '@/shared/ui'
-import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
+import { usePuedeFuncion, hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import { AccionesCuenta, type TipoAccion } from '@/features/contabilidad/components/AccionesCuenta'
 import { ArbolCuentas } from '@/features/contabilidad/components/ArbolCuentas'
 import { ConfirmarCuentaDialog, type Confirmacion } from '@/features/contabilidad/components/ConfirmarCuentaDialog'
@@ -23,6 +23,7 @@ interface Abiertos {
 /** E2-02 · Plan de cuentas (CON-03): CONTADOR, AUDITOR y ADMIN consultan; mantener exige contabilidad:editar */
 export function PlanCuentasPage() {
   const puedeMantener = hasPermission(usePermisos(), PERMISOS.contabilidadEditar)
+  const puedeEliminar = usePuedeFuncion('contabilidad.cuentas.eliminar', puedeMantener)
 
   const plan = usePlanCuentas()
   const arbol = useMemo(() => construirArbol(plan.data ?? []), [plan.data])
@@ -148,7 +149,7 @@ export function PlanCuentasPage() {
             <DetalleCuenta
               nodo={nodo}
               padre={padre}
-              acciones={puedeMantener && <AccionesCuenta nodo={nodo} onAccion={abrirAccion} />}
+              acciones={(puedeMantener || puedeEliminar) && <AccionesCuenta nodo={nodo} onAccion={abrirAccion} />}
             />
           ) : (
             <p className="text-sm text-muted-foreground">Elige una cuenta del árbol para ver su detalle.</p>
@@ -156,7 +157,7 @@ export function PlanCuentasPage() {
         </aside>
       </div>
 
-      {puedeMantener && (
+      {(puedeMantener || puedeEliminar) && (
         <>
           <NuevaSubcuentaDialog padre={subcuentaDe} onCerrar={() => setSubcuentaDe(null)} onHecho={alTerminar} />
           <EditarNombreCuentaDialog nodo={renombrando} onCerrar={() => setRenombrando(null)} onHecho={alTerminar} />

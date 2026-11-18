@@ -9,6 +9,9 @@ vi.mock('@/features/seguridad/components/AsignacionPermisos', () => ({ Asignacio
 vi.mock('@/features/seguridad/hooks/useConfiguracionAccesos', () => ({
   useConfiguracionAccesos: () => ({ data: { pestanas: [{ pestana: '/clientes-busqueda', roles: ['ADMIN'] }] }, isPending: false, refetch: vi.fn() }),
 }))
+vi.mock('@/features/seguridad/hooks/useConfiguracionFunciones', () => ({
+  useConfiguracionFunciones: () => ({ data: undefined, isPending: false, refetch: vi.fn() }),
+}))
 
 const estado = vi.hoisted(() => ({ roles: ['ADMIN'] as string[] }))
 vi.mock('@/features/auth', async (original) => ({

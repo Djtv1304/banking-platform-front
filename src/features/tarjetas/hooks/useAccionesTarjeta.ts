@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { ApiError } from '@/shared/api'
-import { useAuthStore, usePermisos } from '@/features/auth'
+import { usePuedeFuncion, useAuthStore, usePermisos } from '@/features/auth'
 import {
   cambiarEstadoTarjeta,
   descargarSobrePin,
@@ -71,5 +71,6 @@ export const useHistorialTarjeta = (idTarjeta: number, filtro: FiltroHistorial, 
 export function usePermisosTarjeta() {
   // Se elige el arreglo (referencia estable) y no un objeto nuevo en cada render
   const roles = useAuthStore((state) => state.user?.roles)
-  return permisosTarjeta(roles ?? [], usePermisos())
+  const anterior = permisosTarjeta(roles ?? [], usePermisos())
+  return { estado: usePuedeFuncion('tarjetas.cambiarEstado', anterior.estado), pin: usePuedeFuncion('tarjetas.asignarPin', anterior.pin), sobrePin: usePuedeFuncion('tarjetas.verSobrePin', anterior.sobrePin), historial: usePuedeFuncion('tarjetas.verHistorial', anterior.historial) }
 }

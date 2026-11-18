@@ -61,6 +61,10 @@ export const meResponseSchema = z.object({
     version: z.string().regex(/^[a-f0-9]{64}$/),
     habilitadas: z.array(z.string()),
   }).optional(),
+  autorizacion: z.object({
+    version: z.string().regex(/^[a-f0-9]{64}$/), activa: z.literal(true),
+    funciones: z.array(z.string()), rutas: z.array(z.string()),
+  }).optional(),
 })
 
 export type MeResponse = z.infer<typeof meResponseSchema>

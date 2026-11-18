@@ -37,10 +37,23 @@ export const PERMISOS = Object.fromEntries(Object.keys(ESCRITURAS).map((k) => [k
 }
 
 /** Escrituras que permiten estos roles y permisos de WorkOS (los de /auth/me). */
-export function accionesPermitidas(roles: readonly string[], permisos: readonly string[]): Permiso[] {
+const FUNCIONES_ACCION: Partial<Record<Permiso, string>> = {
+  organizacionEditar: 'entidad.editar', agenciasEditar: 'agencias.editar', usuariosEditar: 'usuarios.administrar',
+  productosConsultar: 'productos.consultar', productosEditar: 'productos.editar', productosExportar: 'productos.exportar',
+  catalogosEditar: 'catalogos.editar', clientesEditar: 'clientes.editar', clientesEstado: 'clientes.cambiarEstado',
+  clientesRiesgo: 'clientes.riesgo.evaluar', cuentasAbrir: 'cuentas.abrir', cuentasEstado: 'cuentas.cambiarEstado',
+  cuentasCupos: 'cuentas.cupos.modificar', tarjetasEmitir: 'tarjetas.emitir', tarjetasEstado: 'tarjetas.cambiarEstado',
+  contabilidadEditar: 'contabilidad.cuentas.editar',
+}
+
+export function accionesPermitidas(roles: readonly string[], permisos: readonly string[], funciones?: readonly string[]): Permiso[] {
   const conRol = new Set(roles.map((rol) => rol.trim().toUpperCase()))
   return (Object.entries(ESCRITURAS) as [Permiso, Regla][])
-    .filter(([, regla]) => ('permiso' in regla ? permisos.includes(regla.permiso) : regla.roles.some((rol) => conRol.has(rol))))
+    .filter(([accion, regla]) => {
+      const funcion = FUNCIONES_ACCION[accion]
+      if (funciones && funcion) return funciones.includes(funcion)
+      return 'permiso' in regla ? permisos.includes(regla.permiso) : regla.roles.some((rol) => conRol.has(rol))
+    })
     .map(([accion]) => accion)
 }
 

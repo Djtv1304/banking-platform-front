@@ -1,3 +1,4 @@
+import { usePuedeFuncion, usePermisos, hasPermission, PERMISOS } from '@/features/auth'
 import { useState } from 'react'
 import { Ban, LockKeyhole, LockKeyholeOpen, Power, PowerOff } from 'lucide-react'
 
@@ -45,6 +46,7 @@ interface AccesoUsuarioProps {
 
 /** Estado, primer ingreso, último acceso y los cambios de estado de AUT-08 */
 export function AccesoUsuario({ usuario, esPropio, onGuardado }: AccesoUsuarioProps) {
+  const puedeEditar = usePuedeFuncion('usuarios.administrar', hasPermission(usePermisos(), PERMISOS.usuariosEditar))
   const [destino, setDestino] = useState<EstadoUsuario | null>(null)
   const tono = tonoEstado(usuario.estado)
   const bloqueo = tono === 'bloqueado' ? usuario.bloqueo : null
@@ -108,7 +110,7 @@ export function AccesoUsuario({ usuario, esPropio, onGuardado }: AccesoUsuarioPr
         </dl>
       </div>
 
-      <footer className="flex flex-col gap-3 border-t border-border px-6 py-5 sm:px-8">
+      {puedeEditar && <footer className="flex flex-col gap-3 border-t border-border px-6 py-5 sm:px-8">
         <div className="flex flex-wrap gap-2">
           {acciones.map(({ destino: valor, label, Icon, peligro }) => {
             const bloqueadaPorSerPropio = esPropio && valor !== 'Activo'
@@ -132,11 +134,11 @@ export function AccesoUsuario({ usuario, esPropio, onGuardado }: AccesoUsuarioPr
             ? 'Es tu propio usuario: no puedes desactivarlo ni bloquearlo desde tu sesión.'
             : 'Desactivar o bloquear cierra de inmediato sus sesiones abiertas.'}
         </p>
-      </footer>
+      </footer>}
 
       <CambiarEstadoDialog
         usuario={usuario}
-        destino={destino}
+        destino={puedeEditar ? destino : null}
         onCerrar={() => setDestino(null)}
         onGuardado={(mensaje) => {
           setDestino(null)

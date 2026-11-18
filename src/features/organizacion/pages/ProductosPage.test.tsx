@@ -10,6 +10,7 @@ const estado = vi.hoisted(() => ({ roles: ['ADMIN'] as string[], permisos: ['pro
 vi.mock('@/features/auth', async () => {
   const { hasPermission, PERMISOS } = await import('@/shared/lib')
   return {
+    usePuedeFuncion: (_funcion: string, anterior: boolean) => anterior,
     hasPermission,
     PERMISOS,
     usePermisos: () => (estado.roles.includes('ADMIN') ? estado.permisos : []),
