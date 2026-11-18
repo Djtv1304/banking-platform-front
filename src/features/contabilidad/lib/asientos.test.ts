@@ -9,12 +9,17 @@ import {
   armarParametrosAsientos,
   cuadreAsiento,
   esFechaIsoValida,
-  esReversado,
+  esAsientoAnulado,
+  esAsientoReversado,
+  esReverso,
   etiquetaCuenta,
   etiquetaEstadoAsiento,
   etiquetaOrigenAsiento,
   etiquetaTexto,
   formatearFechaAsiento,
+  hayLineasEnCuentasDeGrupo,
+  idsCuentasDeGrupo,
+  lineaEnCuentaDeGrupo,
   mensajeErrorAsientos,
   motivoDescuadre,
   resumenPaginacionAsientos,
@@ -145,13 +150,51 @@ describe('presentación', () => {
     expect(etiquetaTexto(' ')).toBe('—')
   })
 
-  it('elige el tono del estado y detecta la reversión', () => {
-    expect(tonoEstadoAsiento('contabilizado')).toBe('default')
-    expect(tonoEstadoAsiento('ANULADO')).toBe('destructive')
-    expect(tonoEstadoAsiento('OTRO')).toBe('outline')
-    expect(esReversado({ estado: 'CONTABILIZADO', idAsientoReversion: 4 })).toBe(true)
-    expect(esReversado({ estado: 'REVERSADO', idAsientoReversion: null })).toBe(true)
-    expect(esReversado({ estado: 'CONTABILIZADO', idAsientoReversion: null })).toBe(false)
+  it('elige un tono distinto por estado y deja neutro cualquier valor nuevo', () => {
+    expect(tonoEstadoAsiento('CONTABILIZADO')).toBe('exito')
+    expect(tonoEstadoAsiento(' contabilizado ')).toBe('exito')
+    expect(tonoEstadoAsiento('REVERSADO')).toBe('advertencia')
+    expect(tonoEstadoAsiento('ANULADO')).toBe('apagado')
+    expect(tonoEstadoAsiento('PENDIENTE_APROBACION')).toBe('neutro')
+    expect(tonoEstadoAsiento('OTRO')).toBe('neutro')
+  })
+
+  it('distingue anulado, reversado y asiento de reverso', () => {
+    expect(esAsientoAnulado('anulado')).toBe(true)
+    expect(esAsientoAnulado('REVERSADO')).toBe(false)
+    expect(esAsientoReversado('REVERSADO')).toBe(true)
+    expect(esAsientoReversado('CONTABILIZADO')).toBe(false)
+    // El reverso trae el id del original y está CONTABILIZADO; el reversado trae null
+    expect(esReverso({ idAsientoReversion: 301 })).toBe(true)
+    expect(esReverso({ idAsientoReversion: null })).toBe(false)
+  })
+})
+
+describe('cuentas de grupo', () => {
+  const plan = [
+    { idCuentaContable: 1, esImputable: true },
+    { idCuentaContable: 2, esImputable: false },
+    { idCuentaContable: 3, esImputable: false },
+  ]
+
+  it('toma del plan solo las cuentas que no son imputables', () => {
+    expect([...idsCuentasDeGrupo(plan)]).toEqual([2, 3])
+    expect(idsCuentasDeGrupo([]).size).toBe(0)
+  })
+
+  it('marca la línea solo si su cuenta está en el plan y es de grupo', () => {
+    const grupo = idsCuentasDeGrupo(plan)
+    expect(lineaEnCuentaDeGrupo({ idCuentaContable: 2 }, grupo)).toBe(true)
+    expect(lineaEnCuentaDeGrupo({ idCuentaContable: 1 }, grupo)).toBe(false)
+    // Una cuenta que el plan no trae no se marca
+    expect(lineaEnCuentaDeGrupo({ idCuentaContable: 99 }, grupo)).toBe(false)
+  })
+
+  it('detecta si alguna línea cae en una cuenta de grupo', () => {
+    const grupo = idsCuentasDeGrupo(plan)
+    expect(hayLineasEnCuentasDeGrupo([{ idCuentaContable: 1 }, { idCuentaContable: 3 }], grupo)).toBe(true)
+    expect(hayLineasEnCuentasDeGrupo([{ idCuentaContable: 1 }], grupo)).toBe(false)
+    expect(hayLineasEnCuentasDeGrupo([], grupo)).toBe(false)
   })
 })
 

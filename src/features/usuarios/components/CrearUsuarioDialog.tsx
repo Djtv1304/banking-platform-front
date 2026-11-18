@@ -1,4 +1,5 @@
-import { useForm } from 'react-hook-form'
+import { useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { LoaderCircle, MailPlus } from 'lucide-react'
 
@@ -44,6 +45,7 @@ export function CrearUsuarioDialog({ open, onOpenChange, onCreado }: CrearUsuari
   const agenciasActivas = agencias.data.filter((agencia) => agencia.estado === 'A')
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -53,18 +55,28 @@ export function CrearUsuarioDialog({ open, onOpenChange, onCreado }: CrearUsuari
     defaultValues: VACIO,
     shouldFocusError: true,
   })
+  const [agregarMas, setAgregarMas] = useState(false)
+  const principal = useWatch({ control, name: 'idAgencia' })
+  const [adicionales, setAdicionales] = useState<string[]>([])
+  const rol = useWatch({ control, name: 'rol' })
+  const varias = ['ADMIN', 'SUPERVISOR', 'CONTADOR', 'AUDITOR', 'APROBADOR_CREDITO'].includes(rol)
   const pendiente = creacion.isPending
 
   const cerrar = () => {
     if (pendiente) return
     reset(VACIO)
+    setAdicionales([])
+    setAgregarMas(false)
     creacion.reset()
     onOpenChange(false)
   }
 
   const enviar = handleSubmit(async (datos) => {
     try {
-      const usuario = await creacion.mutateAsync(datos)
+      const idAgencias = [...new Set([datos.idAgencia, ...(varias && agregarMas ? adicionales.filter((id) => id !== datos.idAgencia) : [])])]
+      const usuario = await creacion.mutateAsync({ ...datos, idAgencias })
+      setAdicionales([])
+      setAgregarMas(false)
       reset(VACIO)
       creacion.reset()
       onCreado(usuario)
@@ -216,6 +228,17 @@ export function CrearUsuarioDialog({ open, onOpenChange, onCreado }: CrearUsuari
               </div>
             </section>
           </fieldset>
+
+          {varias && principal && <fieldset disabled={pendiente} className="space-y-3">
+            <label className="flex min-h-10 items-center gap-3">
+              <input type="checkbox" checked={agregarMas} onChange={(e) => { setAgregarMas(e.target.checked); if (!e.target.checked) setAdicionales([]) }} />
+              Desea agregar a mas agencias?
+            </label>
+            {agregarMas && <div className="space-y-2 rounded-xl border border-border p-4">
+              <p className="text-sm text-muted-foreground">La primera agencia seleccionada sera la principal. Seleccione las agencias adicionales.</p>
+              {agenciasActivas.filter((a) => a.idAgencia !== principal).map((a) => <label key={a.idAgencia} className="flex min-h-10 items-center gap-3"><input type="checkbox" checked={adicionales.includes(a.idAgencia)} onChange={(e) => setAdicionales(e.target.checked ? [...adicionales, a.idAgencia] : adicionales.filter((id) => id !== a.idAgencia))} />{etiquetaAgencia(a)}</label>)}
+            </div>}
+          </fieldset>}
 
           {creacion.isError && (
             <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">

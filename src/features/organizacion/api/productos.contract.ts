@@ -20,10 +20,6 @@ export const PRODUCTOS_ENDPOINTS = {
 } as const
 
 /** Quién ve Productos; crear y editar dependen del permiso productos:editar */
-export const PRODUCTOS_ROLES = {
-  consultar: ['ADMIN', 'SUPERVISOR', 'ASESOR'],
-} as const
-
 export const tipoProductoSchema = z.enum(['Cuenta', 'Credito', 'Tarjeta'])
 export const estadoProductoSchema = z.enum(['A', 'I'])
 export const estadoCatalogoSchema = z.enum(['Borrador', 'Activo', 'Suspendido', 'Retirado'])

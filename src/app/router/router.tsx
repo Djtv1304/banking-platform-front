@@ -1,26 +1,24 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 
 import { DashboardLayout } from '@/app/layouts/DashboardLayout'
-import { CLIENTES_ROLES, LoginPage, PERMISOS } from '@/features/auth'
+import { CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, LoginPage, PERMISOS } from '@/features/auth'
 import { HomePage } from '@/features/dashboard'
 import {
   AgenciasPage,
   DatosCooperativaPage,
   DetalleProductoPage,
   FichaSubProductoPage,
-  PRODUCTOS_ROLES,
   ProductosPage,
 } from '@/features/organizacion'
 import { CATALOGOS_ROLES, CatalogosPage } from '@/features/catalogos'
 import { DetalleUsuarioPage, UsuariosPage, ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
-import { RolesAccesosPage, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
-import { BOVEDA_ROLES, BovedasPage, DetalleBovedaPage } from '@/features/boveda'
-import { getRoleNavigation } from '@/app/navigation/navigation'
+import { PestanasRolPage, RolesAccesosPage, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
+import { getPestanasConfigurables, getRoleNavigation } from '@/app/navigation/navigation'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
 import { AbrirCuentaPage } from '@/features/cuenta'
-import { AsientosPage, CONTABILIDAD_ROLES, PlanCuentasPage } from '@/features/contabilidad'
+import { AsientosPage, CONTABILIDAD_ROLES, FechaContablePage, PlanCuentasPage } from '@/features/contabilidad'
 import { GuestOnly, RequireAuth, RequirePermiso, RequireProfile, RequireRoles } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { ModuloEnPreparacion } from '@/shared/ui'
@@ -38,7 +36,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/', element: <HomePage /> },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.datosCooperativa} />,
+            element: <RequireRoles allowed={ORGANIZACION_ROLES.entidad} />,
             children: [{ path: '/organizacion/entidad', element: <DatosCooperativaPage /> }],
           },
           {
@@ -50,14 +48,14 @@ export const router = createBrowserRouter([
             children: [{ path: '/solicitar-tarjeta', element: <SolicitarTarjetaPage /> }],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.consultarCuentas} />,
+            element: <RequireRoles allowed={CUENTAS_ROLES.consultar} />,
             children: [
               { path: '/cuentas', element: <BuscarCuentasPage /> },
               { path: '/cuentas/:idCuenta', element: <DetalleCuentaPage /> },
             ],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.consultarCupos} />,
+            element: <RequireRoles allowed={CUENTAS_ROLES.cupos} />,
             children: [{ path: '/cuentas/:idCuenta/cupos', element: <CuposCuentaPage /> }],
           },
           {
@@ -68,18 +66,18 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.consultarMovimientos} />,
+            element: <RequireRoles allowed={CUENTAS_ROLES.movimientos} />,
             children: [{ path: '/cuentas/:idCuenta/movimientos', element: <MovimientosCuentaPage /> }],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.consultarTarjetas} />,
+            element: <RequireRoles allowed={TARJETAS_ROLES.consultar} />,
             children: [
               { path: '/tarjetas', element: <BuscarTarjetasPage /> },
               { path: '/tarjetas/:idTarjeta', element: <DetalleTarjetaPage /> },
             ],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.creditos} />,
+            element: <RequireRoles allowed={CREDITOS_ROLES.consultar} />,
             children: [
               {
                 path: '/creditos',
@@ -93,12 +91,12 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            element: <RequireProfile allowed={ROUTE_ACCESS.agencias} />,
+            element: <RequireRoles allowed={ORGANIZACION_ROLES.agencias} />,
             children: [{ path: '/organizacion/agencias', element: <AgenciasPage /> }],
           },
           {
             // La URL directa respeta los mismos roles que el menú; las acciones son solo de ADMIN
-            element: <RequireRoles allowed={PRODUCTOS_ROLES.consultar} />,
+            element: <RequirePermiso permiso={PERMISOS.productosConsultar} />,
             children: [
               { path: '/productos', element: <ProductosPage /> },
               { path: '/productos/:idProducto', element: <DetalleProductoPage /> },
@@ -119,6 +117,8 @@ export const router = createBrowserRouter([
                   { path: '/contabilidad', element: <PlanCuentasPage /> },
                   // CON-04: mismos roles que el plan de cuentas, solo consulta
                   { path: '/contabilidad/asientos', element: <AsientosPage /> },
+                  // E4-05: fecha contable vigente y calendario, solo consulta
+                  { path: '/contabilidad/fecha-contable', element: <FechaContablePage /> },
                 ],
               },
             ],
@@ -134,14 +134,7 @@ export const router = createBrowserRouter([
             element: <RequireRoles allowed={ROLES_CONSULTA_ROLES} />,
             children: [
               { path: '/seguridad/roles', element: <RolesAccesosPage roles={ROLES_USUARIO} seccionesParaRol={getRoleNavigation} /> },
-            ],
-          },
-          {
-            // BOV-01 a BOV-06: cada bloque y acción de la página se muestra según el rol exacto
-            element: <RequireRoles allowed={BOVEDA_ROLES.acceso} />,
-            children: [
-              { path: '/bovedas', element: <BovedasPage /> },
-              { path: '/bovedas/:idBoveda', element: <DetalleBovedaPage /> },
+              { path: '/seguridad/pestanas', element: <PestanasRolPage pestanas={getPestanasConfigurables()} roles={ROLES_USUARIO} /> },
             ],
           },
           {

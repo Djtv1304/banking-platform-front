@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { setUnauthorizedHandler, setForbiddenHandler, toApiError } from '@/shared/api'
+import { setUnauthorizedHandler, setForbiddenHandler, toApiError, limpiarContextoAgencia } from '@/shared/api'
 import { getMe, logout } from '@/features/auth/api/auth.api'
 import { AUTH_ENDPOINTS, esMotivoCierre, type MeResponse, type MotivoCierre } from '@/features/auth/api/auth.contract'
 import { iniciarControlInactividad } from '@/features/auth/inactividad'
@@ -9,7 +9,7 @@ import { sanitizeReturnTo } from '@/features/auth/lib/return-to'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 
 let sessionCache: Pick<QueryClient, 'clear'> | null = null
-let pending: { user: MeResponse; promise: Promise<void> } | null = null
+let pending: { user: MeResponse; promise: Promise<boolean> } | null = null
 
 function compareAccessValues(a: string, b: string) {
   if (a === b) return 0
@@ -25,6 +25,7 @@ function accessKey(user: MeResponse) {
     user.idAgencia,
     roles,
     permissions,
+    user.accesosSecciones?.version ?? null,
   ])
 }
 
@@ -35,29 +36,32 @@ function accessKey(user: MeResponse) {
  */
 function cerrarSesionLocal(motivo: MotivoCierre | null) {
   const teniaSesion = useAuthStore.getState().user !== null
+  limpiarContextoAgencia()
   useAuthStore.getState().clearSession(motivo)
   sessionCache?.clear()
   if (teniaSesion) publicar({ tipo: 'cerrada', motivo })
 }
 
 /** Relee /me tras una acción del usuario (403, cambio de rol propio). Nunca con temporizador. */
-export function refreshSession(): Promise<void> {
+export function refreshSession(): Promise<boolean> {
   const previous = useAuthStore.getState().user
-  if (!previous) return Promise.resolve()
+  if (!previous) return Promise.resolve(false)
   if (pending?.user === previous) return pending.promise
 
   const promise = (async () => {
     try {
       const current = await getMe()
       // Un logout o una sesión nueva prevalecen sobre una respuesta antigua.
-      if (useAuthStore.getState().user !== previous) return
+      if (useAuthStore.getState().user !== previous) return false
       if (accessKey(previous) !== accessKey(current)) sessionCache?.clear()
       useAuthStore.getState().setSession(current)
+      return true
     } catch (error) {
       // Un 401 ya lo atendió el interceptor (con su motivo)
-      if (useAuthStore.getState().user !== previous) return
+      if (useAuthStore.getState().user !== previous) return false
       if (toApiError(error).status === 403) cerrarSesionLocal(null)
       // Una caída temporal no significa que la sesión haya terminado.
+      return false
     }
   })()
   pending = { user: previous, promise }
@@ -111,10 +115,12 @@ export function startSessionSync() {
   const dejarDeEscuchar = escuchar((mensaje) => {
     const { status } = useAuthStore.getState()
     if (mensaje.tipo === 'cerrada' && status === 'authenticated') {
+      limpiarContextoAgencia()
       useAuthStore.getState().clearSession(mensaje.motivo)
       sessionCache?.clear()
     }
     if (mensaje.tipo === 'iniciada' && status === 'anonymous') void restoreSession()
+    if (mensaje.tipo === 'accesos-cambiados' && status === 'authenticated') void refreshSession()
   })
 
   return () => {

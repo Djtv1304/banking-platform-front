@@ -15,7 +15,7 @@ describe('C-08 contrato y permisos', () => {
   })
   it.each(['ASESOR', 'SUPERVISOR', 'ADMIN'])('%s consulta; registra solo con clientes:riesgo', (rol) => {
     expect(accesoRiesgo([rol])).toEqual({ registro: false, historial: true })
-    expect(accesoRiesgo([rol], ['clientes:riesgo'])).toEqual({ registro: true, historial: true })
+    expect(accesoRiesgo([rol], ['clientesRiesgo'])).toEqual({ registro: true, historial: true })
   })
   it('AUDITOR solo consulta, CAJERO y perfiles desconocidos carecen de acceso', () => {
     expect(accesoRiesgo([' auditor '])).toEqual({ registro: false, historial: true })

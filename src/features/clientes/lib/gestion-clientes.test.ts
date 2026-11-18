@@ -10,8 +10,8 @@ describe('C-04: consultar por rol, cambiar por permiso', () => {
     expect(accesoGestionClientes([String(rol)])).toMatchObject({ consulta, historial, edicion: false, estado: false })
   })
   it('editar y cambiar estado dependen de clientes:editar y clientes:estado', () => {
-    expect(accesoGestionClientes(['SUPERVISOR'], ['clientes:estado'])).toMatchObject({ edicion: false, estado: true })
-    expect(accesoGestionClientes(['ASESOR'], ['clientes:editar', 'clientes:estado'])).toMatchObject({ edicion: true, estado: true })
+    expect(accesoGestionClientes(['SUPERVISOR'], ['clientesEstado'])).toMatchObject({ edicion: false, estado: true })
+    expect(accesoGestionClientes(['ASESOR'], ['clientesEditar', 'clientesEstado'])).toMatchObject({ edicion: true, estado: true })
     expect(accesoGestionClientes([' asesor ', 'auditor'], [])).toEqual({ consulta: true, edicion: false, estado: false, historial: true })
   })
 })

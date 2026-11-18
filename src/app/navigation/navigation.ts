@@ -1,13 +1,12 @@
-import { Building2, BookOpenText, Calculator, CreditCard, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, Vault, WalletCards, type LucideIcon } from 'lucide-react'
+import { Building2, BookOpenText, Calculator, CalendarDays, CreditCard, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, WalletCards, type LucideIcon } from 'lucide-react'
 
-import { canAccess, CLIENTES_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
+import { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
 import { ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
-import { PRODUCTOS_ROLES } from '@/features/organizacion'
 import { CATALOGOS_ROLES } from '@/features/catalogos'
 import { CONTABILIDAD_ROLES } from '@/features/contabilidad'
-import { BOVEDA_ROLES } from '@/features/boveda'
-import { ROLES_CONSULTA_ROLES } from '@/features/seguridad'
+import { PESTANAS_FIJAS, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
+import { permiteSeccion, type MeResponse } from '@/features/auth'
 
 export interface NavItem {
   to: string
@@ -17,7 +16,7 @@ export interface NavItem {
   /** Perfiles que ven la opción. Sin valor = todos. El admin ve todas. */
   profiles?: readonly AccessProfile[]
   roles?: readonly string[]
-  /** Opción que solo sirve para escribir: se muestra con este permiso de WorkOS */
+  /** Se muestra solo si el usuario puede esta acción (permiso de WorkOS o rol; ver shared/lib/permisos) */
   permiso?: Permiso
   /** Módulo sin pantallas todavía: abre «Módulo en preparación» y muestra la etiqueta «Pronto» */
   enPreparacion?: boolean
@@ -28,15 +27,15 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Organización',
     items: [
-      { to: '/organizacion/entidad', label: 'Datos de la cooperativa', Icon: Building2, profiles: ROUTE_ACCESS.datosCooperativa, roles: ['ADMIN', 'ASESOR'] },
-      { to: '/organizacion/agencias', label: 'Agencias', Icon: Building2, profiles: ROUTE_ACCESS.agencias },
+      { to: '/organizacion/entidad', label: 'Datos de la cooperativa', Icon: Building2, profiles: ROUTE_ACCESS.datosCooperativa, roles: ORGANIZACION_ROLES.entidad },
+      { to: '/organizacion/agencias', label: 'Agencias', Icon: Building2, profiles: ROUTE_ACCESS.agencias, roles: ORGANIZACION_ROLES.agencias },
     ],
   },
   {
     title: 'Productos y Catálogos',
-    // ADMIN, SUPERVISOR y ASESOR consultan; editar depende del permiso (las páginas ocultan las acciones)
+    // Productos: consultar exige prd-consultar y editar prd-editar (las páginas ocultan las acciones)
     items: [
-      { to: '/productos', label: 'Productos', Icon: Package, roles: PRODUCTOS_ROLES.consultar },
+      { to: '/productos', label: 'Productos', Icon: Package, permiso: PERMISOS.productosConsultar },
       { to: '/catalogos', label: 'Catálogos', Icon: Library, roles: CATALOGOS_ROLES.consultar },
     ],
   },
@@ -50,7 +49,7 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Cuentas',
     items: [
-      { to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas },
+      { to: '/cuentas', label: 'Consultar cuentas', Icon: Landmark, profiles: ROUTE_ACCESS.consultarCuentas, roles: CUENTAS_ROLES.consultar },
       { to: '/cuentas/abrir', label: 'Abrir cuenta', Icon: WalletCards, profiles: ROUTE_ACCESS.abrirCuenta, permiso: PERMISOS.cuentasAbrir },
     ],
   },
@@ -62,18 +61,14 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
         label: 'Solicitudes de crédito',
         Icon: HandCoins,
         profiles: ROUTE_ACCESS.creditos,
+        roles: CREDITOS_ROLES.consultar,
         enPreparacion: true,
       },
     ],
   },
   {
     title: 'Tarjetas',
-    items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas }],
-  },
-  {
-    title: 'Tesorería',
-    // SUPERVISOR, CONTADOR, AUDITOR y ADMIN; la página muestra a cada rol solo lo que puede consultar
-    items: [{ to: '/bovedas', label: 'Bóvedas', Icon: Vault, roles: BOVEDA_ROLES.acceso }],
+    items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas, roles: TARJETAS_ROLES.consultar }],
   },
   {
     title: 'Cuentas contables',
@@ -92,6 +87,13 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
         profiles: ROUTE_ACCESS.cuentasContables,
         roles: CONTABILIDAD_ROLES.consultar,
       },
+      {
+        to: '/contabilidad/fecha-contable',
+        label: 'Fecha contable',
+        Icon: CalendarDays,
+        profiles: ROUTE_ACCESS.cuentasContables,
+        roles: CONTABILIDAD_ROLES.consultar,
+      },
     ],
   },
   {
@@ -105,31 +107,75 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
         roles: ROLES_GESTION_USUARIOS,
       },
       { to: '/seguridad/roles', label: 'Roles y accesos', Icon: ShieldCheck, roles: ROLES_CONSULTA_ROLES },
+      { to: '/seguridad/pestanas', label: 'Pestañas por rol', Icon: ShieldCheck, roles: ROLES_CONSULTA_ROLES },
     ],
   },
 ]
 
+/** Roles por pestaña que configuró un ADMIN en «Pestañas por rol» (SEG07). Sin entrada = menú por defecto. */
+export type PestanasPorRol = Readonly<Record<string, readonly string[]>>
+
+/** Roles que ven la opción en el menú por defecto (sin personalizar). */
+function rolesPorDefecto(item: NavItem) {
+  return ROLES_USUARIO.filter((rol) => canAccess(getAccessProfile([rol]), item.profiles) && (!item.roles || hasAnyRole([rol], item.roles)))
+}
+
+/** Si un ADMIN personalizó la pestaña, su lista de roles reemplaza a la del código. */
+function rolPuedeVer(item: NavItem, roles: readonly string[], pestanas?: PestanasPorRol) {
+  const configurados = PESTANAS_FIJAS.includes(item.to) ? undefined : pestanas?.[item.to]
+  if (configurados) return hasAnyRole(roles, configurados)
+  return !item.roles || hasAnyRole(roles, item.roles)
+}
+
 /**
  * Solo las opciones (y secciones con al menos una opción) que el perfil puede ver. Sin `permisos`
  * (vista de un rol en «Roles y accesos») no se filtra por permiso: eso se configura en WorkOS.
+ * Solo decide qué se muestra: cada API valida su propio rol o permiso.
  */
-export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[]) {
+export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[], pestanas?: PestanasPorRol, accesos?: MeResponse['accesosSecciones']) {
   if (!profile) return []
   return NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter(
       (item) =>
         canAccess(profile, item.profiles) &&
-        (!item.roles || hasAnyRole(roles, item.roles)) &&
+        rolPuedeVer(item, roles, accesos ? undefined : pestanas) &&
+        permiteSeccion(item.to, accesos) &&
         (!item.permiso || !permisos || permisos.includes(item.permiso)),
     ),
   })).filter((section) => section.items.length > 0)
 }
 
+export interface PestanaConfigurable {
+  to: string
+  label: string
+  seccion: string
+  rolesPorDefecto: string[]
+  /** Además del rol, la opción exige una acción (permiso de WorkOS o rol de escritura) */
+  requiereAccion: boolean
+}
+
+/** Pestañas que un ADMIN puede personalizar, con los roles que las ven por defecto. */
+export function getPestanasConfigurables(): PestanaConfigurable[] {
+  const menu = NAV_SECTIONS.flatMap((section) =>
+    section.items
+      .filter((item) => !PESTANAS_FIJAS.includes(item.to))
+      .map((item) => ({
+        to: item.to,
+        label: item.label,
+        seccion: section.title ?? 'General',
+        rolesPorDefecto: rolesPorDefecto(item),
+        requiereAccion: Boolean(item.permiso),
+      })),
+  )
+  // Existe como ruta de operación, aunque no tenga entrada propia en el menú lateral.
+  return [...menu, { to: '/solicitar-tarjeta', label: 'Solicitar tarjeta', seccion: 'Tarjetas', rolesPorDefecto: ['ADMIN', 'ASESOR'], requiereAccion: true }]
+}
+
 /** Opciones del menú para un rol reconocido. No sustituye la autorización de las APIs. */
-export function getRoleNavigation(role: string) {
+export function getRoleNavigation(role: string, pestanas?: PestanasPorRol) {
   if (!(ROLES_USUARIO as readonly string[]).includes(role)) return []
-  return getVisibleSections(getAccessProfile([role]), [role]).map((section) => ({
+  return getVisibleSections(getAccessProfile([role]), [role], [], pestanas).map((section) => ({
     titulo: section.title ?? 'General',
     opciones: section.items.map((item) => ({
       titulo: item.label,

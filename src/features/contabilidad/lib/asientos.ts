@@ -6,6 +6,7 @@ import {
   type CampoOrdenAsiento,
   type MovimientoAsiento,
 } from '@/features/contabilidad/api/asientos.contract'
+import type { CuentaContable } from '@/features/contabilidad/api/contabilidad.contract'
 import { formatearSaldo } from '@/features/contabilidad/lib/cuenta-contable'
 import { esNoDisponible } from '@/features/contabilidad/lib/mensajes'
 
@@ -148,24 +149,53 @@ export const etiquetaEstadoAsiento = (estado: string) => ETIQUETAS_ESTADO[estado
 
 export const etiquetaOrigenAsiento = (origen: string) => ETIQUETAS_ORIGEN[origen.trim().toUpperCase()] ?? etiquetaTexto(origen)
 
-export type TonoEstadoAsiento = 'default' | 'secondary' | 'destructive' | 'outline'
+export type TonoEstadoAsiento = 'exito' | 'advertencia' | 'apagado' | 'neutro'
 
-/** Contabilizado en primario; anulado, en rojo; lo que aún no cuenta (o es nuevo), neutro */
+const estadoNormalizado = (estado: string) => estado.trim().toUpperCase()
+
+/**
+ * Contabilizado en éxito; reversado en advertencia (ya no cuenta, lo deja sin efecto su reverso);
+ * anulado apagado (no afecta los saldos); cualquier otro valor, neutro con su texto tal cual.
+ */
 export function tonoEstadoAsiento(estado: string): TonoEstadoAsiento {
-  switch (estado.trim().toUpperCase()) {
+  switch (estadoNormalizado(estado)) {
     case 'CONTABILIZADO':
-      return 'default'
-    case 'ANULADO':
-      return 'destructive'
+      return 'exito'
     case 'REVERSADO':
-      return 'secondary'
+      return 'advertencia'
+    case 'ANULADO':
+      return 'apagado'
     default:
-      return 'outline'
+      return 'neutro'
   }
 }
 
-export const esReversado = (asiento: Pick<Asiento, 'estado' | 'idAsientoReversion'>) =>
-  asiento.idAsientoReversion !== null || asiento.estado.trim().toUpperCase() === 'REVERSADO'
+export const esAsientoAnulado = (estado: string) => estadoNormalizado(estado) === 'ANULADO'
+
+export const esAsientoReversado = (estado: string) => estadoNormalizado(estado) === 'REVERSADO'
+
+/**
+ * `idAsientoReversion` lo trae el asiento de REVERSO y apunta al asiento original que reversa; el
+ * original (REVERSADO) lo trae en null. No sirve para saber si un asiento fue reversado.
+ */
+export const esReverso = (asiento: Pick<Asiento, 'idAsientoReversion'>) => asiento.idAsientoReversion !== null
+
+export const MENSAJE_ASIENTO_ANULADO = 'Asiento anulado: no afecta los saldos del plan de cuentas.'
+
+export const MENSAJE_ASIENTO_REVERSADO = 'Este asiento fue reversado; su reverso lo deja sin efecto.'
+
+export const MENSAJE_CUENTA_DE_GRUPO = 'Cuenta de grupo: según el catálogo de la SEPS no debería recibir movimientos.'
+
+/** Ids de las cuentas del plan que no admiten movimientos (`esImputable === false`) */
+export const idsCuentasDeGrupo = (plan: readonly Pick<CuentaContable, 'idCuentaContable' | 'esImputable'>[]) =>
+  new Set(plan.filter((cuenta) => !cuenta.esImputable).map((cuenta) => cuenta.idCuentaContable))
+
+/** Una cuenta que no está en el plan cargado no se marca: no se sabe si es de grupo */
+export const lineaEnCuentaDeGrupo = (linea: Pick<MovimientoAsiento, 'idCuentaContable'>, cuentasDeGrupo: ReadonlySet<number>) =>
+  cuentasDeGrupo.has(linea.idCuentaContable)
+
+export const hayLineasEnCuentasDeGrupo = (lineas: readonly Pick<MovimientoAsiento, 'idCuentaContable'>[], cuentasDeGrupo: ReadonlySet<number>) =>
+  lineas.some((linea) => lineaEnCuentaDeGrupo(linea, cuentasDeGrupo))
 
 /** «001 · Matriz»; hoy CAT-06 puede usar el código como nombre: entonces solo el código */
 export const etiquetaAgencia = ({ idAgencia, nombre }: Pick<Agencia, 'idAgencia' | 'nombre'>) =>

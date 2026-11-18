@@ -4,6 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { RolesAccesosPage } from '@/features/seguridad/pages/RolesAccesosPage'
 
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
+vi.mock('@/features/seguridad/components/CatalogoPermisos', () => ({ CatalogoPermisos: () => <p>catalogo-permisos</p> }))
+vi.mock('@/features/seguridad/components/AsignacionPermisos', () => ({ AsignacionPermisos: () => <p>asignacion-permisos</p> }))
+vi.mock('@/features/seguridad/hooks/useConfiguracionAccesos', () => ({
+  useConfiguracionAccesos: () => ({ data: { pestanas: [{ pestana: '/clientes-busqueda', roles: ['ADMIN'] }] }, isPending: false, refetch: vi.fn() }),
+}))
 
 const estado = vi.hoisted(() => ({ roles: ['ADMIN'] as string[] }))
 vi.mock('@/features/auth', async (original) => ({
@@ -17,14 +22,20 @@ const html = (roles = ['ADMIN', 'ASESOR']) => renderToStaticMarkup(
 beforeEach(() => { estado.roles = ['ADMIN']; seccionesParaRol.mockClear() })
 
 describe('Roles y accesos de consulta', () => {
-  it('muestra las opciones, enlaza el filtro por rol y no tiene controles de concesión de accesos', () => {
+  it('muestra el rol elegido y el bloque Permisos con Catálogo y Asignación', () => {
     const salida = html()
     expect(salida).toContain('Roles y accesos')
     expect(salida).toContain('Consultar clientes')
     expect(salida).toContain('/usuarios?rol=ADMIN')
     expect(salida).toContain('aria-pressed="true"')
-    expect(salida).not.toContain('type="checkbox"')
-    expect(salida).not.toContain('Aprobar')
+    expect(salida).not.toContain('org-admin') // el bloque de roles muestra solo el nombre
+    expect(salida).toContain('>Permisos</h2>')
+    expect(salida).toContain('Catálogo')
+    expect(salida).toContain('Asignación')
+    // Por defecto se ve el detalle del rol; catálogo y asignación se abren desde su bloque
+    expect(salida).not.toContain('catalogo-permisos')
+    expect(salida).not.toContain('asignacion-permisos')
+    expect(seccionesParaRol).toHaveBeenCalledWith('ADMIN', { '/clientes-busqueda': ['ADMIN'] })
   })
   it.each(['SUPERVISOR', 'ASESOR', 'AUDITOR', 'DESCONOCIDO'])('no muestra el catálogo a %s', (rol) => {
     estado.roles = [rol]

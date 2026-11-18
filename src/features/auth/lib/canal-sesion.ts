@@ -13,6 +13,8 @@ export type MensajeSesion =
   | { tipo: 'consulta' }
   /** Una pestaña restauró la sesión: las que están en /login pueden entrar sin volver a WorkOS */
   | { tipo: 'iniciada' }
+  | { tipo: 'agencia-cambiada' }
+  | { tipo: 'accesos-cambiados' }
 
 const NOMBRE_CANAL = 'enquocoop-sesion'
 

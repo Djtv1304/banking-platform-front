@@ -10,6 +10,10 @@ import { z } from 'zod'
  * - TAR-01 POST /tarjetas                   → registra la solicitud (estado Solicitada, sin PIN)
  * - TAR-02 GET /tarjetas                    → búsqueda por cliente, cuenta y estado (A-04)
  * - TAR-03 GET /tarjetas/{idTarjeta}        → detalle (A-04)
+ * - TAR-04 POST /tarjetas/{id}/estado       → cambio de estado con motivo (A-05)
+ * - TAR-05 POST /tarjetas/{id}/pin          → regenera el PIN en el HSM, 204 sin body (A-05)
+ * - TAR-06 GET /tarjetas/{id}/historial     → eventos de estado y de PIN (A-05)
+ * - TAR-07 GET /tarjetas/{id}/sobre-pin     → PDF del sobre de PIN, una sola vez (A-05)
  *
  * Los esquemas solo describen los campos que usa el front; zod descarta el resto.
  * ⚠️ TAR-01 y TAR-03 devuelven `tokenTarjeta`: no se declara en ningún esquema para que zod lo
@@ -24,6 +28,10 @@ export const TARJETAS_ENDPOINTS = {
   cuentas: `${BASE}/cuentas`,
   tarjetas: `${BASE}/tarjetas`,
   tarjeta: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}`,
+  estado: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}/estado`,
+  pin: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}/pin`,
+  historial: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}/historial`,
+  sobrePin: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}/sobre-pin`,
 } as const
 
 export const pageSchema = <T extends z.ZodType>(item: T) =>
@@ -129,3 +137,40 @@ export type EstadoTarjeta = (typeof ESTADOS_TARJETA)[number]
 
 /** Estados en los que una tarjeta ya no sirve como titular de una extensión */
 export const ESTADOS_TERMINALES = ['Cancelada', 'Anulada', 'Vencida', 'Cerrada'] as const
+
+/** TAR-04 · Body `TarjetaEstadoUpdate`: el motivo queda en el historial (TAR-06) */
+export interface TarjetaEstadoUpdate {
+  estado: EstadoTarjeta
+  motivo: string
+}
+
+/** TAR-06 · Quién fijó el PIN en un evento CambioPin */
+export const origenPinSchema = z.enum(['Generacion', 'Regeneracion', 'Cliente'])
+
+/**
+ * TAR-06 · El backend omite los campos vacíos (`response_model_exclude_none`). `tipoEvento` es
+ * texto libre (Bloqueo, Desbloqueo, Activacion, Anulacion, CambioEstado, CambioPin…).
+ */
+export const tarjetaHistorialSchema = z.object({
+  idHistorial: z.number(),
+  idTarjeta: z.number(),
+  tipoEvento: z.string(),
+  estadoAnterior: z.string().nullish(),
+  estadoNuevo: z.string().nullish(),
+  motivo: z.string().nullish(),
+  resultado: z.string().nullish(),
+  origen: origenPinSchema.nullish(),
+  /** Fecha y hora con zona (ISO 8601) */
+  fechaCambio: z.string(),
+  realizadoPor: z.number(),
+})
+
+export const pageHistorialSchema = z.object({
+  items: z.array(tarjetaHistorialSchema),
+  page: z.number(),
+  pageSize: z.number(),
+  total: z.number(),
+})
+
+export type OrigenPin = z.infer<typeof origenPinSchema>
+export type TarjetaHistorial = z.infer<typeof tarjetaHistorialSchema>
