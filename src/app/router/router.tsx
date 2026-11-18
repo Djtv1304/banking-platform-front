@@ -1,3 +1,4 @@
+import { ParametrosPage, ParametroDetallePage } from '@/features/parametros'
 import { AprobacionesPage, DetalleAprobacionPage } from '@/features/aprobaciones'
 import { createBrowserRouter, Navigate } from 'react-router'
 
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/', element: <HomePage /> },
+          { element: <RequireRoles allowed={['ADMIN', 'SUPERVISOR', 'ASESOR']} />, children: [{ path: '/parametros', element: <ParametrosPage /> }, { path: '/parametros/:clave', element: <ParametroDetallePage /> }] },
           { path: '/aprobaciones', element: <AprobacionesPage /> },
           { path: '/aprobaciones/:idSolicitud', element: <DetalleAprobacionPage /> },
           {

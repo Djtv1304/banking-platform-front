@@ -2,6 +2,7 @@ import type { MeResponse } from '@/features/auth/api/auth.contract'
 
 // Coincide con el catálogo del backend. Primero las rutas más específicas.
 const SECCIONES = [
+  '/parametros',
   '/organizacion/entidad', '/organizacion/agencias', '/productos', '/catalogos',
   '/registrar-cliente', '/clientes-busqueda', '/cuentas/abrir', '/cuentas',
   '/solicitar-tarjeta', '/tarjetas', '/contabilidad/asientos',
