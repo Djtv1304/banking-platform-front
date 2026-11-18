@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { RolesAccesosPage } from '@/features/seguridad/pages/RolesAccesosPage'
 
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
+vi.mock('@/features/seguridad/components/CatalogoPermisos', () => ({ CatalogoPermisos: () => <p>catalogo-permisos</p> }))
 vi.mock('@/features/seguridad/components/PermisosRolPanel', () => ({
   PermisosRolPanel: ({ rol }: { rol: string }) => <p>panel-permisos-{rol}</p>,
 }))
@@ -27,6 +28,8 @@ describe('Roles y accesos de consulta', () => {
     expect(salida).toContain('/usuarios?rol=ADMIN')
     expect(salida).toContain('aria-pressed="true"')
     expect(salida).toContain('panel-permisos-ADMIN')
+    expect(salida).toContain('catalogo-permisos')
+    expect(salida).toContain('org-admin')
   })
   it.each(['SUPERVISOR', 'ASESOR', 'AUDITOR', 'DESCONOCIDO'])('no muestra el catálogo a %s', (rol) => {
     estado.roles = [rol]
