@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router'
 
+import { Aviso } from '@/shared/ui'
 import { canAccess, hasAnyRole, hasPermission, permiteSeccion, sanitizeReturnTo, useAccessProfile, useAuthStatus, useAuthStore, usePermisos, type AccessProfile, type Permiso } from '@/features/auth'
 
 // Pantalla vacía mientras GET /api/v1/auth/me responde
@@ -22,7 +24,11 @@ export function RequireAuth() {
     const query = returnTo && returnTo !== '/' ? `?${new URLSearchParams({ return_to: returnTo })}` : ''
     return <Navigate to={`/login${query}`} replace />
   }
-  if (!permiteSeccion(pathname, accesos)) return <Navigate to="/" replace />
+  if (!permiteSeccion(pathname, accesos)) {
+    return pathname.replace(/\/$/, '').toLowerCase() === '/organizacion/agencias'
+      ? <div className="mx-auto max-w-6xl p-6"><Aviso tono="error">No tienes permiso para administrar agencias.</Aviso></div>
+      : <Navigate to="/" replace />
+  }
   return <Outlet />
 }
 
@@ -47,9 +53,9 @@ export function RequireProfile({ allowed }: { allowed: readonly AccessProfile[] 
 }
 
 /** Dentro de RequireAuth: la URL directa respeta los mismos roles que el menú. */
-export function RequireRoles({ allowed }: { allowed: readonly string[] }) {
+export function RequireRoles({ allowed, sinAcceso }: { allowed: readonly string[]; sinAcceso?: ReactNode }) {
   const roles = useAuthStore((state) => state.user?.roles)
-  if (!hasAnyRole(roles ?? [], allowed)) return <Navigate to="/" replace />
+  if (!hasAnyRole(roles ?? [], allowed)) return sinAcceso ?? <Navigate to="/" replace />
   return <Outlet />
 }
 

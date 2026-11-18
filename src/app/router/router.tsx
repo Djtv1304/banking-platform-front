@@ -23,7 +23,7 @@ import { AbrirCuentaPage } from '@/features/cuenta'
 import { AsientosPage, CONTABILIDAD_ROLES, FechaContablePage, PlanCuentasPage } from '@/features/contabilidad'
 import { GuestOnly, RequireAuth, RequirePermiso, RequireProfile, RequireRoles } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
-import { ModuloEnPreparacion } from '@/shared/ui'
+import { Aviso, ModuloEnPreparacion } from '@/shared/ui'
 
 export const router = createBrowserRouter([
   {
@@ -96,7 +96,7 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            element: <RequireRoles allowed={ORGANIZACION_ROLES.agencias} />,
+            element: <RequireRoles allowed={ORGANIZACION_ROLES.agencias} sinAcceso={<Aviso tono="error">No tienes permiso para administrar agencias.</Aviso>} />,
             children: [{ path: '/organizacion/agencias', element: <AgenciasPage /> }],
           },
           {
