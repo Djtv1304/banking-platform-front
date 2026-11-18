@@ -28,6 +28,16 @@ describe('mensajeErrorPlanCuentas', () => {
     expect(mensajeErrorPlanCuentas(new ApiError('x', 403, 'PERMISO_DENEGADO'), 'mantenimiento')).toMatch(/contador/)
   })
 
+  it('explica las reglas del alta de subcuentas por code', () => {
+    const mensaje = (status: number, code: string) => mensajeErrorPlanCuentas(new ApiError('x', status, code), 'mantenimiento')
+    expect(mensaje(422, 'CODIGO_NO_CORRESPONDE_AL_PADRE')).toBe('El código debe empezar por el de la cuenta superior y tener 8 dígitos.')
+    expect(mensaje(409, 'CUENTA_SUPERIOR_CON_MOVIMIENTOS')).toBe(
+      'La cuenta superior ya tiene movimientos o saldo: no se le pueden crear subcuentas.',
+    )
+    expect(mensaje(404, 'CUENTA_SUPERIOR_NO_ENCONTRADA')).toBe('La cuenta superior ya no existe. Recarga el plan de cuentas.')
+    expect(mensaje(422, 'DB_51100')).toBe('La cuenta superior recibe movimientos y no admite subcuentas.')
+  })
+
   it('un code desconocido usa el mensaje del backend', () => {
     expect(mensajeErrorPlanCuentas(new ApiError('Algo pasó', 500, 'ERROR_INTERNO'), 'consulta')).toBe('Algo pasó')
   })
@@ -46,6 +56,12 @@ describe('erroresDeCampo', () => {
     const error = new ApiError('x', 422, 'CODIGO_NO_CORRESPONDE_AL_PADRE')
     expect(erroresDeCampo(error, ['codigoCuenta', 'nombreCuenta']).get('codigoCuenta')).toMatch(/cuenta superior/)
     expect(erroresDeCampo(error, ['nombreCuenta']).size).toBe(0)
+  })
+
+  it('los errores del padre y del trigger van a un mensaje general, no al campo', () => {
+    for (const code of ['CUENTA_SUPERIOR_CON_MOVIMIENTOS', 'CUENTA_SUPERIOR_NO_ENCONTRADA', 'DB_51100']) {
+      expect(erroresDeCampo(new ApiError('x', 409, code), ['codigoCuenta', 'nombreCuenta']).size).toBe(0)
+    }
   })
 })
 
