@@ -32,3 +32,8 @@ export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export { ThemeToggle } from '@/shared/ui/theme-toggle';
 export { Paginacion } from '@/shared/ui/paginacion';
 export { ModuloEnPreparacion } from '@/shared/ui/modulo-en-preparacion';
+
+export { ComparadorCambios } from '@/shared/ui/comparador-cambios';
+export { LineaDeTiempo } from '@/shared/ui/linea-de-tiempo';
+export { AvisoRequiereAprobacion } from '@/shared/ui/aviso-requiere-aprobacion';
+export { ErrorApi } from '@/shared/ui/error-api';

@@ -1,3 +1,4 @@
+import { useAccesosAprobaciones } from '@/features/aprobaciones'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { NavLink, Outlet, useLocation } from 'react-router'
@@ -50,7 +51,8 @@ export function DashboardLayout() {
   const accesos = useAuthStore((state) => state.user?.accesosSecciones)
   // Si la configuración no llega (error o tabla sin crear) se usa el menú por defecto
   const pestanas = usePestanas(Boolean(roles?.length)).data
-  const sections = getVisibleSections(useAccessProfile(), roles ?? [], permisos, pestanas && Object.fromEntries(pestanas.map((p) => [p.pestana, p.roles])), accesos)
+  const aprobaciones = useAccesosAprobaciones()
+  const sections = getVisibleSections(useAccessProfile(), roles ?? [], permisos, pestanas && Object.fromEntries(pestanas.map((p) => [p.pestana, p.roles])), accesos, { aprobaciones: aprobaciones.data?.puedeVer ?? false })
   const currentPage = sections
     .flatMap((section) => section.items.map((item) => ({ ...item, sectionTitle: section.title })))
     .filter(({ to, end }) => (end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)))
@@ -102,6 +104,7 @@ export function DashboardLayout() {
                 <NavLink
                   key={to}
                   to={to}
+                  aria-label={to === '/aprobaciones' ? `Aprobaciones: ${aprobaciones.data?.pendientesParaMi ?? 0} pendientes para mi` : undefined}
                   end={end}
                   title={collapsed ? (enPreparacion ? `${label} (en preparación)` : label) : undefined}
                   className={({ isActive }) =>
@@ -118,6 +121,7 @@ export function DashboardLayout() {
                     <>
                       <Icon className={cn('size-[18px] shrink-0', isActive && currentPage?.to === to && 'text-link')} />
                       {!collapsed && <span className="truncate">{label}</span>}
+                      {!collapsed && to === '/aprobaciones' && <Badge variant="secondary" aria-hidden="true">{aprobaciones.data?.pendientesParaMi ?? 0}</Badge>}
                       {!collapsed && enPreparacion && (
                         <span className="ml-auto shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
                           Pronto

@@ -1,0 +1,6 @@
+export { AprobacionesPage } from '@/features/aprobaciones/pages/AprobacionesPage'
+export { DetalleAprobacionPage } from '@/features/aprobaciones/pages/DetalleAprobacionPage'
+export { useAccesosAprobaciones } from '@/features/aprobaciones/hooks/useAprobaciones'
+export { AvisoRequiereAprobacion } from '@/shared/ui/aviso-requiere-aprobacion'
+export { solicitarAprobacion } from '@/features/aprobaciones/api/aprobaciones.api'
+export type { SolicitudEntrada } from '@/features/aprobaciones/api/aprobaciones.contract'

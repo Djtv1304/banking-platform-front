@@ -16,13 +16,15 @@ export class ApiError extends Error {
   readonly code: string
   /** Errores por campo que envió el backend; vacío si no hay */
   readonly fields: readonly ApiFieldError[]
+  readonly traceId?: string
 
-  constructor(message: string, status: number | null, code: string, fields: readonly ApiFieldError[] = []) {
+  constructor(message: string, status: number | null, code: string, fields: readonly ApiFieldError[] = [], traceId?: string) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
     this.fields = fields
+    this.traceId = traceId
   }
 }
 
@@ -30,6 +32,7 @@ const DEFAULT_MESSAGE = 'Ocurrió un error inesperado. Inténtalo nuevamente.'
 const NETWORK_MESSAGE = 'No pudimos conectarnos con el servidor. Revisa tu conexión.'
 
 interface ApiErrorBody {
+  traceId?: string
   title?: string
   codigo?: string
   code?: string
@@ -56,11 +59,12 @@ export function toApiError(error: unknown): ApiError {
   const detail = data?.detail
   const code = data?.codigo ?? data?.code ?? `http_${status}`
   const fields = readFieldErrors(data?.errors)
+  const traceId = typeof data?.traceId === 'string' ? data.traceId : undefined
 
-  if (typeof detail === 'string') return new ApiError(detail, status, code, fields)
+  if (typeof detail === 'string') return new ApiError(detail, status, code, fields, traceId)
   if (Array.isArray(detail)) {
     return new ApiError(detail[0]?.msg ?? DEFAULT_MESSAGE, status, 'validation_error')
   }
-  if (detail) return new ApiError(detail.message ?? DEFAULT_MESSAGE, status, detail.code ?? code)
-  return new ApiError(data?.title ?? DEFAULT_MESSAGE, status, code, fields)
+  if (detail) return new ApiError(detail.message ?? DEFAULT_MESSAGE, status, detail.code ?? code, fields, traceId)
+  return new ApiError(data?.title ?? DEFAULT_MESSAGE, status, code, fields, traceId)
 }
