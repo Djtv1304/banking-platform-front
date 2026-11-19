@@ -38,3 +38,4 @@ export { LineaDeTiempo } from '@/shared/ui/linea-de-tiempo';
 export { AvisoRequiereAprobacion } from '@/shared/ui/aviso-requiere-aprobacion';
 export { ErrorApi } from '@/shared/ui/error-api';
 export { EstadoPantalla, type EstadoDePantalla, type EstadoPantallaProps } from '@/shared/ui/estado-pantalla';
+export { InsigniaEstado, type InsigniaEstadoProps, type TonoInsignia } from '@/shared/ui/insignia-estado';
