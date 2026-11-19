@@ -10,7 +10,7 @@
     "contrato:tipos": "node scripts/contrato.mjs tipos",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "check:codificacion": "node .github/scripts/verificar-codificacion.mjs",
+    "check:codificacion": "git ls-files -z | node .github/scripts/verificar-codificacion.mjs",
     "preview": "vite preview",
     "cf-typegen": "wrangler types --include-env=false",
     "deploy": "npm run build && wrangler deploy",
