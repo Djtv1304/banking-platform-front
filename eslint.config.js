@@ -37,6 +37,19 @@ export default defineConfig([
     },
   },
   {
+    // E0-07: en la app se habla de «clientes». Los tests quedan fuera para poder afirmar que no aparece.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...['Literal[value=/\\bsoci[oa]s?\\b/i]', 'TemplateElement[value.raw=/\\bsoci[oa]s?\\b/i]', 'JSXText[value=/\\bsoci[oa]s?\\b/i]'].map(
+          (selector) => ({ selector, message: 'En la app se habla de clientes, nunca de socios (E0-07).' }),
+        ),
+      ],
+    },
+  },
+  {
     // Worker de Cloudflare: corre en workerd, no en el navegador
     files: ['worker/**/*.ts'],
     languageOptions: {
