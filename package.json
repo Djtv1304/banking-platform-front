@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:contrato": "vite --mode contrato",
+    "contrato:copiar": "node scripts/contrato.mjs copiar",
+    "contrato:tipos": "node scripts/contrato.mjs tipos",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 
+import { usePuedeFuncion } from '@/features/auth'
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando } from '@/shared/ui'
 import type { Tarjeta } from '@/features/tarjetas/api/tarjetas.contract'
@@ -27,7 +28,9 @@ export function DetalleTarjetaPage() {
   const { idTarjeta: param } = useParams()
   // Un id no numérico o ≤ 0 no llega a la API: se trata igual que una tarjeta inexistente
   const idTarjeta = leerId(param)
-  const tarjeta = useTarjeta(idTarjeta)
+  const consultar = usePuedeFuncion('tarjetas.consultar', true)
+  const permisos = usePermisosTarjeta()
+  const tarjeta = useTarjeta(consultar ? idTarjeta : null)
 
   const contenido = (() => {
     if (idTarjeta === null || (tarjeta.isError && toApiError(tarjeta.error).status === 404)) {
@@ -37,6 +40,7 @@ export function DetalleTarjetaPage() {
         </SinDetalle>
       )
     }
+    if (!consultar && permisos.historial && idTarjeta !== null) return <SinDetalle><HistorialTarjeta idTarjeta={idTarjeta} /></SinDetalle>
     if (tarjeta.isError) {
       return (
         <SinDetalle>

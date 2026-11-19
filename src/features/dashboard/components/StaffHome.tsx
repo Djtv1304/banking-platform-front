@@ -14,7 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-import { CLIENTES_ROLES, formatRol, hasAnyRole, permiteSeccion, PERMISOS, useAuthStore, usePermisos, type Permiso } from '@/features/auth'
+import { CLIENTES_ROLES, permiteFuncion, formatRol, hasAnyRole, permiteSeccion, PERMISOS, useAuthStore, usePermisos, type Permiso } from '@/features/auth'
 import { cn } from '@/shared/lib'
 import { Badge } from '@/shared/ui'
 
@@ -39,10 +39,10 @@ const STATUS = {
   pending: { label: 'Pendiente', className: 'bg-muted text-muted-foreground', Icon: Clock },
 }
 
-const QUICK_ACTIONS: { label: string; Icon: LucideIcon; to?: string; roles?: readonly string[]; permiso?: Permiso }[] = [
-  { label: 'Registrar cliente', Icon: UserPlus, to: '/registrar-cliente', permiso: PERMISOS.clientesEditar },
-  { label: 'Buscar cliente', Icon: Search, to: '/clientes-busqueda', roles: CLIENTES_ROLES.consultar },
-  { label: 'Apertura de cuenta', Icon: WalletCards, to: '/cuentas/abrir', permiso: PERMISOS.cuentasAbrir },
+const QUICK_ACTIONS: { label: string; Icon: LucideIcon; to?: string; funcion?: string; roles?: readonly string[]; permiso?: Permiso }[] = [
+  { label: 'Registrar cliente', Icon: UserPlus, to: '/registrar-cliente', funcion: 'clientes.registrar', permiso: PERMISOS.clientesEditar },
+  { label: 'Buscar cliente', Icon: Search, to: '/clientes-busqueda', funcion: 'clientes.consultar', roles: CLIENTES_ROLES.consultar },
+  { label: 'Apertura de cuenta', Icon: WalletCards, to: '/cuentas/abrir', funcion: 'cuentas.abrir', permiso: PERMISOS.cuentasAbrir },
   { label: 'Reportes', Icon: BarChart3 },
 ]
 
@@ -141,8 +141,10 @@ export function StaffHome() {
             <h2 className="font-semibold text-heading">Accesos rápidos</h2>
             <div className="mt-4 grid grid-cols-2 gap-3">
               {QUICK_ACTIONS.filter(
-                (action) => (!action.roles || hasAnyRole(user.roles, action.roles)) && (!action.permiso || permisos.includes(action.permiso))
-                  && (!action.to || permiteSeccion(action.to, user.accesosSecciones)),
+                (action) => action.funcion && user.autorizacion?.activa
+                  ? permiteFuncion(user.autorizacion, action.funcion, false)
+                  : (!action.roles || hasAnyRole(user.roles, action.roles)) && (!action.permiso || permisos.includes(action.permiso))
+                    && (!action.to || permiteSeccion(action.to, user.accesosSecciones)),
               ).map(({ label, Icon, to }) => {
                 const content = (
                   <>

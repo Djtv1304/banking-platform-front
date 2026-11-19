@@ -6,6 +6,7 @@ import { DatosCooperativaPage } from '@/features/organizacion/pages/DatosCoopera
 
 const estado = vi.hoisted(() => ({ roles: ['ADMIN'], data: undefined as unknown, error: null as unknown, pendiente: false }))
 vi.mock('@/features/auth', () => ({
+    usePuedeFuncion: (_funcion: string, anterior: boolean) => anterior,
   useAuthStore: () => estado.roles,
   usePermisos: () => (estado.roles.includes('ADMIN') ? ['organizacionEditar'] : []),
 }))

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { useAuthStore, usePermisos } from '@/features/auth'
+import { usePuedeFuncion, useAuthStore, usePermisos } from '@/features/auth'
 import { Button } from '@/shared/ui'
 import type { Cliente } from '@/features/clientes/api/clientes.contract'
 import { cambiarEstadoCliente, editarCliente, historialClienteKey, type ClienteUpdate, type EstadoDestino } from '@/features/clientes/api/gestion-clientes'
@@ -12,7 +12,13 @@ import { accesoGestionClientes, estadosPermitidos } from '@/features/clientes/li
 
 export function GestionCliente({ cliente }: { cliente: Cliente }) {
   const roles = useAuthStore((estado) => estado.user?.roles)
-  const acceso = accesoGestionClientes(roles ?? [], usePermisos())
+  const anterior = accesoGestionClientes(roles ?? [], usePermisos())
+  const acceso = {
+    consulta: usePuedeFuncion('clientes.consultar', anterior.consulta),
+    edicion: usePuedeFuncion('clientes.editar', anterior.edicion),
+    estado: usePuedeFuncion('clientes.cambiarEstado', anterior.estado),
+    historial: usePuedeFuncion('clientes.verHistorial', anterior.historial),
+  }
   const [panel, setPanel] = useState<'edicion' | 'estado' | 'historial' | null>(null)
   const [aviso, setAviso] = useState('')
   const cache = useQueryClient()

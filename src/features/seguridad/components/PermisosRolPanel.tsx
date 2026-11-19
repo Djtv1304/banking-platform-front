@@ -36,7 +36,7 @@ export function PermisosRolPanel({ rol }: { rol: string }) {
                   disabled={cambio.isPending}
                   aria-busy={pendiente}
                   onCheckedChange={(valor) => cambio.mutate({ rol, permiso: p.slug, asignar: valor === true })}
-                  className="mt-0.5"
+                  className="mt-0.5 aria-[checked=false]:border-2 aria-[checked=false]:border-black dark:aria-[checked=false]:border-white"
                 />
                 <Label htmlFor={id} className="flex flex-col items-start gap-0.5 font-normal">
                   <span className="text-sm font-medium text-heading">{p.nombre}</span>

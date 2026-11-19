@@ -36,7 +36,7 @@ const SIN_PERMISOS: readonly Permiso[] = []
 let cache: { user: MeResponse | null; acciones: readonly Permiso[] } = { user: null, acciones: SIN_PERMISOS }
 function accionesDe(user: MeResponse | null): readonly Permiso[] {
   // Arreglo estable por sesión: el selector de zustand no debe devolver uno nuevo en cada render
-  if (user !== cache.user) cache = { user, acciones: user ? accionesPermitidas(user.roles, user.permisos) : SIN_PERMISOS }
+  if (user !== cache.user) cache = { user, acciones: user ? accionesPermitidas(user.roles, user.permisos, user.autorizacion?.funciones) : SIN_PERMISOS }
   return cache.acciones
 }
 export const usePermisos = (): readonly Permiso[] => useAuthStore((state) => accionesDe(state.user))

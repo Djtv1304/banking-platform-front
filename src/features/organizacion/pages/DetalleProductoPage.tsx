@@ -4,7 +4,7 @@ import { ArrowLeft, Eye, FileText, Link2, Pencil, Plus, Power, SlidersHorizontal
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando } from '@/shared/ui'
-import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
+import { usePuedeFuncion, hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import {
   type EstadoProducto,
   type ProductoAdmin,
@@ -60,6 +60,8 @@ export function DetalleProductoPage() {
 
 function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactNode }) {
   const esAdmin = hasPermission(usePermisos(), PERMISOS.productosEditar)
+  const puedeEliminar = usePuedeFuncion('productos.eliminar', esAdmin)
+  const puedeConfigurar = usePuedeFuncion('productos.configurar', esAdmin)
   const actualizarProducto = useActualizarProducto()
   const actualizarSub = useActualizarSubProducto()
   const [formulario, setFormulario] = useState<ModoProducto | null>(null)
@@ -143,8 +145,9 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
             <Link2 />
             Tasas y cargos
           </Button>
-        {esAdmin ? (
+        {(esAdmin || puedeEliminar) ? (
           <>
+            {esAdmin && <>
             <Button variant="ghost" disabled={producto.estadoCatalogo !== 'Borrador'} onClick={() => setFormulario({ tipo: 'editar', producto })}>
               <Pencil />
               Editar
@@ -153,7 +156,8 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
               <Power />
               {producto.estado === 'A' ? 'Desactivar' : 'Activar'}
             </Button>
-            {producto.estadoCatalogo === 'Borrador' &&
+            </>}
+            {puedeEliminar && producto.estadoCatalogo === 'Borrador' &&
               (porEliminar ? (
                 <>
                   <Button variant="destructive" disabled={eliminar.isPending} onClick={confirmarEliminar}>
@@ -256,7 +260,7 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
       <VinculosProductoDialog
         producto={producto}
         abierto={vinculos}
-        soloLectura={!esAdmin}
+        soloLectura={!puedeConfigurar}
         onCerrar={() => setVinculos(false)}
         onGuardado={(mensaje) => {
           setVinculos(false)
@@ -266,7 +270,7 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
       <ParametrosSubProductoDialog
         producto={producto}
         subproducto={parametrizar}
-        soloLectura={!esAdmin}
+        soloLectura={!puedeConfigurar}
         onCerrar={() => setParametrizar(null)}
         onGuardado={alGuardar}
       />
