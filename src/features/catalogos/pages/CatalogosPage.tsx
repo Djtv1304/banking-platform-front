@@ -5,7 +5,7 @@ import { Eye, Pencil, Plus, Power, Search, Trash2 } from 'lucide-react'
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
 import { Aviso, Badge, Button, Cargando, Input } from '@/shared/ui'
-import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
+import { usePuedeFuncion, hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import {
   type CatalogoAdministrable,
   type Confirmacion,
@@ -29,7 +29,11 @@ import { filtrarRegistros, mostrar } from '@/features/catalogos/lib/registro-for
  * El catálogo elegido va en la URL (?catalogo=) para poder compartir el enlace.
  */
 export function CatalogosPage() {
-  const esAdmin = hasPermission(usePermisos(), PERMISOS.catalogosEditar)
+  const anterior = hasPermission(usePermisos(), PERMISOS.catalogosEditar)
+  const editar = usePuedeFuncion('catalogos.editar', anterior)
+  const crear = usePuedeFuncion('catalogos.crear', anterior)
+  const eliminar = usePuedeFuncion('catalogos.eliminar', anterior)
+  const esAdmin = editar || crear || eliminar
   const catalogos = useCatalogosAdministrables()
   const [parametros, setParametros] = useSearchParams()
   const clave = parametros.get('catalogo') ?? catalogos.data[0]?.clave ?? null
@@ -108,6 +112,9 @@ function TablaCatalogo({
   esAdmin: boolean
   onConfirmar: (mensaje: string | null) => void
 }) {
+  const puedeCrear = usePuedeFuncion('catalogos.crear', esAdmin)
+  const puedeEditar = usePuedeFuncion('catalogos.editar', esAdmin)
+  const puedeEliminar = usePuedeFuncion('catalogos.eliminar', esAdmin)
   const registros = useRegistrosCatalogo(catalogo.clave)
   const actualizar = useActualizarRegistroCatalogo()
   const eliminar = useEliminarRegistroCatalogo()
@@ -201,11 +208,11 @@ function TablaCatalogo({
                 </td>
                 {esAdmin && (
                   <td className="px-3 py-2 text-right whitespace-nowrap">
-                    <Button variant="ghost" size="sm" onClick={() => setEditando(r)} aria-label={`Editar registro ${r.id}`}>
+                    {puedeEditar && (                    <Button variant="ghost" size="sm" onClick={() => setEditando(r)} aria-label={`Editar registro ${r.id}`}>
                       <Pencil />
                       Editar
-                    </Button>
-                    <Button
+                    </Button>)}
+                    {puedeEliminar && (                    <Button
                       variant="ghost"
                       size="sm"
                       disabled={actualizar.isPending}
@@ -214,7 +221,7 @@ function TablaCatalogo({
                     >
                       <Power />
                       {r.estado === 'A' ? 'Desactivar' : 'Activar'}
-                    </Button>
+                    </Button>)}
                     {catalogo.permiteEliminar &&
                       (porEliminar === r.id ? (
                         <span className="ml-1 inline-flex items-center gap-1">
@@ -254,13 +261,13 @@ function TablaCatalogo({
           <h2 id="titulo-catalogo" className="text-lg font-semibold text-heading">{catalogo.nombre}</h2>
           <p className="text-sm text-muted-foreground">{catalogo.descripcion}</p>
         </div>
-        {esAdmin && catalogo.permiteCrear && (
+        {puedeCrear && catalogo.permiteCrear && (
           <Button onClick={() => setCreando(true)}>
             <Plus />
             Nueva tasa
           </Button>
         )}
-        {esAdmin && permiteAlta && (
+        {puedeCrear && permiteAlta && (
           <Button onClick={() => setNuevo({ id: '', estado: 'A' })}>
             <Plus />
             Nuevo

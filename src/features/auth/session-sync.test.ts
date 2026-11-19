@@ -25,17 +25,18 @@ describe('sincronización del acceso de la sesión', () => {
     vi.useRealTimers()
   })
 
-  it('no consulta /me al volver a la ventana ni con el paso del tiempo (nada en segundo plano)', async () => {
+  it('actualiza al volver con actividad, sin sondeos peri�dicos', async () => {
     vi.useFakeTimers()
     const ventana = new EventTarget()
     vi.stubGlobal('window', ventana)
     vi.stubGlobal('document', Object.assign(new EventTarget(), { visibilityState: 'visible' }))
+    api.getMe.mockResolvedValue(perfil)
     const detener = startSessionSync()
     try {
       ventana.dispatchEvent(new Event('focus'))
       document.dispatchEvent(new Event('visibilitychange'))
       await vi.advanceTimersByTimeAsync(5 * 60_000)
-      expect(api.getMe).not.toHaveBeenCalled()
+      expect(api.getMe).toHaveBeenCalledOnce()
       expect(api.refresh).not.toHaveBeenCalled()
     } finally { detener() }
   })

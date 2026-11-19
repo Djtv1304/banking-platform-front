@@ -20,15 +20,15 @@ export function CuposCuentaPage() {
   const { idCuenta: param } = useParams()
   // Un id no numérico o ≤ 0 no llega a la API: se trata igual que una cuenta inexistente
   const idCuenta = leerIdCuenta(param)
-  const cupos = useCupos(idCuenta)
+  const permisos = usePermisosCupos()
+  const cupos = useCupos(permisos.ver ? idCuenta : null)
   // Solo para mostrar el número de la cuenta; si falla, la página sigue sin él
-  const cuenta = useCuenta(idCuenta)
+  const cuenta = useCuenta(permisos.ver ? idCuenta : null)
   const { data: canales } = useCanales()
   // CAT-08 lista solo los canales activos; uno inactivo con cupo se muestra por su id
   const nombreCanal = (idCanal: number) =>
     canales.find((canal) => canal.idCanal === idCanal)?.nombreCanal ?? `Canal ${idCanal}`
   // Editar (CTA-08) e historial (CTA-09) solo se muestran a los roles que el backend permite
-  const permisos = usePermisosCupos()
   const [editando, setEditando] = useState<CupoEfectivo | null>(null)
   const [historialDe, setHistorialDe] = useState<number | null>(null)
   const [guardado, setGuardado] = useState<string | null>(null)
@@ -53,6 +53,14 @@ export function CuposCuentaPage() {
     if (idCuenta === null || (cupos.isError && toApiError(cupos.error).status === 404)) {
       return <Aviso>No existe una cuenta con ese ID.</Aviso>
     }
+    if (!permisos.ver && permisos.historial && idCuenta !== null) return (
+      <section className="rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-semibold text-heading">Historial de cupos por canal</h2>
+        <div className="mt-4 flex flex-wrap gap-3">{canales.map((canal) => (
+          <Button key={canal.idCanal} variant="outline" onClick={() => setHistorialDe(canal.idCanal)}><History />{canal.nombreCanal}</Button>
+        ))}</div>
+      </section>
+    )
     if (cupos.isError) return <Aviso tono="error">{mensajeErrorCupos(toApiError(cupos.error), 'ver')}</Aviso>
     if (cupos.isPending) return <Cargando texto="Consultando los cupos…" />
     if (cupos.data.length === 0) return <Aviso>Esta cuenta no tiene cupos configurados en ningún canal.</Aviso>

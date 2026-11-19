@@ -2,7 +2,8 @@ import type { QueryClient } from '@tanstack/react-query'
 import { setUnauthorizedHandler, setForbiddenHandler, toApiError, limpiarContextoAgencia } from '@/shared/api'
 import { getMe, logout } from '@/features/auth/api/auth.api'
 import { AUTH_ENDPOINTS, esMotivoCierre, type MeResponse, type MotivoCierre } from '@/features/auth/api/auth.contract'
-import { iniciarControlInactividad } from '@/features/auth/inactividad'
+import { iniciarControlInactividad, permiteActualizarAccesos } from '@/features/auth/inactividad'
+import { useEstadoAccesos } from '@/features/auth/store/estado-accesos.store'
 import { escuchar, publicar } from '@/features/auth/lib/canal-sesion'
 import { guardarCierrePendiente } from '@/features/auth/lib/cierre-pendiente'
 import { sanitizeReturnTo } from '@/features/auth/lib/return-to'
@@ -10,6 +11,9 @@ import { useAuthStore } from '@/features/auth/store/auth.store'
 
 let sessionCache: Pick<QueryClient, 'clear'> | null = null
 let pending: { user: MeResponse; promise: Promise<boolean> } | null = null
+let ultimaRevisionAccesos = 0
+let ultimoIntentoAccesos = 0
+const REVISAR_ACCESOS_TRAS_MS = 30_000
 
 function compareAccessValues(a: string, b: string) {
   if (a === b) return 0
@@ -26,6 +30,7 @@ function accessKey(user: MeResponse) {
     roles,
     permissions,
     user.accesosSecciones?.version ?? null,
+    user.autorizacion?.version ?? null,
   ])
 }
 
@@ -55,11 +60,14 @@ export function refreshSession(): Promise<boolean> {
       if (useAuthStore.getState().user !== previous) return false
       if (accessKey(previous) !== accessKey(current)) sessionCache?.clear()
       useAuthStore.getState().setSession(current)
+      ultimaRevisionAccesos = Date.now()
+      useEstadoAccesos.setState({ fallo: false })
       return true
     } catch (error) {
       // Un 401 ya lo atendió el interceptor (con su motivo)
       if (useAuthStore.getState().user !== previous) return false
       if (toApiError(error).status === 403) cerrarSesionLocal(null)
+      if (useAuthStore.getState().status === 'authenticated') useEstadoAccesos.setState({ fallo: true })
       // Una caída temporal no significa que la sesión haya terminado.
       return false
     }
@@ -69,6 +77,15 @@ export function refreshSession(): Promise<boolean> {
     if (pending?.promise === promise) pending = null
   })
   return promise
+}
+
+/** Solo por navegación/foco del usuario. Sin sondeos que prolonguen la inactividad. */
+export async function actualizarAccesosPorActividad() {
+  const ahora = Date.now()
+  if (useAuthStore.getState().status !== 'authenticated' || document.visibilityState === 'hidden'
+      || !permiteActualizarAccesos() || ahora - Math.max(ultimaRevisionAccesos, ultimoIntentoAccesos) < REVISAR_ACCESOS_TRAS_MS) return
+  ultimoIntentoAccesos = ahora
+  await refreshSession()
 }
 
 /**
@@ -120,14 +137,20 @@ export function startSessionSync() {
       sessionCache?.clear()
     }
     if (mensaje.tipo === 'iniciada' && status === 'anonymous') void restoreSession()
-    if (mensaje.tipo === 'accesos-cambiados' && status === 'authenticated') void refreshSession()
+    if (mensaje.tipo === 'accesos-cambiados' && status === 'authenticated' && permiteActualizarAccesos()) void refreshSession()
   })
+
+  const alVolver = () => { void actualizarAccesosPorActividad() }
+  window.addEventListener('focus', alVolver)
+  document.addEventListener('visibilitychange', alVolver)
 
   return () => {
     desuscribir()
     dejarDeEscuchar()
     detenerInactividad?.()
     detenerInactividad = null
+    window.removeEventListener('focus', alVolver)
+    document.removeEventListener('visibilitychange', alVolver)
   }
 }
 
@@ -142,6 +165,8 @@ export function startSessionSync() {
 export async function restoreSession() {
   try {
     useAuthStore.getState().setSession(await getMe())
+    ultimaRevisionAccesos = Date.now()
+    useEstadoAccesos.setState({ fallo: false })
     publicar({ tipo: 'iniciada' })
   } catch {
     // Error de red/servidor: se trata como anónimo y el guard lleva a /login. Un 401 ya lo atendió

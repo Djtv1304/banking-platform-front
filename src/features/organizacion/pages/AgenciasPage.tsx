@@ -1,3 +1,4 @@
+import { usePuedeFuncion } from '@/features/auth'
 import { useRef, useState } from 'react'
 import { Pencil, Plus, Power } from 'lucide-react'
 
@@ -15,6 +16,9 @@ import { accionEstado, ETIQUETA_ESTADO } from '@/features/organizacion/lib/agenc
 
 const TAMANO_PAGINA = 10
 export function AgenciasPage() {
+  const puedeCrear = usePuedeFuncion('agencias.crear', true)
+  const puedeEditar = usePuedeFuncion('agencias.editar', true)
+  const puedeEstado = usePuedeFuncion('agencias.cambiarEstado', true)
   const agencias = useAgenciasAdmin()
   const ciudades = useCiudades('ECU')
   const [filtro, setFiltro] = useState('')
@@ -87,6 +91,8 @@ export function AgenciasPage() {
             <TablaAgencias
               agencias={filtradas.slice(inicio, inicio + TAMANO_PAGINA)}
               ciudades={ciudades.data}
+              puedeEditar={puedeEditar}
+              puedeEstado={puedeEstado}
               onEditar={(agencia) => abrirFormulario({ tipo: 'editar', agencia })}
               onCambiarEstado={abrirCambio}
             />
@@ -112,10 +118,10 @@ export function AgenciasPage() {
             Matriz y sucursales de la cooperativa. Crea agencias, corrige sus datos o cambia su estado.
           </p>
         </div>
-        <Button ref={botonNueva} disabled={!agencias.isSuccess} size="lg" onClick={() => abrirFormulario({ tipo: 'crear' })} className="rounded-lg px-4 font-semibold">
+        {puedeCrear && <Button ref={botonNueva} disabled={!agencias.isSuccess} size="lg" onClick={() => abrirFormulario({ tipo: 'crear' })} className="rounded-lg px-4 font-semibold">
           <Plus />
           Nueva agencia
-        </Button>
+        </Button>}
       </header>
 
       {typeof confirmacion === 'number' ? <AvisoRequiereAprobacion idSolicitud={confirmacion} /> : confirmacion && <Aviso>{confirmacion}</Aviso>}
@@ -131,13 +137,15 @@ export function AgenciasPage() {
 }
 
 interface TablaAgenciasProps {
+  puedeEditar: boolean
+  puedeEstado: boolean
   agencias: AgenciaDetalle[]
   ciudades: readonly { idCiudad: number; nombre: string; provincia: string }[]
   onEditar: (agencia: AgenciaDetalle) => void
   onCambiarEstado: (cambio: CambioEstado) => void
 }
 
-function TablaAgencias({ agencias, ciudades, onEditar, onCambiarEstado }: TablaAgenciasProps) {
+function TablaAgencias({ agencias, ciudades, puedeEditar, puedeEstado, onEditar, onCambiarEstado }: TablaAgenciasProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] text-left text-sm">
@@ -183,11 +191,11 @@ function TablaAgencias({ agencias, ciudades, onEditar, onCambiarEstado }: TablaA
                   {/* Una agencia cerrada no tiene acciones: la API no la gestiona */}
                   {accion ? (
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => onEditar(agencia)} aria-label={`Editar ${agencia.codigo}`}>
+                      {puedeEditar && <Button variant="ghost" size="sm" onClick={() => onEditar(agencia)} aria-label={`Editar ${agencia.codigo}`}>
                         <Pencil />
                         Editar
-                      </Button>
-                      <Button
+                      </Button>}
+                      {puedeEstado && <Button
                         variant={accion === 'desactivar' ? 'destructive' : 'outline'}
                         size="sm"
                         onClick={() => onCambiarEstado({ agencia, accion })}
@@ -195,7 +203,7 @@ function TablaAgencias({ agencias, ciudades, onEditar, onCambiarEstado }: TablaA
                       >
                         <Power />
                         {accion === 'desactivar' ? 'Desactivar' : 'Activar'}
-                      </Button>
+                      </Button>}
                     </div>
                   ) : (
                     <span className="block text-right text-xs text-muted-foreground">Sin acciones</span>

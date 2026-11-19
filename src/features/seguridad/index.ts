@@ -5,3 +5,6 @@ export { PESTANAS_FIJAS } from '@/features/seguridad/api/seguridad.contract'
 export type { PestanaRoles } from '@/features/seguridad/api/seguridad.contract'
 export { usePestanas } from '@/features/seguridad/hooks/useSeguridad'
 export { PestanasRolPage } from '@/features/seguridad/pages/PestanasRolPage'
+export { FuncionesRolPage } from '@/features/seguridad/pages/FuncionesRolPage'
+
+export { WorkOSAvanzadoPage } from '@/features/seguridad/pages/WorkOSAvanzadoPage'

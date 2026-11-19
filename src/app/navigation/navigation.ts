@@ -7,6 +7,7 @@ import { CONTABILIDAD_ROLES } from '@/features/contabilidad'
 import { BOVEDA_ROLES } from '@/features/boveda'
 import { PESTANAS_FIJAS, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
+import { funcionesDeRuta } from '@/app/router/funciones-ruta'
 import { permiteSeccion, type MeResponse } from '@/features/auth'
 
 export interface NavItem {
@@ -114,8 +115,9 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
         profiles: ROUTE_ACCESS.gestionUsuarios,
         roles: ROLES_GESTION_USUARIOS,
       },
+      { to: '/seguridad/pestanas', label: 'Accesos por función', Icon: ShieldCheck, roles: ROLES_CONSULTA_ROLES },
       { to: '/seguridad/roles', label: 'Roles y accesos', Icon: ShieldCheck, roles: ROLES_CONSULTA_ROLES },
-      { to: '/seguridad/pestanas', label: 'Pestañas por rol', Icon: ShieldCheck, roles: ROLES_CONSULTA_ROLES },
+      { to: '/seguridad/workos', label: 'WorkOS avanzado', Icon: ShieldCheck, roles: ROLES_CONSULTA_ROLES },
     ],
   },
 ]
@@ -140,17 +142,22 @@ function rolPuedeVer(item: NavItem, roles: readonly string[], pestanas?: Pestana
  * (vista de un rol en «Roles y accesos») no se filtra por permiso: eso se configura en WorkOS.
  * Solo decide qué se muestra: cada API valida su propio rol o permiso.
  */
-export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[], pestanas?: PestanasPorRol, accesos?: MeResponse['accesosSecciones'], capacidades: { aprobaciones?: boolean } = {}) {
+export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[], pestanas?: PestanasPorRol, accesos?: MeResponse['accesosSecciones'], capacidades: { aprobaciones?: boolean } = {}, autorizacion?: MeResponse['autorizacion']) {
   if (!profile) return []
   return NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter(
-      (item) =>
-        (!item.capacidad || Boolean(capacidades[item.capacidad])) &&
+      (item) => {
+        if (item.capacidad && !capacidades[item.capacidad]) return false
+        const funciones = funcionesDeRuta(item.to)
+        if (autorizacion?.activa && funciones) return funciones.some((f) => autorizacion.funciones.includes(f))
+        return (
         canAccess(profile, item.profiles) &&
         rolPuedeVer(item, roles, accesos ? undefined : pestanas) &&
         permiteSeccion(item.to, accesos) &&
-        (!item.permiso || !permisos || permisos.includes(item.permiso)),
+        (!item.permiso || !permisos || permisos.includes(item.permiso))
+        )
+      },
     ),
   })).filter((section) => section.items.length > 0)
 }
@@ -182,9 +189,9 @@ export function getPestanasConfigurables(): PestanaConfigurable[] {
 }
 
 /** Opciones del menú para un rol reconocido. No sustituye la autorización de las APIs. */
-export function getRoleNavigation(role: string, pestanas?: PestanasPorRol) {
+export function getRoleNavigation(role: string, pestanas?: PestanasPorRol, autorizacion?: MeResponse['autorizacion']) {
   if (!(ROLES_USUARIO as readonly string[]).includes(role)) return []
-  return getVisibleSections(getAccessProfile([role]), [role], [], pestanas).map((section) => ({
+  return getVisibleSections(getAccessProfile([role]), [role], [], pestanas, undefined, {}, autorizacion).map((section) => ({
     titulo: section.title ?? 'General',
     opciones: section.items.map((item) => ({
       titulo: item.label,

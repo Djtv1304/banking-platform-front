@@ -37,6 +37,12 @@ let ultimaRenovacion = 0
 let ultimoIntento = 0
 let enCurso: Promise<void> | null = null
 
+/** Una actualización visual no debe revivir una sesión vencida ni cerrar su aviso. */
+export function permiteActualizarAccesos() {
+  return ultimaRenovacion > 0 && Date.now() < ultimaRenovacion + INACTIVIDAD_SESION_MS
+    && useInactividad.getState().venceEn === null
+}
+
 function marcarRenovada(en: number) {
   if (en <= ultimaRenovacion) return
   ultimaRenovacion = en

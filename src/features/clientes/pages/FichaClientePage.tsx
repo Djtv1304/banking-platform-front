@@ -6,7 +6,7 @@ import { ApiError } from '@/shared/api'
 import { GestionDirecciones } from '@/features/clientes/components/GestionDirecciones'
 import { puedeGestionarDirecciones } from '@/features/clientes/lib/direcciones'
 import { Badge, Button } from '@/shared/ui'
-import { useAuthStore, usePermisos } from '@/features/auth'
+import { usePuedeFuncion, useAuthStore, usePermisos } from '@/features/auth'
 import { GestionCliente } from '@/features/clientes/components/GestionCliente'
 import { HistorialCliente } from '@/features/clientes/components/HistorialCliente'
 import { GestionRiesgo } from '@/features/clientes/components/GestionRiesgo'
@@ -23,14 +23,21 @@ import {
   varianteEstado,
 } from '@/features/clientes/lib/consulta'
 
-/* Compone la ficha de C-03, las acciones de C-04 y la gestión de direcciones C-07. */
+/* Compone la ficha de C-03, las acciones de C-04 y la gestiÃ³n de direcciones C-07. */
 
 export function FichaClientePage() {
   const { idCliente } = useParams()
   const id = parsearIdCliente(idCliente)
   const roles = useAuthStore((estado) => estado.user?.roles)
   const permisos = usePermisos()
-  const acceso = accesoGestionClientes(roles ?? [], permisos)
+  const anterior = accesoGestionClientes(roles ?? [], permisos)
+  const acceso = {
+    consulta: usePuedeFuncion('clientes.consultar', anterior.consulta),
+    edicion: usePuedeFuncion('clientes.editar', anterior.edicion),
+    estado: usePuedeFuncion('clientes.cambiarEstado', anterior.estado),
+    historial: usePuedeFuncion('clientes.verHistorial', anterior.historial),
+  }
+  const verRiesgo = usePuedeFuncion('clientes.riesgo.consultar', anterior.historial)
   const consulta = useCliente(acceso.consulta ? id : undefined)
 
   const noExiste =
@@ -41,7 +48,7 @@ export function FichaClientePage() {
       <Button asChild variant="outline" className="h-10 rounded-xl px-4">
         <Link to={acceso.consulta ? '/clientes-busqueda' : '/'}>
           <ArrowLeft />
-          {acceso.consulta ? 'Volver a la búsqueda' : 'Volver al inicio'}
+          {acceso.consulta ? 'Volver a la bÃºsqueda' : 'Volver al inicio'}
         </Link>
       </Button>
 
@@ -49,7 +56,7 @@ export function FichaClientePage() {
         {noExiste ? (
           <ClienteNoEncontrado />
         ) : !acceso.consulta ? (
-          acceso.historial ? <div className="flex flex-col gap-6"><h1 className="text-3xl font-bold text-heading">Historial del cliente #{id}</h1><HistorialCliente key={id} id={id!} /><GestionRiesgo key={`riesgo-${id}`} id={id!} nombre={`cliente #${id}`} /></div> : <p role="alert">No tienes permiso para consultar este cliente.</p>
+          (acceso.historial || verRiesgo) ? <div className="flex flex-col gap-6"><h1 className="text-3xl font-bold text-heading">Historial del cliente #{id}</h1>{acceso.historial && <HistorialCliente key={id} id={id!} />}{verRiesgo && <GestionRiesgo key={`riesgo-${id}`} id={id!} nombre={`cliente #${id}`} />}</div> : <p role="alert">No tienes permiso para consultar este cliente.</p>
         ) : consulta.isError ? (
           <div
             role="alert"
@@ -66,7 +73,7 @@ export function FichaClientePage() {
         ) : consulta.isPending ? (
           <p role="status" className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
             <LoaderCircle className="size-5 animate-spin" />
-            Cargando la ficha del cliente…
+            Cargando la ficha del clienteâ€¦
           </p>
         ) : (
           <Ficha cliente={consulta.data} />
@@ -92,7 +99,8 @@ function ClienteNoEncontrado() {
 }
 
 function Ficha({ cliente }: { cliente: Cliente }) {
-  const gestion = puedeGestionarDirecciones(usePermisos())
+  const gestion = usePuedeFuncion('clientes.direcciones.gestionar', puedeGestionarDirecciones(usePermisos()))
+  const verDirecciones = usePuedeFuncion('clientes.direcciones.consultar', gestion)
   // La principal primero; el resto en el orden en que llegan
   const direcciones = [...cliente.direcciones].sort((a, b) => Number(b.esPrincipal) - Number(a.esPrincipal))
 
@@ -109,7 +117,7 @@ function Ficha({ cliente }: { cliente: Cliente }) {
 
       <Seccion titulo="Datos del cliente">
         <dl className="grid gap-5 sm:grid-cols-2">
-          <Dato etiqueta="Identificación">
+          <Dato etiqueta="IdentificaciÃ³n">
             {TIPO_DOCUMENTO_LABEL[cliente.tipoDocumento]} {cliente.identificacion}
           </Dato>
           <Dato etiqueta="Tipo de cliente">{TIPO_CLIENTE_LABEL[cliente.tipoCliente]}</Dato>
@@ -122,16 +130,16 @@ function Ficha({ cliente }: { cliente: Cliente }) {
 
       <Seccion titulo="Contacto">
         <dl className="grid gap-5 sm:grid-cols-2">
-          <Dato etiqueta="Correo electrónico">
+          <Dato etiqueta="Correo electrÃ³nico">
             <span className="break-all">{cliente.email}</span>
           </Dato>
           <Dato etiqueta="Celular">{celularVisible(cliente.telefonoCelular)}</Dato>
-          {cliente.telefonoConvencional && <Dato etiqueta="Teléfono convencional">{cliente.telefonoConvencional}</Dato>}
+          {cliente.telefonoConvencional && <Dato etiqueta="TelÃ©fono convencional">{cliente.telefonoConvencional}</Dato>}
         </dl>
       </Seccion>
 
       <Seccion titulo="Direcciones">
-        {gestion ? <GestionDirecciones idCliente={cliente.idCliente} soloLectura={cliente.estado === 'Eliminado'} /> : direcciones.length === 0 ? (
+        {verDirecciones ? <GestionDirecciones idCliente={cliente.idCliente} soloLectura={!gestion || cliente.estado === 'Eliminado'} /> : direcciones.length === 0 ? (
           <p className="text-sm text-muted-foreground">El cliente no tiene direcciones activas.</p>
         ) : (
           <ul className="flex flex-col gap-3">

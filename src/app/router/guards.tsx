@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router'
+import { useEffect } from 'react'
+import { funcionesDeRuta } from '@/app/router/funciones-ruta'
+import { actualizarAccesosPorActividad } from '@/features/auth/session'
 
 import { Aviso } from '@/shared/ui'
 import { canAccess, hasAnyRole, hasPermission, permiteSeccion, sanitizeReturnTo, useAccessProfile, useAuthStatus, useAuthStore, usePermisos, type AccessProfile, type Permiso } from '@/features/auth'
@@ -17,6 +20,8 @@ export function RequireAuth() {
   const status = useAuthStatus()
   const accesos = useAuthStore((state) => state.user?.accesosSecciones)
   const { pathname, search } = useLocation()
+  const autorizacion = useAuthStore((s) => s.user?.autorizacion)
+  useEffect(() => { void actualizarAccesosPorActividad() }, [pathname])
 
   if (status === 'restoring') return <SessionRestoring />
   if (status === 'anonymous') {
@@ -24,7 +29,7 @@ export function RequireAuth() {
     const query = returnTo && returnTo !== '/' ? `?${new URLSearchParams({ return_to: returnTo })}` : ''
     return <Navigate to={`/login${query}`} replace />
   }
-  if (!permiteSeccion(pathname, accesos)) {
+  if (!autorizacion && !permiteSeccion(pathname, accesos)) {
     return pathname.replace(/\/$/, '').toLowerCase() === '/organizacion/agencias'
       ? <div className="mx-auto max-w-6xl p-6"><Aviso tono="error">No tienes permiso para administrar agencias.</Aviso></div>
       : <Navigate to="/" replace />
@@ -47,6 +52,10 @@ export function GuestOnly() {
 /** Rutas restringidas por perfil (va dentro de RequireAuth): sin acceso redirige al Home. */
 export function RequireProfile({ allowed }: { allowed: readonly AccessProfile[] }) {
   const profile = useAccessProfile()
+  const autorizacion = useAuthStore((s) => s.user?.autorizacion)
+  const { pathname } = useLocation()
+  const funciones = funcionesDeRuta(pathname)
+  if (autorizacion?.activa && funciones) return funciones.some((f) => autorizacion.funciones.includes(f)) ? <Outlet /> : <Navigate to="/" replace />
 
   if (!profile || !canAccess(profile, allowed)) return <Navigate to="/" replace />
   return <Outlet />
@@ -55,12 +64,21 @@ export function RequireProfile({ allowed }: { allowed: readonly AccessProfile[] 
 /** Dentro de RequireAuth: la URL directa respeta los mismos roles que el menú. */
 export function RequireRoles({ allowed, sinAcceso }: { allowed: readonly string[]; sinAcceso?: ReactNode }) {
   const roles = useAuthStore((state) => state.user?.roles)
+  const autorizacion = useAuthStore((s) => s.user?.autorizacion)
+  const { pathname } = useLocation()
+  const funciones = funcionesDeRuta(pathname)
+  if (autorizacion?.activa && funciones) return funciones.some((f) => autorizacion.funciones.includes(f)) ? <Outlet /> : <Navigate to="/" replace />
   if (!hasAnyRole(roles ?? [], allowed)) return sinAcceso ?? <Navigate to="/" replace />
   return <Outlet />
 }
 
 /** Pantallas que solo sirven para escribir (registrar, abrir, solicitar): exigen el permiso. */
 export function RequirePermiso({ permiso }: { permiso: Permiso }) {
-  if (!hasPermission(usePermisos(), permiso)) return <Navigate to="/" replace />
+  const permisos = usePermisos()
+  const autorizacion = useAuthStore((s) => s.user?.autorizacion)
+  const { pathname } = useLocation()
+  const funciones = funcionesDeRuta(pathname)
+  if (autorizacion?.activa && funciones) return funciones.some((f) => autorizacion.funciones.includes(f)) ? <Outlet /> : <Navigate to="/" replace />
+  if (!hasPermission(permisos, permiso)) return <Navigate to="/" replace />
   return <Outlet />
 }
