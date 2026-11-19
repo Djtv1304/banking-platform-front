@@ -25,7 +25,7 @@ describe('sincronización del acceso de la sesión', () => {
     vi.useRealTimers()
   })
 
-  it('actualiza al volver con actividad, sin sondeos peri�dicos', async () => {
+  it('actualiza al volver con actividad, sin sondeos periódicos', async () => {
     vi.useFakeTimers()
     const ventana = new EventTarget()
     vi.stubGlobal('window', ventana)

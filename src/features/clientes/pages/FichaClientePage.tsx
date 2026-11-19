@@ -23,7 +23,7 @@ import {
   varianteEstado,
 } from '@/features/clientes/lib/consulta'
 
-/* Compone la ficha de C-03, las acciones de C-04 y la gestiÃ³n de direcciones C-07. */
+/* Compone la ficha de C-03, las acciones de C-04 y la gestión de direcciones C-07. */
 
 export function FichaClientePage() {
   const { idCliente } = useParams()
@@ -48,7 +48,7 @@ export function FichaClientePage() {
       <Button asChild variant="outline" className="h-10 rounded-xl px-4">
         <Link to={acceso.consulta ? '/clientes-busqueda' : '/'}>
           <ArrowLeft />
-          {acceso.consulta ? 'Volver a la bÃºsqueda' : 'Volver al inicio'}
+          {acceso.consulta ? 'Volver a la búsqueda' : 'Volver al inicio'}
         </Link>
       </Button>
 
@@ -73,7 +73,7 @@ export function FichaClientePage() {
         ) : consulta.isPending ? (
           <p role="status" className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
             <LoaderCircle className="size-5 animate-spin" />
-            Cargando la ficha del clienteâ€¦
+            Cargando la ficha del cliente…
           </p>
         ) : (
           <Ficha cliente={consulta.data} />
@@ -117,7 +117,7 @@ function Ficha({ cliente }: { cliente: Cliente }) {
 
       <Seccion titulo="Datos del cliente">
         <dl className="grid gap-5 sm:grid-cols-2">
-          <Dato etiqueta="IdentificaciÃ³n">
+          <Dato etiqueta="Identificación">
             {TIPO_DOCUMENTO_LABEL[cliente.tipoDocumento]} {cliente.identificacion}
           </Dato>
           <Dato etiqueta="Tipo de cliente">{TIPO_CLIENTE_LABEL[cliente.tipoCliente]}</Dato>
@@ -130,11 +130,11 @@ function Ficha({ cliente }: { cliente: Cliente }) {
 
       <Seccion titulo="Contacto">
         <dl className="grid gap-5 sm:grid-cols-2">
-          <Dato etiqueta="Correo electrÃ³nico">
+          <Dato etiqueta="Correo electrónico">
             <span className="break-all">{cliente.email}</span>
           </Dato>
           <Dato etiqueta="Celular">{celularVisible(cliente.telefonoCelular)}</Dato>
-          {cliente.telefonoConvencional && <Dato etiqueta="TelÃ©fono convencional">{cliente.telefonoConvencional}</Dato>}
+          {cliente.telefonoConvencional && <Dato etiqueta="Teléfono convencional">{cliente.telefonoConvencional}</Dato>}
         </dl>
       </Seccion>
 
