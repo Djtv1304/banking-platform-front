@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ResumenNumeracion } from '@/features/organizacion/components/ResumenNumeracion'
 import { Link, useParams } from 'react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -39,7 +40,7 @@ export function DetalleAprobacionPage() {
     {mensaje && <Aviso>{mensaje}</Aviso>}
     {s.estado === 'Aprobada' && <Aviso>La aprobacion esta registrada. La aplicacion requiere confirmacion o recuperacion; todavia no se presenta como ejecutada.</Aviso>}
     {s.codigoError && <Aviso tono="error">La solicitud no se completo: {s.codigoError}.</Aviso>}
-    {s.codigoTransaccion === 'PRD-CONDICION' && s.tipoObjetivo === 'SubProducto' ? <ResumenCambioProducto solicitud={s} /> : <section className="space-y-3" aria-label="Cambio propuesto"><h2 className="text-lg font-semibold">Cambios solicitados</h2><ComparadorCambios antes={s.antes} despues={s.despues} /></section>}
+    {s.codigoTransaccion === 'PRD-NUMERACION' && s.tipoObjetivo === 'SubProducto' ? <ResumenNumeracion solicitud={s} /> : s.codigoTransaccion === 'PRD-CONDICION' && s.tipoObjetivo === 'SubProducto' ? <ResumenCambioProducto solicitud={s} /> : <section className="space-y-3" aria-label="Cambio propuesto"><h2 className="text-lg font-semibold">Cambios solicitados</h2><ComparadorCambios antes={s.antes} despues={s.despues} /></section>}
     <div className="flex flex-wrap gap-3">{s.puedeAprobar && <Button onClick={() => abrir('aprobar')}>Aprobar</Button>}{s.puedeRechazar && <Button variant="outline" onClick={() => abrir('rechazar')}>Rechazar</Button>}{s.puedeCancelar && <Button variant="outline" onClick={() => abrir('cancelar')}>Cancelar solicitud</Button>}<Button variant="outline" disabled={detalle.isFetching} onClick={() => void detalle.refetch()}>Actualizar estado</Button></div>
     <section className="space-y-4"><h2 className="text-lg font-semibold">Historial</h2><LineaDeTiempo eventos={s.eventos.map((e, i) => ({ clave: `${i}-${e.fechaEvento}`, etiqueta: e.estadoNuevo, fecha: e.fechaEvento, responsable: e.responsable ? responsable(e.responsable) : 'Sistema', comentario: e.comentario }))} /></section>
     <Dialog open={accion !== null} onOpenChange={(open) => { if (!open && !resolver.isPending) setAccion(null) }}><DialogContent><DialogHeader><DialogTitle>{accion ? etiquetas[accion] : 'Resolver solicitud'}</DialogTitle><DialogDescription>{accion === 'aprobar' ? 'Confirma que revisaste la comparacion. El backend revalidara permisos y el estado del objetivo.' : accion === 'rechazar' ? 'El rechazo requiere un motivo. No se aplicara el cambio propuesto.' : 'Se cancelara esta solicitud sin cambiar el objetivo.'}</DialogDescription></DialogHeader>

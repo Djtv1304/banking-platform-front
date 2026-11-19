@@ -236,6 +236,7 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
                           <SlidersHorizontal />
                           Parámetros
                         </Button>
+                        {producto.tipoProducto === 'Cuenta' && <Button asChild variant="ghost" size="sm"><Link to={`/productos/subproductos/${sub.idSubProducto}/numeracion`} aria-label={`Numeracion de ${sub.codigoSubProducto}`}>Numeracion</Link></Button>}
                         {esAdmin && (
                           <Button
                             variant="ghost"

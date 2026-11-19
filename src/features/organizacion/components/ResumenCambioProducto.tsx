@@ -3,12 +3,7 @@ import type { DetalleSolicitud } from '@/features/aprobaciones/api/aprobaciones.
 import { obtenerCupos, obtenerFicha } from '@/features/organizacion/api/productos.api'
 import { ComparadorCambios, mostrarValor, valoresIguales } from '@/shared/ui/comparador-cambios'
 
-function objeto(valor: unknown): Record<string, unknown> { return valor && typeof valor === 'object' && !Array.isArray(valor) ? valor as Record<string, unknown> : {} }
-const TIPOS: Record<string, string> = { SIN_RETIROS: 'Sin retiros', SIN_RETIROS_DIAS: 'Sin retiros durante los primeros dias', SALDO_MINIMO: 'Saldo minimo', SALDO_MAXIMO: 'Saldo maximo', MAXIMO_CUENTAS_CLIENTE: 'Maximo de cuentas por cliente', SIN_TRANSFERENCIAS_SALIDA: 'Sin transferencias de salida' }
-const CAMPOS = ['montoAperturaMinimo', 'saldoMinimo', 'tasaInteresAnual', 'periodicidadInteres', 'costoMantenimiento', 'periodicidadCosto', 'mesesInactividad', 'aplicaACuentasExistentes']
-const CAMPOS_CUPO = ['cupoDiarioMaximo', 'cupoMensualMaximo', 'montoMaxTransaccion', 'maxTransaccionesDia']
-const pascal = (campo: string) => campo[0].toUpperCase()+campo.slice(1)
-function tipoCanonico(fila: Record<string, unknown>) { return fila.TipoRestriccion === 'SIN_RETIROS' && fila.Dias != null ? 'SIN_RETIROS_DIAS' : String(fila.TipoRestriccion) }
+import { objeto, TIPOS_RESTRICCION as TIPOS, CAMPOS_CONDICION as CAMPOS, CAMPOS_CUPO, pascal, tipoCanonico } from '@/features/organizacion/lib/cambios-producto'
 
 /** Solo datos de negocio del contenido congelado. No muestra planes internos. */
 export function ResumenCambioProducto({ solicitud: s }: { solicitud: DetalleSolicitud }) {
