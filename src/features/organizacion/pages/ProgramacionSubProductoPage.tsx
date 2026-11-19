@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
+import { PestanasSubProducto } from '@/features/organizacion/components/PestanasSubProducto'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore, usePuedeFuncion } from '@/features/auth'
 import { toApiError } from '@/shared/api'
@@ -24,7 +25,10 @@ export function ProgramacionSubProductoPage() {
   const ficha = useQuery({ queryKey: ['productos', 'ficha', id], queryFn: () => obtenerFicha(id), enabled: valido })
   const vigencias = useQuery({ queryKey: ['productos', 'vigencias', id], queryFn: ({ signal }) => consultarVigencias(id, signal), enabled: valido })
   const canales = useQuery({ queryKey: ['productos', 'cupos', id], queryFn: () => obtenerCupos(id), enabled: valido && ficha.data !== undefined && ficha.data.producto.tipoProducto !== 'Credito' })
-  const [tab, setTab] = useState<ClaseConjunto>('condiciones')
+  const [busqueda, setBusqueda] = useSearchParams()
+  const elegida = busqueda.get('tab')
+  const tab: ClaseConjunto = elegida === 'cupos' && ficha.data?.producto.tipoProducto !== 'Credito' ? 'cupos' : elegida === 'restricciones' && ficha.data?.producto.tipoProducto === 'Cuenta' ? 'restricciones' : 'condiciones'
+  const setTab = (t: ClaseConjunto) => setBusqueda({ tab: t }, { replace: true })
   const [formulario, setFormulario] = useState(false), [solicitud, setSolicitud] = useState<number | null>(null)
   const [confirmacion, setConfirmacion] = useState<Confirmacion | null>(null), [fechaFinal, setFechaFinal] = useState('')
   const refrescar = () => Promise.all([cliente.invalidateQueries({ queryKey: ['productos'] }), cliente.invalidateQueries({ queryKey: ['aprobaciones'] }), cliente.invalidateQueries({ queryKey: ['productosAdmin'] })])
@@ -37,7 +41,6 @@ export function ProgramacionSubProductoPage() {
   const data = vigencias.data, tipo = ficha.data.producto.tipoProducto
   const pendientes = data.solicitudes.filter(s => s.estado === 'Pendiente' || s.estado === 'Aprobada')
   const puede = puedeProgramar && ficha.data.subproducto.estadoCatalogo !== 'Retirado'
-  const tabs: ClaseConjunto[] = tipo === 'Cuenta' ? ['condiciones', 'cupos', 'restricciones'] : tipo === 'Tarjeta' ? ['condiciones', 'cupos'] : ['condiciones']
   const filas = filasDeVigencia(data, tab, canales.data ?? [])
   const actuales = filas.filter(v => v.estado === 'Vigente')
   const futuros = filas.filter(v => v.estado === 'Programado')
@@ -48,7 +51,7 @@ export function ProgramacionSubProductoPage() {
     {solicitud && <AvisoRequiereAprobacion idSolicitud={solicitud} />}
     {pendientes.map(s => <Aviso key={s.idSolicitud}>Hay una solicitud {s.estado.toLowerCase()} para este subproducto. <Link className="underline" to={`/aprobaciones/${s.idSolicitud}`}>Ver solicitud #{s.idSolicitud}</Link></Aviso>)}
     {!puede && <Aviso>Solo tiene permisos de lectura.</Aviso>}
-    <div role="tablist" aria-label="Configuracion del subproducto" className="flex flex-wrap gap-2">{tabs.map(t => <Button key={t} role="tab" aria-selected={tab === t} variant={tab === t ? 'default' : 'outline'} onClick={() => setTab(t)}>{NOMBRES[t]}</Button>)}</div>
+    <PestanasSubProducto id={id} tipo={tipo} activa={tab} onSeleccionar={setTab} />
     <section role="tabpanel" aria-label={NOMBRES[tab]} className="min-w-0 rounded-3xl border border-border bg-card p-4 sm:p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{NOMBRES[tab]}</h2>{puede && <Button className="h-auto min-h-9 whitespace-normal py-2" disabled={pendientes.length > 0 || (tab === 'cupos' && !canales.isSuccess)} onClick={() => { programar.reset(); setFormulario(true) }}>Programar nuevo conjunto</Button>}</div>
       {canales.isError && tab === 'cupos' && <Aviso tono="error">{toApiError(canales.error).message}</Aviso>}
