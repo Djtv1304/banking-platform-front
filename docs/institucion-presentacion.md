@@ -8,6 +8,6 @@ La respuesta se comparte por caché de 30 segundos y se revalida al volver a la 
 
 Al confirmar una creación o edición de Entidad se invalida la consulta institucional para actualizar los consumidores sin alterar el borrador del formulario. Un 503 de presentación no se confunde con el 404 ENTIDAD_NO_ENCONTRADA de la ficha.
 
-Dependencia de trabajo: la rama local incorpora el PR #93 para preservar sus correcciones UTF-8. Antes de publicar #353, sincronizar con su integración en develop y comprobar que esos arreglos no se presentan como cambios propios de #353. No se modifica DatosCooperativaPage ni FichaClientePage sobre la versión de #93.
+La rama está sincronizada con develop, que ya integra el PR #93 y sus correcciones UTF-8. El diff de #353 no vuelve a incluir esos arreglos ni modifica DatosCooperativaPage o FichaClientePage sobre esa base. También se conservan las pantallas de comisiones y plantillas incorporadas posteriormente por el equipo.
 
 No se agregan paquetes npm ni se cambia el lockfile. Las claves existentes de preferencias visuales se conservan: no son datos institucionales de negocio y renombrarlas perdería preferencias sin aportar configuración.
