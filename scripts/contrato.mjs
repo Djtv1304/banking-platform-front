@@ -6,9 +6,12 @@
 // Un cambio incompatible del contrato hace fallar `npm run typecheck` en las pantallas que usan esos tipos.
 import { execFileSync } from 'node:child_process'
 import { copyFileSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 
 const OPENAPI_TYPESCRIPT = 'openapi-typescript@7.13.0'
+// npx de la instalación de Node, ejecutado con node y SIN shell: los argumentos no pasan por un intérprete de
+// comandos (en Windows, lanzar npx.cmd exigiría shell)
+const NPX_CLI = join(dirname(process.execPath), process.platform === 'win32' ? '' : '../lib', 'node_modules/npm/bin/npx-cli.js')
 const accion = process.argv[2]
 
 if (accion === 'copiar') {
@@ -23,7 +26,7 @@ if (accion === 'copiar') {
   mkdirSync(destino, { recursive: true })
   for (const f of readdirSync('contrato').filter((x) => x.endsWith('.json'))) {
     const salida = join(destino, f.replace(/\.json$/, '.d.ts'))
-    execFileSync('npx', ['--yes', OPENAPI_TYPESCRIPT, join('contrato', f), '-o', salida], { stdio: 'inherit', shell: process.platform === 'win32' })
+    execFileSync(process.execPath, [NPX_CLI, '--yes', OPENAPI_TYPESCRIPT, join('contrato', f), '-o', salida], { stdio: 'inherit' })
   }
 } else {
   console.error('uso: node scripts/contrato.mjs copiar|tipos')

@@ -9,6 +9,12 @@ export interface ContratoOpenApi {
 }
 
 const REF = '#/components/schemas/'
+const TEXTO_POR_FORMATO: Readonly<Record<string, string>> = {
+  date: '2026-01-15',
+  'date-time': '2026-01-15T10:00:00Z',
+  uuid: '00000000-0000-4000-8000-000000000000',
+  email: 'persona@example.com',
+}
 
 /** Un valor de ejemplo que cumple el esquema (tipo, enum, formato, referencias, listas). */
 export function ejemplo(esquema: Esquema | undefined, componentes: Record<string, Esquema> = {}, profundidad = 0): unknown {
@@ -42,18 +48,7 @@ export function ejemplo(esquema: Esquema | undefined, componentes: Record<string
     case 'boolean':
       return true
     case 'string':
-      switch (esquema.format) {
-        case 'date':
-          return '2026-01-15'
-        case 'date-time':
-          return '2026-01-15T10:00:00Z'
-        case 'uuid':
-          return '00000000-0000-4000-8000-000000000000'
-        case 'email':
-          return 'persona@example.com'
-        default:
-          return 'texto'
-      }
+      return TEXTO_POR_FORMATO[String(esquema.format)] ?? 'texto'
     default:
       return null
   }
@@ -71,7 +66,7 @@ export function respuestaSimulada(contratos: ContratoOpenApi[], metodo: string, 
     for (const [plantilla, operaciones] of Object.entries(contrato.paths ?? {})) {
       const operacion = operaciones[metodo.toLowerCase()]
       if (!operacion || !patronDeRuta(plantilla).test(ruta)) continue
-      const exitos = Object.keys(operacion.responses ?? {}).filter((c) => c.startsWith('2')).sort()
+      const exitos = Object.keys(operacion.responses ?? {}).filter((c) => c.startsWith('2')).sort((a, b) => a.localeCompare(b))
       const codigo = exitos[0] ?? '200'
       const esquema = operacion.responses?.[codigo]?.content?.['application/json']?.schema
       return { status: Number(codigo), cuerpo: esquema ? ejemplo(esquema, contrato.components?.schemas ?? {}) : null }
