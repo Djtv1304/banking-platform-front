@@ -4,23 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { LoaderCircle, Save } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
-import {
-  Aviso,
-  Button,
-  Cargando,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/ui'
+import { Aviso, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ErrorApi } from '@/shared/ui'
 import { useCiudades, type Ciudad } from '@/features/catalogos'
 import type { AgenciaDetalle } from '@/features/organizacion/api/agencias.contract'
 import { CampoAgencia, inputClassName, selectClassName } from '@/features/organizacion/components/CampoAgencia'
@@ -79,7 +63,7 @@ export function AgenciaFormDialog({ modo, onCerrar, onGuardado, onRestaurarFoco 
       )
     }
     if (agencias.isPending) return <Cargando texto="Comprobando agencias…" />
-    if (ciudades.isError) return <Aviso tono="error">{toApiError(ciudades.error).message}</Aviso>
+    if (ciudades.isError) return <ErrorApi error={ciudades.error} />
     if (editando && detalle.isError) return <Aviso tono="error">{mensajeErrorAgencia(toApiError(detalle.error))}</Aviso>
     if (ciudades.isPending) return <Cargando texto="Cargando ciudades…" />
     if (editando && detalle.isPending) return <Cargando texto="Cargando la agencia…" />
