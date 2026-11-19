@@ -15,6 +15,7 @@ export const detalleSchema = solicitudSchema.extend({
 })
 export const bandejaSchema = z.object({ items: z.array(solicitudSchema), total: z.number().int().nonnegative(), page: z.number().int().positive(), pageSize: z.number().int().positive(), pendientesParaMi: z.number().int().nonnegative(), diasResaltar: z.number().int().positive() })
 export const accesosSchema = z.object({ puedeVer: z.boolean(), puedeSolicitar: z.boolean(), pendientesParaMi: z.number().int().nonnegative(), diasResaltar: z.number().int().positive() })
+export const notificacionesSchema = z.object({ items: z.array(solicitudSchema), total: z.number().int().nonnegative() })
 export const resultadoSchema = z.object({ idSolicitud: z.number().int().positive(), estado: estadoSolicitudSchema })
 export type BandejaNombre = 'pendientes' | 'mias' | 'resueltas'
 export type Solicitud = z.infer<typeof solicitudSchema>

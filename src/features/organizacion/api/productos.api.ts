@@ -10,11 +10,9 @@ import {
   restriccionesSchema,
   subProductoAdminSchema,
   vinculosSchema,
-  type CupoCanalBody,
   type DestinoVinculos,
   type ProductoCreate,
   type ProductoUpdate,
-  type RestriccionesBody,
   type SubProductoCreate,
   type SubProductoUpdate,
   type Vinculos,
@@ -67,18 +65,8 @@ export async function obtenerCupos(idSubProducto: number) {
   return validar(cupoCanalSchema.array(), data, status)
 }
 
-export async function guardarCupos(idSubProducto: number, cupos: CupoCanalBody[]) {
-  const { data, status } = await apiClient.put<unknown>(PRODUCTOS_ENDPOINTS.cupos(idSubProducto), { cupos })
-  return validar(cupoCanalSchema.array(), data, status)
-}
-
 export async function obtenerRestricciones(idSubProducto: number) {
   const { data, status } = await apiClient.get<unknown>(PRODUCTOS_ENDPOINTS.restricciones(idSubProducto))
-  return validar(restriccionesSchema, data, status)
-}
-
-export async function guardarRestricciones(idSubProducto: number, body: RestriccionesBody) {
-  const { data, status } = await apiClient.put<unknown>(PRODUCTOS_ENDPOINTS.restricciones(idSubProducto), body)
   return validar(restriccionesSchema, data, status)
 }
 

@@ -1,9 +1,8 @@
-import { useAccesosAprobaciones } from '@/features/aprobaciones'
+import { NotificacionesAprobaciones, useAccesosAprobaciones } from '@/features/aprobaciones'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
-  Bell,
   CircleHelp,
   LogOut,
   Moon,
@@ -161,15 +160,7 @@ export function DashboardLayout() {
             >
               <CircleHelp className="size-[18px]" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Notificaciones"
-              title="Notificaciones"
-              className="size-9 rounded-lg text-muted-foreground"
-            >
-              <Bell className="size-[18px]" />
-            </Button>
+            <NotificacionesAprobaciones />
             <HeaderUser />
             <UserMenu />
           </div>
