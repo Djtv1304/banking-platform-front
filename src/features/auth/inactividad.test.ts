@@ -4,6 +4,7 @@ const api = vi.hoisted(() => ({ refresh: vi.fn() }))
 vi.mock('@/features/auth/api/auth.api', () => ({ ...api, getMe: vi.fn(), logout: vi.fn() }))
 
 import { iniciarControlInactividad, seguirConectado, useInactividad } from '@/features/auth/inactividad'
+import { useAuthStore } from '@/features/auth/store/auth.store'
 
 const MIN = 60_000
 
@@ -61,6 +62,22 @@ describe('control de inactividad', () => {
     expect(useInactividad.getState()).toMatchObject({ venceEn: null, renovando: false, fallo: false })
     await vi.advanceTimersByTimeAsync(5 * MIN)
     expect(alExpirar).not.toHaveBeenCalled()
+  })
+
+  it('el aviso es sólo un aviso: no cierra la sesión ni toca el estado de la pantalla (E0-07)', async () => {
+    useAuthStore.getState().setSession({
+      idUsuario: 'user_demo', nombre: 'Operador demo', email: 'operador@example.invalid',
+      idOrganizacion: 'org_demo', roles: ['ADMIN'], permisos: [], idAgencia: '001',
+    })
+    const antes = useAuthStore.getState()
+    await vi.advanceTimersByTimeAsync(8 * MIN)
+    expect(useInactividad.getState().venceEn).not.toBeNull()
+    // Se muestra el diálogo, pero la sesión, el usuario y la caché siguen intactos
+    expect(useAuthStore.getState()).toBe(antes)
+    expect(useAuthStore.getState().status).toBe('authenticated')
+    expect(alExpirar).not.toHaveBeenCalled()
+    await seguirConectado()
+    expect(useAuthStore.getState()).toBe(antes)
   })
 
   it('si la renovación falla por red, el aviso sigue y lo indica', async () => {
