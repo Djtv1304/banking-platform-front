@@ -1,31 +1,34 @@
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { obtenerSolicitud } from '@/features/aprobaciones/api/aprobaciones.api'
 import type { VigenciasProducto } from '@/features/organizacion/api/programacion.contract'
-import { ResumenCambioProducto } from '@/features/organizacion/components/ResumenCambioProducto'
+import { obtenerCupos } from '@/features/organizacion/api/productos.api'
+import { compararProducto } from '@/features/organizacion/lib/cambios-producto'
+import { FichaCambioProducto } from '@/features/organizacion/components/FichaCambioProducto'
+import { mostrarValor } from '@/shared/ui/comparador-cambios'
 import { toApiError } from '@/shared/api'
-import { Aviso, Button, Cargando } from '@/shared/ui'
+import { Aviso, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
 
-function Cambios({ id }: { id: number }) {
-  const q = useQuery({ queryKey: ['aprobaciones', 'detalle', id], queryFn: () => obtenerSolicitud(id), retry: false })
-  if (q.isPending) return <Cargando texto="Cargando valores anteriores y nuevos..." />
-  if (q.isError) return <Aviso tono="error">{toApiError(q.error).message}</Aviso>
-  return <ResumenCambioProducto solicitud={q.data} />
+type Solicitud = VigenciasProducto['solicitudes'][number]
+function CambioAplicado({ solicitud: s }: { solicitud: Solicitud }) {
+  const [abierto, setAbierto] = useState(false)
+  const q = useQuery({ queryKey: ['aprobaciones', 'detalle', s.idSolicitud], queryFn: () => obtenerSolicitud(s.idSolicitud), staleTime: 30_000, retry: false })
+  const id = Number(q.data?.idObjetivo)
+  const canales = useQuery({ queryKey: ['productos', 'cupos', id], queryFn: () => obtenerCupos(id), enabled: s.clase === 'cupos' && Number.isSafeInteger(id) && id > 0, retry: false })
+  const cambio = q.data ? compararProducto(q.data, canales.data ?? []) : null
+  const fecha = q.data?.eventos.findLast(e => e.estadoNuevo === 'Ejecutada')?.fechaEvento ?? q.data?.fechaResolucion
+  const cuando = fecha ?? s.fecha
+  const clase = { condiciones: 'las condiciones', cupos: 'los limites por canal', restricciones: 'las restricciones' }[s.clase]
+  return <li className="min-w-0 rounded-2xl border border-border p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h3 className="break-words font-semibold">{cambio?.titulo ?? `Cambio aplicado en ${clase}`}</h3><p className="mt-1 text-xs text-muted-foreground">{fecha ? 'Aplicado el ' : 'Solicitud registrada el '}<time dateTime={cuando}>{new Intl.DateTimeFormat('es-EC', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Guayaquil' }).format(new Date(cuando))}</time></p></div><Button variant="outline" disabled={!q.data} onClick={() => setAbierto(true)}>Ver detalle</Button></div>
+    {q.isPending && <p className="mt-3 text-sm text-muted-foreground">Cargando los cambios registrados...</p>}{q.isError && <Aviso tono="error">{toApiError(q.error).message}</Aviso>}
+    {cambio && cambio.cambios.length > 0 && <ul className="mt-3 space-y-2 text-sm">{cambio.cambios.map((c, i) => <li key={`${c.grupo}-${c.campo}-${i}`} className="break-words"><span className="text-muted-foreground">{s.clase === 'cupos' ? `${c.grupo} - ` : ''}{c.etiqueta}: </span><span className="font-medium">{mostrarValor(c.valor)}</span></li>)}</ul>}
+    <Dialog open={abierto} onOpenChange={setAbierto}><DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-5xl"><DialogHeader><DialogTitle>{cambio?.titulo ?? 'Detalle del cambio'}</DialogTitle><DialogDescription>Configuracion completa registrada en el cambio.</DialogDescription></DialogHeader>{q.data && <FichaCambioProducto solicitud={q.data} canales={canales.data ?? []} />}</DialogContent></Dialog>
+  </li>
 }
-
 export function HistorialSolicitudesProducto({ solicitudes }: { solicitudes: VigenciasProducto['solicitudes'] }) {
-  const [abierta, setAbierta] = useState<number | null>(null)
-  const nombres = { condiciones: 'Condiciones', cupos: 'Cupos por canal', restricciones: 'Restricciones' }
-  const acciones = { programar: 'Programacion', cancelar: 'Cancelacion', fin: 'Finalizacion' }
-  if (!solicitudes.length) return <p className="text-muted-foreground">No hay solicitudes registradas.</p>
-  return <div className="min-w-0 max-w-full overflow-x-auto rounded-xl border border-border" role="region" aria-label="Solicitudes y valores modificados" tabIndex={0}>
-    <table className="w-full text-left text-sm"><caption className="sr-only">Fecha, responsable, estado y comparacion de cada solicitud</caption>
-      <thead className="bg-muted/50"><tr>{['Fecha de solicitud', 'Responsable', 'Cambio', 'Estado de aprobacion', 'Valor anterior / valor nuevo', 'Solicitud'].map(c => <th key={c} scope="col" className="whitespace-nowrap px-4 py-3 font-semibold">{c}</th>)}</tr></thead>
-      <tbody>{[...solicitudes].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.idSolicitud - a.idSolicitud).map(s => <Fragment key={s.idSolicitud}>
-        <tr className="border-t border-border align-top"><td className="whitespace-nowrap px-4 py-3"><time dateTime={s.fecha}>{new Intl.DateTimeFormat('es-EC', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Guayaquil' }).format(new Date(s.fecha))}</time></td><td className="px-4 py-3">{s.responsable}</td><td className="px-4 py-3">{nombres[s.clase]}<span className="block text-xs text-muted-foreground">{acciones[s.accion]}</span></td><td className="px-4 py-3">{s.estado}</td><td className="px-4 py-3"><Button variant="outline" aria-expanded={abierta === s.idSolicitud} aria-controls={`cambio-${s.idSolicitud}`} onClick={() => setAbierta(abierta === s.idSolicitud ? null : s.idSolicitud)}>Ver cambios</Button></td><td className="px-4 py-3"><Link className="text-primary underline" to={`/aprobaciones/${s.idSolicitud}`}>#{s.idSolicitud}</Link></td></tr>
-        {abierta === s.idSolicitud && <tr id={`cambio-${s.idSolicitud}`}><td colSpan={6} className="border-t border-border p-4"><Cambios id={s.idSolicitud} /></td></tr>}
-      </Fragment>)}</tbody>
-    </table>
-  </div>
+  const [limite, setLimite] = useState(5)
+  const aplicadas = solicitudes.filter(s => s.estado === 'Ejecutada').sort((a, b) => b.fecha.localeCompare(a.fecha) || b.idSolicitud - a.idSolicitud)
+  const otras = solicitudes.filter(s => s.estado !== 'Ejecutada')
+  return <div className="min-w-0 space-y-4">{aplicadas.length ? <><ol className="space-y-4" aria-label="Cambios aplicados">{aplicadas.slice(0, limite).map(s => <CambioAplicado key={s.idSolicitud} solicitud={s} />)}</ol>{limite < aplicadas.length && <Button variant="outline" onClick={() => setLimite(v => v + 5)}>Ver mas cambios</Button>}</> : <p className="text-muted-foreground">No hay cambios aplicados registrados en el historial de aprobaciones.</p>}{otras.length > 0 && <details className="rounded-xl border border-border p-4"><summary className="cursor-pointer text-sm font-medium">Solicitudes sin cambios aplicados ({otras.length})</summary><ul className="mt-3 space-y-2 text-sm">{otras.map(s => <li key={s.idSolicitud}><Link className="text-primary underline" to={`/aprobaciones/${s.idSolicitud}`}>Solicitud #{s.idSolicitud}</Link> - {s.estado}</li>)}</ul></details>}</div>
 }
