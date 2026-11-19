@@ -77,6 +77,19 @@ describe('contratos de consulta por rol', () => {
     expect(conPermiso.flatMap((s) => s.items.map((i) => i.to))).toContain('/cuentas/abrir')
   })
 
+  it('ubica Plantillas entre Asientos y Fecha contable cuando el usuario tiene permiso', () => {
+    const roles = ['CONTADOR']
+    const contabilidad = (permisos: Parameters<typeof getVisibleSections>[2]) =>
+      getVisibleSections(getAccessProfile(roles), roles, permisos)
+        .find(seccion => seccion.title === 'Cuentas contables')?.items.map(item => item.label)
+
+    expect(contabilidad([])).toEqual(['Plan de cuentas', 'Asientos contables', 'Fecha contable'])
+    expect(contabilidad([PERMISOS.plantillasEditar])).toEqual([
+      'Plan de cuentas', 'Asientos contables', 'Plantillas contables', 'Fecha contable',
+    ])
+    expect(getPestanasConfigurables().map(pestana => pestana.to)).not.toContain('/contabilidad/plantillas')
+  })
+
   it('los roles combinados conservan las consultas autorizadas por cualquiera de ellos', () => {
     const items = getVisibleSections(getAccessProfile(['CONTADOR', 'SUPERVISOR']), ['CONTADOR', 'SUPERVISOR'], []).flatMap((s) => s.items.map((i) => i.to))
     expect(items).toContain('/contabilidad')

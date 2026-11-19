@@ -18,7 +18,7 @@ export function SecurityCodeIllustration() {
           </span>
           <span className="flex-1">
             <span className="block text-sm font-semibold">Código de seguridad</span>
-            <span className="block text-xs text-brand-slate">App EnquoCoop</span>
+            <span className="block text-xs text-brand-slate">Autenticador</span>
           </span>
           <span className="relative flex size-9 items-center justify-center">
             <svg viewBox="0 0 36 36" className="absolute inset-0 -rotate-90">

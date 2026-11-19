@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/features/auth'
 import { obtenerAccesos, obtenerBandeja, obtenerSolicitud, resolverSolicitud } from '@/features/aprobaciones/api/aprobaciones.api'
 import type { Accion, BandejaNombre } from '@/features/aprobaciones/api/aprobaciones.contract'
+import { invalidarComisiones, OPERACION_TARIFA_COMISION } from '@/features/catalogos/api/comisiones.api'
 
 export function useClaveAprobaciones() {
   const user = useAuthStore((s) => s.user)
@@ -25,11 +26,14 @@ export function useDetalleAprobacion(id: number) {
   return useQuery({ queryKey: [...key, 'detalle', id], queryFn: () => obtenerSolicitud(id), enabled: Number.isSafeInteger(id) && id > 0, retry: false, refetchOnWindowFocus: false })
 }
 
-export function useResolverAprobacion(id: number) {
+export function useResolverAprobacion(id: number, operacion?: string) {
   const client = useQueryClient()
   return useMutation({ mutationFn: (datos: { accion: Accion; comentario: string }) => resolverSolicitud(id, datos.accion, datos.comentario), onSettled: async (resultado, error, { accion }) => {
     // Tambien un 409 o una caida despues del commit exige releer el estado real.
     await client.invalidateQueries({ queryKey: ['aprobaciones'] })
+    if (operacion === OPERACION_TARIFA_COMISION && accion === 'aprobar') {
+      await invalidarComisiones(client)
+    }
     if (resultado?.estado === 'Ejecutada' || (error && accion === 'aprobar')) {
       await Promise.all([
         client.invalidateQueries({ queryKey: ['organizacion', 'agencias'] }),

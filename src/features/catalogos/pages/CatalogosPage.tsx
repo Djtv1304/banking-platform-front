@@ -5,13 +5,14 @@ import { Eye, Pencil, Plus, Power, Search, Trash2 } from 'lucide-react'
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
 import { Aviso, Badge, Button, Cargando, Input } from '@/shared/ui'
-import { usePuedeFuncion, hasPermission, PERMISOS, usePermisos } from '@/features/auth'
+import { usePuedeFuncion, hasAnyRole, hasPermission, PERMISOS, useAuthStore, usePermisos } from '@/features/auth'
 import {
   type CatalogoAdministrable,
   type Confirmacion,
   type RegistroCatalogo,
 } from '@/features/catalogos/api/catalogos.contract'
 import { ConfirmacionDialog } from '@/features/catalogos/components/ConfirmacionDialog'
+import { ComisionDialog } from '@/features/catalogos/components/ComisionDialog'
 import { EditarRegistroDialog } from '@/features/catalogos/components/EditarRegistroDialog'
 import { NuevaTasaDialog } from '@/features/catalogos/components/NuevaTasaDialog'
 import {
@@ -115,6 +116,11 @@ function TablaCatalogo({
   const puedeCrear = usePuedeFuncion('catalogos.crear', esAdmin)
   const puedeEditar = usePuedeFuncion('catalogos.editar', esAdmin)
   const puedeEliminar = usePuedeFuncion('catalogos.eliminar', esAdmin)
+  const esComision = catalogo.clave === 'comisiones'
+  const roles = useAuthStore(s => s.user?.roles)
+  const consultaComision = esComision && hasAnyRole(roles ?? [], ['ADMIN', 'SUPERVISOR', 'ASESOR'])
+  const editaComision = consultaComision && puedeEditar && hasAnyRole(roles ?? [], ['ADMIN'])
+  const mostrarAcciones = esComision ? consultaComision : esAdmin
   const registros = useRegistrosCatalogo(catalogo.clave)
   const actualizar = useActualizarRegistroCatalogo()
   const eliminar = useEliminarRegistroCatalogo()
@@ -190,7 +196,7 @@ function TablaCatalogo({
                 </th>
               ))}
               <th scope="col" className="px-3 py-2 font-medium">Estado</th>
-              {esAdmin && <th scope="col" className="px-3 py-2 text-right font-medium">Acciones</th>}
+              {mostrarAcciones && <th scope="col" className="px-3 py-2 text-right font-medium">Acciones</th>}
             </tr>
           </thead>
           <tbody>
@@ -206,13 +212,13 @@ function TablaCatalogo({
                     {r.estado === 'A' ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </td>
-                {esAdmin && (
+                {mostrarAcciones && (
                   <td className="px-3 py-2 text-right whitespace-nowrap">
-                    {puedeEditar && (                    <Button variant="ghost" size="sm" onClick={() => setEditando(r)} aria-label={`Editar registro ${r.id}`}>
-                      <Pencil />
-                      Editar
+                    {(esComision || puedeEditar) && (                    <Button variant="ghost" size="sm" onClick={() => setEditando(r)} aria-label={`${esComision && !editaComision ? 'Consultar' : 'Editar'} registro ${r.id}`}>
+                      {esComision && !editaComision ? <Eye /> : <Pencil />}
+                      {esComision && !editaComision ? 'Consultar' : 'Editar'}
                     </Button>)}
-                    {puedeEliminar && (                    <Button
+                    {!esComision && puedeEliminar && (                    <Button
                       variant="ghost"
                       size="sm"
                       disabled={actualizar.isPending}
@@ -222,7 +228,7 @@ function TablaCatalogo({
                       <Power />
                       {r.estado === 'A' ? 'Desactivar' : 'Activar'}
                     </Button>)}
-                    {catalogo.permiteEliminar &&
+                    {!esComision && catalogo.permiteEliminar &&
                       (porEliminar === r.id ? (
                         <span className="ml-1 inline-flex items-center gap-1">
                           <Button
@@ -288,9 +294,12 @@ function TablaCatalogo({
       </div>
       {error && <Aviso tono="error">{error}</Aviso>}
       {contenido}
+      {consultaComision && editando && (
+        <ComisionDialog id={Number(editando.id)} puedeEditar={editaComision} onCerrar={() => setEditando(null)} />
+      )}
       {esAdmin && (
         <>
-          <EditarRegistroDialog catalogo={catalogo} registro={editando} onCerrar={() => setEditando(null)} onGuardado={guardado} />
+          {!esComision && <EditarRegistroDialog catalogo={catalogo} registro={editando} onCerrar={() => setEditando(null)} onGuardado={guardado} />}
           <ConfirmacionDialog
             clave={catalogo.clave}
             abierto={pidiendoCodigo !== null}

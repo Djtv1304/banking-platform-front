@@ -17,7 +17,7 @@ const etiquetas: Record<Accion, string> = { aprobar: 'Aprobar', rechazar: 'Recha
 export function DetalleAprobacionPage() {
   const id = Number(useParams().idSolicitud)
   const detalle = useDetalleAprobacion(id)
-  const resolver = useResolverAprobacion(id)
+  const resolver = useResolverAprobacion(id, detalle.data?.codigoTransaccion)
   const [accion, setAccion] = useState<Accion | null>(null)
   const [mensaje, setMensaje] = useState('')
   const form = useForm<{ comentario: string }>({ resolver: zodResolver(comentarioSchema(accion ?? 'aprobar')), defaultValues: { comentario: '' } })

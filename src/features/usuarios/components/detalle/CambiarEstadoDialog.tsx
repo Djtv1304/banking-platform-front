@@ -61,7 +61,7 @@ function texto(destino: EstadoUsuario, desdeBloqueado: boolean, nombre: string):
   return desdeBloqueado
     ? {
         titulo: 'Desbloquear usuario',
-        descripcion: `${nombre} podrá volver a ingresar a EnquoCoop con su usuario de siempre. Confirma que el motivo del bloqueo ya se resolvió.`,
+        descripcion: `${nombre} podrá volver a ingresar al sistema con su usuario de siempre. Confirma que el motivo del bloqueo ya se resolvió.`,
         boton: 'Desbloquear',
         enCurso: 'Desbloqueando…',
         hecho: (n) => `Desbloqueamos a ${n}. Ya puede volver a ingresar.`,
@@ -69,7 +69,7 @@ function texto(destino: EstadoUsuario, desdeBloqueado: boolean, nombre: string):
       }
     : {
         titulo: 'Activar usuario',
-        descripcion: `${nombre} podrá volver a ingresar a EnquoCoop con su usuario de siempre.`,
+        descripcion: `${nombre} podrá volver a ingresar al sistema con su usuario de siempre.`,
         boton: 'Activar usuario',
         enCurso: 'Activando…',
         hecho: (n) => `Activamos a ${n}. Ya puede volver a ingresar.`,

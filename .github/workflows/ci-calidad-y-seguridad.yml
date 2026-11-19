@@ -46,6 +46,10 @@ jobs:
       - name: Verificar integridad del lockfile
         run: node .github/scripts/verify-lockfile.mjs
 
+      # Archivos versionados en UTF-8 válido y sin acentos rotos (texto guardado dos veces en UTF-8)
+      - name: Codificación de archivos (UTF-8)
+        run: npm run check:codificacion
+
       # npm ci respeta exactamente el lockfile; --ignore-scripts bloquea scripts postinstall maliciosos
       - name: Instalar dependencias
         run: npm ci --ignore-scripts
