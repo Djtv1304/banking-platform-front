@@ -88,7 +88,7 @@ describe('contratos de consulta por rol', () => {
 
 describe('matriz completa de consultas del menu por rol', () => {
   const rutas: Record<string, string[]> = {
-    ADMIN: ['/', '/organizacion/entidad', '/parametros', '/organizacion/agencias', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/bovedas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/roles', '/seguridad/pestanas'],
+    ADMIN: ['/', '/organizacion/entidad', '/parametros', '/organizacion/agencias', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/bovedas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/pestanas', '/seguridad/roles', '/seguridad/workos'],
     ASESOR: ['/', '/organizacion/entidad', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas'],
     CAJERO: ['/', '/clientes-busqueda', '/cuentas'],
     SUPERVISOR: ['/', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas', '/bovedas'],
@@ -140,6 +140,7 @@ describe('pestañas por rol (SEG07)', () => {
     const configurables = getPestanasConfigurables().map((p) => p.to)
     expect(configurables).not.toContain('/')
     expect(configurables).not.toContain('/seguridad/roles')
+    expect(configurables).not.toContain('/seguridad/workos')
   })
 
   it('cada pestaña configurable trae los roles que la ven por defecto', () => {

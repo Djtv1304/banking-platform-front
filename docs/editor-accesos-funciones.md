@@ -30,3 +30,19 @@ Las casillas vacías tienen contorno negro en tema claro y blanco en oscuro. Los
 El backend debe incluir el contrato y la migración de `Seguridad.AccesoFuncionRol`. `EDITOR_FUNCIONES_ACTIVO` permanece desactivado por defecto. Guardar no lo activa. Antes de activarlo en un entorno compartido deben comprobarse la migración, los permisos SQL del backend, las personalizaciones anteriores y una sesión real de WorkOS. No se cambia WorkOS ni se ejecuta SQL de despliegue desde el frontend.
 
 La demo y sus interruptores de fallo permanecen fuera de este repositorio. No forman parte del código publicable ni sustituyen la validación posterior con identidad real.
+
+## Separación local de la administración de WorkOS
+
+La propuesta local deja `/seguridad/roles` como consulta de roles y usuarios, con un acceso destacado al editor principal `/seguridad/pestanas`. Catálogo y Asignación se conservan en `/seguridad/workos`, reservado a ADMIN y excluido de la personalización de menú. No se eliminan sus APIs ni se cambian permisos del proveedor.
+
+Catálogo mantiene definiciones en WorkOS; una definición nueva no añade por sí misma una API ni una función al editor SQL. Asignación vincula esas definiciones a roles. Las operaciones que comprueban un permiso existente siguen necesitándolo, aunque se retiraran estos formularios del frontend.
+
+Dependencias confirmadas en backend:
+
+- `agencias:aprobar`: aprobación de bajas de agencias, en `modules/organizacion/aprobacion.py`.
+- `parametros:aprobar`: aprobación de cambios de parámetros, en `modules/aprobaciones/manejadores.py`.
+- `con-plantilla-editar`: mantenimiento de plantillas contables, en `modules/contabilidad/plantillas.py`.
+- `con-reclasificacion-preparar` y `con-reclasificacion-aprobar`: preparación y aprobación de reclasificaciones, en `modules/contabilidad/corte_workos.py`.
+- Los permisos `prd-*` y `con-cuenta-editar` siguen siendo relevantes con el modelo nuevo desactivado. Con el control activo, solo las operaciones exactamente clasificadas utilizan la decisión por funciones; las restantes conservan sus guardas anteriores.
+
+El nuevo apartado avanzado explica el estado activo/desactivado usando la sesión del backend. Crear, editar, borrar y asignar siguen siendo las implementaciones existentes; su reubicación no acredita una escritura real en WorkOS. La demo ofrece datos de lectura ficticios para revisar su presentación y mantiene bloqueadas las escrituras hacia el proveedor.
