@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router'
 import { consultarPlantilla, crearVersion, listarPlantillas, opcionesLinea, prepararLineas, simularPlantilla, type LineaPlantilla } from '@/features/contabilidad/api/plantillas.api'
 import { Aviso, Button, Cargando, ErrorApi, Input } from '@/shared/ui'
 
@@ -116,6 +115,5 @@ function EditorPlantilla({ tipo, plantilla, seleccionar }: {
       {simulacion.isError && <ErrorApi error={simulacion.error} />}
       {simulacion.data && <Aviso><p>Total de débitos: {simulacion.data.total}</p><ul>{simulacion.data.lineas.map((l, i) => <li key={i}>{l.lado} · Cuenta {l.cuenta} · {l.monto}</li>)}</ul></Aviso>}
     </form>}
-    <Link className="text-primary underline" to="/contabilidad">Plan de cuentas</Link>
   </div>
 }
