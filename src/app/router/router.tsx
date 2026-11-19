@@ -1,3 +1,7 @@
+import { ParametrosPage, ParametroDetallePage } from '@/features/parametros'
+import { PARAMETROS_ROLES } from '@/features/parametros/api/parametros.contract'
+import { PlantillasPage } from '@/features/contabilidad/pages/PlantillasPage'
+import { AprobacionesPage, DetalleAprobacionPage } from '@/features/aprobaciones'
 import { createBrowserRouter, Navigate } from 'react-router'
 
 import { DashboardLayout } from '@/app/layouts/DashboardLayout'
@@ -8,13 +12,15 @@ import {
   DatosCooperativaPage,
   DetalleProductoPage,
   FichaSubProductoPage,
-  PRODUCTOS_ROLES,
   ProductosPage,
+  ProgramacionSubProductoPage,
+  NumeracionSubProductoPage,
 } from '@/features/organizacion'
 import { CATALOGOS_ROLES, CatalogosPage } from '@/features/catalogos'
 import { DetalleUsuarioPage, UsuariosPage, ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
-import { RolesAccesosPage, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
+import { FuncionesRolPage, RolesAccesosPage, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
 import { getRoleNavigation } from '@/app/navigation/navigation'
+import { BOVEDA_ROLES, BovedasPage, DetalleBovedaPage, DetalleSolicitudPage } from '@/features/boveda'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
@@ -22,7 +28,7 @@ import { AbrirCuentaPage } from '@/features/cuenta'
 import { AsientosPage, CONTABILIDAD_ROLES, FechaContablePage, PlanCuentasPage } from '@/features/contabilidad'
 import { GuestOnly, RequireAuth, RequirePermiso, RequireProfile, RequireRoles } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
-import { ModuloEnPreparacion } from '@/shared/ui'
+import { Aviso, ModuloEnPreparacion } from '@/shared/ui'
 
 export const router = createBrowserRouter([
   {
@@ -36,6 +42,16 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/', element: <HomePage /> },
+          { element: <RequireRoles allowed={PARAMETROS_ROLES} />, children: [
+            { path: '/parametros', element: <ParametrosPage /> },
+            { path: '/parametros/:clave', element: <ParametroDetallePage /> },
+            { path: '/parametros/comisiones', element: <Navigate to="/catalogos?catalogo=comisiones" replace /> },
+          ] },
+          { element: <RequirePermiso permiso={PERMISOS.plantillasEditar} />, children: [
+            { path: '/contabilidad/plantillas', element: <PlantillasPage /> },
+          ] },
+          { path: '/aprobaciones', element: <AprobacionesPage /> },
+          { path: '/aprobaciones/:idSolicitud', element: <DetalleAprobacionPage /> },
           {
             element: <RequireRoles allowed={ORGANIZACION_ROLES.entidad} />,
             children: [{ path: '/organizacion/entidad', element: <DatosCooperativaPage /> }],
@@ -92,16 +108,18 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            element: <RequireRoles allowed={ORGANIZACION_ROLES.agencias} />,
+            element: <RequireRoles allowed={ORGANIZACION_ROLES.agencias} sinAcceso={<Aviso tono="error">No tienes permiso para administrar agencias.</Aviso>} />,
             children: [{ path: '/organizacion/agencias', element: <AgenciasPage /> }],
           },
           {
             // La URL directa respeta los mismos roles que el menú; las acciones son solo de ADMIN
-            element: <RequireRoles allowed={PRODUCTOS_ROLES.consultar} />,
+            element: <RequirePermiso permiso={PERMISOS.productosConsultar} />,
             children: [
               { path: '/productos', element: <ProductosPage /> },
               { path: '/productos/:idProducto', element: <DetalleProductoPage /> },
               { path: '/productos/subproductos/:idSubProducto/ficha', element: <FichaSubProductoPage /> },
+              { path: '/productos/subproductos/:idSubProducto/condiciones', element: <ProgramacionSubProductoPage /> },
+              { path: '/productos/subproductos/:idSubProducto/numeracion', element: <NumeracionSubProductoPage /> },
             ],
           },
           {
@@ -135,6 +153,16 @@ export const router = createBrowserRouter([
             element: <RequireRoles allowed={ROLES_CONSULTA_ROLES} />,
             children: [
               { path: '/seguridad/roles', element: <RolesAccesosPage roles={ROLES_USUARIO} seccionesParaRol={getRoleNavigation} /> },
+              { path: '/seguridad/pestanas', element: <FuncionesRolPage /> },
+            ],
+          },
+          {
+            // BOV-01 a BOV-06: cada bloque y acción de la página se muestra según el rol exacto
+            element: <RequireRoles allowed={BOVEDA_ROLES.acceso} />,
+            children: [
+              { path: '/bovedas', element: <BovedasPage /> },
+              { path: '/bovedas/:idBoveda', element: <DetalleBovedaPage /> },
+              { path: '/bovedas/solicitudes/:idSolicitud', element: <DetalleSolicitudPage /> },
             ],
           },
           {

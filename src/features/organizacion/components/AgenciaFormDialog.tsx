@@ -4,27 +4,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { LoaderCircle, Save } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
-import {
-  Aviso,
-  Button,
-  Cargando,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/ui'
-import { useAgencias, useCiudades, type Agencia, type Ciudad } from '@/features/catalogos'
+import { Aviso, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ErrorApi } from '@/shared/ui'
+import { useCiudades, type Ciudad } from '@/features/catalogos'
 import type { AgenciaDetalle } from '@/features/organizacion/api/agencias.contract'
 import { CampoAgencia, inputClassName, selectClassName } from '@/features/organizacion/components/CampoAgencia'
-import { useActualizarAgencia, useAgenciaDetalle, useCrearAgencia } from '@/features/organizacion/hooks/useAgenciasAdmin'
+import { useActualizarAgencia, useAgenciaDetalle, useAgenciasAdmin, useCrearAgencia } from '@/features/organizacion/hooks/useAgenciasAdmin'
 import {
   campoDelError,
   esquemaTipoAgencia,
@@ -41,20 +25,29 @@ import { a11yCampo } from '@/features/organizacion/lib/agencias'
 
 const AYUDA_CODIGO = 'Hasta 10 letras, números o guiones.'
 
-export type ModoAgencia = { tipo: 'crear' } | { tipo: 'editar'; agencia: Agencia }
+export type ModoAgencia = { tipo: 'crear' } | { tipo: 'editar'; agencia: AgenciaDetalle }
 
 interface AgenciaFormDialogProps {
   /** null = cerrado */
   modo: ModoAgencia | null
   onCerrar: () => void
   onGuardado: (mensaje: string) => void
+  onRestaurarFoco: () => void
 }
 
 /** ORG-01 (alta) y ORG-02 (edición de datos). Las agencias son de Ecuador */
-export function AgenciaFormDialog({ modo, onCerrar, onGuardado }: AgenciaFormDialogProps) {
+export function AgenciaFormDialog({ modo, onCerrar, onGuardado, onRestaurarFoco }: AgenciaFormDialogProps) {
   const ciudades = useCiudades('ECU')
-  const agencias = useAgencias()
+  const agencias = useAgenciasAdmin()
   const editando = modo?.tipo === 'editar'
+  const crear = useCrearAgencia()
+  const actualizar = useActualizarAgencia()
+  const guardando = editando ? actualizar.isPending : crear.isPending
+  const cerrar = () => {
+    crear.reset()
+    actualizar.reset()
+    onCerrar()
+  }
   const detalle = useAgenciaDetalle(modo?.tipo === 'editar' ? modo.agencia.idAgencia : null)
 
   const contenido = (() => {
@@ -70,7 +63,7 @@ export function AgenciaFormDialog({ modo, onCerrar, onGuardado }: AgenciaFormDia
       )
     }
     if (agencias.isPending) return <Cargando texto="Comprobando agencias…" />
-    if (ciudades.isError) return <Aviso tono="error">{toApiError(ciudades.error).message}</Aviso>
+    if (ciudades.isError) return <ErrorApi error={ciudades.error} />
     if (editando && detalle.isError) return <Aviso tono="error">{mensajeErrorAgencia(toApiError(detalle.error))}</Aviso>
     if (ciudades.isPending) return <Cargando texto="Cargando ciudades…" />
     if (editando && detalle.isPending) return <Cargando texto="Cargando la agencia…" />
@@ -78,18 +71,20 @@ export function AgenciaFormDialog({ modo, onCerrar, onGuardado }: AgenciaFormDia
       <FormularioAgencia
         key={modo.tipo === 'editar' ? modo.agencia.idAgencia : 'nueva'}
         modo={modo}
+        crear={crear}
+        actualizar={actualizar}
         detalle={detalle.data ?? null}
         ciudades={ciudades.data}
         soloSucursal={soloPermitirSucursal(agencias.data, detalle.data?.tipoAgencia)}
-        onCancelar={onCerrar}
-        onGuardado={onGuardado}
+        onCancelar={cerrar}
+        onGuardado={(mensaje) => { crear.reset(); actualizar.reset(); onGuardado(mensaje) }}
       />
     )
   })()
 
   return (
-    <Dialog open={modo !== null} onOpenChange={(abierto) => !abierto && onCerrar()}>
-      <DialogContent className="gap-5 p-6 sm:max-w-lg">
+    <Dialog open={modo !== null} onOpenChange={(abierto) => !abierto && !guardando && cerrar()}>
+      <DialogContent showCloseButton={!guardando} onCloseAutoFocus={(event) => { event.preventDefault(); onRestaurarFoco() }} className="gap-5 p-6 sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-heading">
             {modo?.tipo === 'editar' ? `Editar agencia ${modo.agencia.codigo}` : 'Nueva agencia'}
@@ -97,7 +92,7 @@ export function AgenciaFormDialog({ modo, onCerrar, onGuardado }: AgenciaFormDia
           <DialogDescription>
             {editando
               ? 'Cambia solo lo que necesites. El ID de la agencia no cambia.'
-              : 'La agencia se crea activa. El sistema asigna su ID automáticamente al guardar.'}
+              : 'La agencia se crea inactiva. El sistema asigna su ID automáticamente al guardar.'}
           </DialogDescription>
         </DialogHeader>
         {contenido}
@@ -108,6 +103,8 @@ export function AgenciaFormDialog({ modo, onCerrar, onGuardado }: AgenciaFormDia
 
 interface FormularioAgenciaProps {
   modo: ModoAgencia
+  crear: ReturnType<typeof useCrearAgencia>
+  actualizar: ReturnType<typeof useActualizarAgencia>
   /** Solo al editar: lo que devolvió GET /agencias/{id} */
   detalle: AgenciaDetalle | null
   ciudades: Ciudad[]
@@ -116,7 +113,7 @@ interface FormularioAgenciaProps {
   onGuardado: (mensaje: string) => void
 }
 
-function FormularioAgencia({ modo, detalle, ciudades, soloSucursal, onCancelar, onGuardado }: FormularioAgenciaProps) {
+function FormularioAgencia({ modo, crear, actualizar, detalle, ciudades, soloSucursal, onCancelar, onGuardado }: FormularioAgenciaProps) {
   const editando = modo.tipo === 'editar'
   // Se calcula una vez al abrir: es la base para saber qué cambió
   const [inicial] = useState(() => (detalle ? valoresEdicion(detalle) : {
@@ -124,8 +121,6 @@ function FormularioAgencia({ modo, detalle, ciudades, soloSucursal, onCancelar, 
     tipoAgencia: soloSucursal ? 'Sucursal' : '',
   }))
   const [sinCambios, setSinCambios] = useState(false)
-  const crear = useCrearAgencia()
-  const actualizar = useActualizarAgencia()
   const mutacion = editando ? actualizar : crear
 
   const {
@@ -151,7 +146,7 @@ function FormularioAgencia({ modo, detalle, ciudades, soloSucursal, onCancelar, 
   const alFallar = (error: unknown) => {
     const apiError = toApiError(error)
     const campo = campoDelError(apiError)
-    if (campo) setError(campo, { message: mensajeErrorAgencia(apiError) })
+    if (campo) setError(campo, { message: mensajeErrorAgencia(apiError) }, { shouldFocus: true })
   }
 
   const guardar = (datos: AgenciaFormData) => {
@@ -195,7 +190,7 @@ function FormularioAgencia({ modo, detalle, ciudades, soloSucursal, onCancelar, 
             name="tipoAgencia"
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange} disabled={soloSucursal}>
-                <SelectTrigger id="agencia-tipo" onBlur={field.onBlur} className={selectClassName} {...a11yCampo('agencia-tipo', errors.tipoAgencia?.message)}>
+                <SelectTrigger id="agencia-tipo" ref={field.ref} onBlur={field.onBlur} className={selectClassName} {...a11yCampo('agencia-tipo', errors.tipoAgencia?.message)}>
                   <SelectValue placeholder="Elige el tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -261,12 +256,12 @@ function FormularioAgencia({ modo, detalle, ciudades, soloSucursal, onCancelar, 
       {errorGeneral && <Aviso tono="error">{errorGeneral}</Aviso>}
 
       <DialogFooter className="-mx-6 -mb-6 px-6">
-        <Button type="button" variant="outline" size="lg" onClick={onCancelar} className="rounded-lg px-4">
+        <Button type="button" variant="outline" size="lg" onClick={onCancelar} disabled={mutacion.isPending} className="rounded-lg px-4">
           Cancelar
         </Button>
         <Button type="submit" size="lg" disabled={mutacion.isPending} className="rounded-lg px-4 font-semibold">
           {mutacion.isPending ? <LoaderCircle className="animate-spin" /> : <Save />}
-          {editando ? 'Guardar cambios' : 'Crear agencia'}
+          {mutacion.isPending ? 'Guardando…' : editando ? 'Guardar cambios' : 'Crear agencia'}
         </Button>
       </DialogFooter>
     </form>

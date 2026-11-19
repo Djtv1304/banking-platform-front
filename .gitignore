@@ -31,3 +31,7 @@ dist-ssr
 # Local browser test artifacts
 /playwright-report/
 /test-results/
+
+# E0-03: copia local del contrato y tipos generados (se activan cuando el contrato entre al pipeline)
+/contrato/
+/src/shared/api/contrato/

@@ -46,6 +46,10 @@ jobs:
       - name: Verificar integridad del lockfile
         run: node .github/scripts/verify-lockfile.mjs
 
+      # Archivos versionados en UTF-8 válido y sin acentos rotos (texto guardado dos veces en UTF-8)
+      - name: Codificación de archivos (UTF-8)
+        run: npm run check:codificacion
+
       # npm ci respeta exactamente el lockfile; --ignore-scripts bloquea scripts postinstall maliciosos
       - name: Instalar dependencias
         run: npm ci --ignore-scripts
@@ -106,6 +110,17 @@ jobs:
       # Verifica firmas y procedencia de los paquetes descargados del registro npm
       - name: npm audit signatures
         run: npm audit signatures
+
+      # E0-11: lista de componentes en cada construcción (ASVS 15.1.2 · PCI E-003 a E-009, E-186 a E-191)
+      - name: Lista de componentes (SBOM CycloneDX)
+        run: npm sbom --sbom-format cyclonedx --omit dev > sbom-frontend.cdx.json
+
+      - name: Publicar SBOM
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-sbom
+          path: sbom-frontend.cdx.json
+          retention-days: 90
 
   # ---------------------------------------------------------------------------
   # Secretos filtrados: historial git completo + bundle compilado

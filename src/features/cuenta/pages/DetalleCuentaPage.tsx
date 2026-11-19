@@ -4,7 +4,7 @@ import { ArrowLeft, Gauge, ListOrdered, RefreshCw } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
-import { Button } from '@/shared/ui'
+import { Button, ErrorApi } from '@/shared/ui'
 import type { Cuenta } from '@/features/cuenta/api/cuentas.contract'
 import { Aviso, Cargando } from '@/features/cuenta/components/Aviso'
 import { EstadoCuentaBadge } from '@/features/cuenta/components/EstadoCuentaBadge'
@@ -33,7 +33,7 @@ export function DetalleCuentaPage() {
     if (cuenta.isError) {
       return (
         <SinDetalle>
-          <Aviso tono="error">{toApiError(cuenta.error).message}</Aviso>
+          <ErrorApi error={cuenta.error} />
         </SinDetalle>
       )
     }
@@ -163,7 +163,7 @@ function SaldoCuenta({ idCuenta, cerrada }: { idCuenta: number; cerrada: boolean
       {saldo.isPending ? (
         <Cargando texto="Consultando el saldo…" />
       ) : saldo.isError ? (
-        <Aviso tono="error">{toApiError(saldo.error).message}</Aviso>
+        <ErrorApi error={saldo.error} />
       ) : (
         <>
           <dl className="flex flex-col gap-4">

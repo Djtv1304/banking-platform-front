@@ -1,21 +1,23 @@
+import { NotificacionesAprobaciones, useAccesosAprobaciones } from '@/features/aprobaciones'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
-  Bell,
   CircleHelp,
+  Building2,
   LogOut,
   Moon,
   PanelLeft,
   Sun,
 } from 'lucide-react'
 
-import { AvisoInactividad, obtenerContextoAgencias, SelectorAgencia, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, usePermisos } from '@/features/auth'
+import { EstadoActualizacionAccesos, AvisoInactividad, obtenerContextoAgencias, SelectorAgencia, formatRol, formatRoles, signOut, useAccessProfile, useAuthStore, usePermisos } from '@/features/auth'
 import { getVisibleSections, type NavItem } from '@/app/navigation/navigation'
+import { usePestanas } from '@/features/seguridad'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
 import { useAgencias } from '@/features/catalogos'
-import { INSTITUCION } from '@/shared/config'
+import { InstitucionDocumentTitle, useInstitucion } from '@/shared/institucion'
 import {
   Badge,
   Button,
@@ -42,11 +44,17 @@ function useSidebarCollapsed() {
 
 // Layout exclusivo para usuarios autenticados (lo protege RequireAuth en el router)
 export function DashboardLayout() {
+  const { nombre, sitioWeb } = useInstitucion()
   const [collapsed, toggleCollapsed] = useSidebarCollapsed()
   const { pathname } = useLocation()
   const roles = useAuthStore((state) => state.user?.roles)
   const permisos = usePermisos()
-  const sections = getVisibleSections(useAccessProfile(), roles ?? [], permisos)
+  const accesos = useAuthStore((state) => state.user?.accesosSecciones)
+  const autorizacion = useAuthStore((state) => state.user?.autorizacion)
+  // Si la configuración no llega (error o tabla sin crear) se usa el menú por defecto
+  const pestanas = usePestanas(Boolean(roles?.length) && !autorizacion?.activa).data
+  const aprobaciones = useAccesosAprobaciones()
+  const sections = getVisibleSections(useAccessProfile(), roles ?? [], permisos, pestanas && Object.fromEntries(pestanas.map((p) => [p.pestana, p.roles])), accesos, { aprobaciones: aprobaciones.data?.puedeVer ?? false }, autorizacion)
   const currentPage = sections
     .flatMap((section) => section.items.map((item) => ({ ...item, sectionTitle: section.title })))
     .filter(({ to, end }) => (end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)))
@@ -58,6 +66,7 @@ export function DashboardLayout() {
 
   return (
     <div className="flex h-svh bg-panel print:block print:h-auto print:bg-white">
+      <InstitucionDocumentTitle />
       <aside
         className={cn(
           'flex shrink-0 flex-col print:hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200',
@@ -68,9 +77,13 @@ export function DashboardLayout() {
           {!collapsed && (
             <span className="flex min-w-0 items-center gap-2.5 pl-1">
               <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-brand-amber text-sm font-bold text-brand-ink">
-                E
+                <Building2 className="size-4" aria-hidden="true" />
               </span>
-              <span className="truncate text-[17px] font-bold tracking-tight text-heading">EnquoCoop</span>
+              <span className="truncate text-[17px] font-bold tracking-tight text-heading" title={nombre}>
+                {sitioWeb ? (
+                  <a href={sitioWeb} target="_blank" rel="noopener noreferrer" title={`Sitio web de ${nombre}`}>{nombre}</a>
+                ) : nombre}
+              </span>
             </span>
           )}
           <Button
@@ -98,6 +111,7 @@ export function DashboardLayout() {
                 <NavLink
                   key={to}
                   to={to}
+                  aria-label={to === '/aprobaciones' ? `Aprobaciones: ${aprobaciones.data?.pendientesParaMi ?? 0} pendientes para mi` : undefined}
                   end={end}
                   title={collapsed ? (enPreparacion ? `${label} (en preparación)` : label) : undefined}
                   className={({ isActive }) =>
@@ -114,6 +128,7 @@ export function DashboardLayout() {
                     <>
                       <Icon className={cn('size-[18px] shrink-0', isActive && currentPage?.to === to && 'text-link')} />
                       {!collapsed && <span className="truncate">{label}</span>}
+                      {!collapsed && to === '/aprobaciones' && <Badge variant="secondary" aria-hidden="true">{aprobaciones.data?.pendientesParaMi ?? 0}</Badge>}
                       {!collapsed && enPreparacion && (
                         <span className="ml-auto shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
                           Pronto
@@ -143,6 +158,7 @@ export function DashboardLayout() {
           )}
 
           <div className="ml-auto flex items-center gap-1">
+            <EstadoActualizacionAccesos />
             <Button
               variant="ghost"
               size="icon"
@@ -152,22 +168,15 @@ export function DashboardLayout() {
             >
               <CircleHelp className="size-[18px]" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Notificaciones"
-              title="Notificaciones"
-              className="size-9 rounded-lg text-muted-foreground"
-            >
-              <Bell className="size-[18px]" />
-            </Button>
+            <NotificacionesAprobaciones />
             <HeaderUser />
             <UserMenu />
           </div>
         </header>
 
         <div className="print:hidden border-b border-border bg-card px-4 py-2 sm:px-6"><SelectorAgencia /></div>
-        <main className="print:overflow-visible print:p-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
+        {/* `relative`: lo absoluto sin ancestro posicionado (p. ej. `sr-only`) queda dentro del scroll y no alarga el documento */}
+        <main className="relative print:overflow-visible print:p-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           <Outlet />
         </main>
       </div>
@@ -189,6 +198,7 @@ function useAgenciaLabel() {
 
 /** Usuario, rol, agencia e institución en el encabezado (desde `md`; en móvil se ven en el menú de usuario) */
 function HeaderUser() {
+  const { nombre } = useInstitucion()
   const user = useAuthStore((state) => state.user)
   const agencia = useAgenciaLabel()
   if (!user) return null
@@ -197,13 +207,14 @@ function HeaderUser() {
     <div className="ml-2 hidden max-w-72 min-w-0 flex-col items-end md:flex">
       <span className="max-w-full truncate text-sm font-semibold text-heading">{user.nombre || user.email}</span>
       <span className="max-w-full truncate text-xs text-muted-foreground">
-        {formatRoles(user.roles)} · {agencia} · {INSTITUCION.nombre}
+        {formatRoles(user.roles)} · {agencia} · {nombre}
       </span>
     </div>
   )
 }
 
 function UserMenu() {
+  const { nombre } = useInstitucion()
   const user = useAuthStore((state) => state.user)
   const agencia = useAgenciaLabel()
   const theme = useThemeStore((state) => state.theme)
@@ -225,7 +236,7 @@ function UserMenu() {
           <span className="truncate text-sm font-semibold text-heading">{displayName}</span>
           <span className="truncate text-sm text-muted-foreground">{user?.email}</span>
           <span className="truncate text-xs text-muted-foreground">
-            {agencia} · {INSTITUCION.nombre}
+            {agencia} · {nombre}
           </span>
           {user && user.roles.length > 0 ? (
             <span className="mt-1.5 flex flex-wrap gap-1">

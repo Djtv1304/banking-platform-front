@@ -57,6 +57,14 @@ export const meResponseSchema = z.object({
   roles: z.array(z.string()),
   permisos: z.array(z.string()),
   idAgencia: z.string().nullable(),
+  accesosSecciones: z.object({
+    version: z.string().regex(/^[a-f0-9]{64}$/),
+    habilitadas: z.array(z.string()),
+  }).optional(),
+  autorizacion: z.object({
+    version: z.string().regex(/^[a-f0-9]{64}$/), activa: z.literal(true),
+    funciones: z.array(z.string()), rutas: z.array(z.string()),
+  }).optional(),
 })
 
 export type MeResponse = z.infer<typeof meResponseSchema>

@@ -6,7 +6,7 @@ import { ApiError } from '@/shared/api'
 import { GestionDirecciones } from '@/features/clientes/components/GestionDirecciones'
 import { puedeGestionarDirecciones } from '@/features/clientes/lib/direcciones'
 import { Badge, Button } from '@/shared/ui'
-import { useAuthStore, usePermisos } from '@/features/auth'
+import { usePuedeFuncion, useAuthStore, usePermisos } from '@/features/auth'
 import { GestionCliente } from '@/features/clientes/components/GestionCliente'
 import { HistorialCliente } from '@/features/clientes/components/HistorialCliente'
 import { GestionRiesgo } from '@/features/clientes/components/GestionRiesgo'
@@ -30,7 +30,14 @@ export function FichaClientePage() {
   const id = parsearIdCliente(idCliente)
   const roles = useAuthStore((estado) => estado.user?.roles)
   const permisos = usePermisos()
-  const acceso = accesoGestionClientes(roles ?? [], permisos)
+  const anterior = accesoGestionClientes(roles ?? [], permisos)
+  const acceso = {
+    consulta: usePuedeFuncion('clientes.consultar', anterior.consulta),
+    edicion: usePuedeFuncion('clientes.editar', anterior.edicion),
+    estado: usePuedeFuncion('clientes.cambiarEstado', anterior.estado),
+    historial: usePuedeFuncion('clientes.verHistorial', anterior.historial),
+  }
+  const verRiesgo = usePuedeFuncion('clientes.riesgo.consultar', anterior.historial)
   const consulta = useCliente(acceso.consulta ? id : undefined)
 
   const noExiste =
@@ -49,7 +56,7 @@ export function FichaClientePage() {
         {noExiste ? (
           <ClienteNoEncontrado />
         ) : !acceso.consulta ? (
-          acceso.historial ? <div className="flex flex-col gap-6"><h1 className="text-3xl font-bold text-heading">Historial del cliente #{id}</h1><HistorialCliente key={id} id={id!} /><GestionRiesgo key={`riesgo-${id}`} id={id!} nombre={`cliente #${id}`} /></div> : <p role="alert">No tienes permiso para consultar este cliente.</p>
+          (acceso.historial || verRiesgo) ? <div className="flex flex-col gap-6"><h1 className="text-3xl font-bold text-heading">Historial del cliente #{id}</h1>{acceso.historial && <HistorialCliente key={id} id={id!} />}{verRiesgo && <GestionRiesgo key={`riesgo-${id}`} id={id!} nombre={`cliente #${id}`} />}</div> : <p role="alert">No tienes permiso para consultar este cliente.</p>
         ) : consulta.isError ? (
           <div
             role="alert"
@@ -92,7 +99,8 @@ function ClienteNoEncontrado() {
 }
 
 function Ficha({ cliente }: { cliente: Cliente }) {
-  const gestion = puedeGestionarDirecciones(usePermisos())
+  const gestion = usePuedeFuncion('clientes.direcciones.gestionar', puedeGestionarDirecciones(usePermisos()))
+  const verDirecciones = usePuedeFuncion('clientes.direcciones.consultar', gestion)
   // La principal primero; el resto en el orden en que llegan
   const direcciones = [...cliente.direcciones].sort((a, b) => Number(b.esPrincipal) - Number(a.esPrincipal))
 
@@ -131,7 +139,7 @@ function Ficha({ cliente }: { cliente: Cliente }) {
       </Seccion>
 
       <Seccion titulo="Direcciones">
-        {gestion ? <GestionDirecciones idCliente={cliente.idCliente} soloLectura={cliente.estado === 'Eliminado'} /> : direcciones.length === 0 ? (
+        {verDirecciones ? <GestionDirecciones idCliente={cliente.idCliente} soloLectura={!gestion || cliente.estado === 'Eliminado'} /> : direcciones.length === 0 ? (
           <p className="text-sm text-muted-foreground">El cliente no tiene direcciones activas.</p>
         ) : (
           <ul className="flex flex-col gap-3">

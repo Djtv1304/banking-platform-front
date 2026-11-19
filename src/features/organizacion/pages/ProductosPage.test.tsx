@@ -6,10 +6,11 @@ import { DetalleProductoPage } from '@/features/organizacion/pages/DetalleProduc
 import { ProductosPage } from '@/features/organizacion/pages/ProductosPage'
 import type { ProductoAdmin } from '@/features/organizacion/api/productos.contract'
 
-const estado = vi.hoisted(() => ({ roles: ['ADMIN'] as string[], permisos: ['productos:editar', 'productos:exportar'], data: [] as unknown[] }))
+const estado = vi.hoisted(() => ({ roles: ['ADMIN'] as string[], permisos: ['productosEditar', 'productosExportar'], data: [] as unknown[] }))
 vi.mock('@/features/auth', async () => {
   const { hasPermission, PERMISOS } = await import('@/shared/lib')
   return {
+    usePuedeFuncion: (_funcion: string, anterior: boolean) => anterior,
     hasPermission,
     PERMISOS,
     usePermisos: () => (estado.roles.includes('ADMIN') ? estado.permisos : []),
@@ -79,7 +80,7 @@ const CONSUMO: ProductoAdmin = {
 
 beforeEach(() => {
   estado.roles = ['ADMIN']
-  estado.permisos = ['productos:editar', 'productos:exportar']
+  estado.permisos = ['productosEditar', 'productosExportar']
   estado.data = [AHORRO]
 })
 const lista = () => renderToStaticMarkup(<ProductosPage />)
@@ -145,7 +146,7 @@ describe('DetalleProductoPage', () => {
 
 
 it('sin productos:editar no ofrece escrituras aunque el rol sea ADMIN', () => {
-  estado.permisos = ['productos:exportar']
+  estado.permisos = ['productosExportar']
   expect(lista()).not.toContain('Nuevo modelo comercial')
   expect(detalle()).not.toContain('Editar')
 })

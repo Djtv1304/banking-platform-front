@@ -1,3 +1,4 @@
+import { usePuedeFuncion, usePermisos, hasPermission, PERMISOS } from '@/features/auth'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -42,6 +43,7 @@ interface DatosPersonalesProps {
 
 /** Nombres, apellidos y correo se editan aquí; usuario y cédula identifican a la persona y no cambian */
 export function DatosPersonales({ usuario, onGuardado }: DatosPersonalesProps) {
+  const puedeEditar = usePuedeFuncion('usuarios.administrar', hasPermission(usePermisos(), PERMISOS.usuariosEditar))
   const [editando, setEditando] = useState(false)
 
   return (
@@ -49,7 +51,7 @@ export function DatosPersonales({ usuario, onGuardado }: DatosPersonalesProps) {
       id="datos-personales"
       titulo="Datos personales"
       accion={
-        !editando && (
+        puedeEditar && !editando && (
           <Button variant="outline" size="lg" onClick={() => setEditando(true)} className="rounded-lg px-3">
             <Pencil />
             Editar
@@ -57,7 +59,7 @@ export function DatosPersonales({ usuario, onGuardado }: DatosPersonalesProps) {
         )
       }
     >
-      {editando ? (
+      {editando && puedeEditar ? (
         <FormularioDatos
           usuario={usuario}
           onCancelar={() => setEditando(false)}

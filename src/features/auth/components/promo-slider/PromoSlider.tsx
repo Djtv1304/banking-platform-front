@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { cn } from '@/shared/lib'
 import { PromoSlide } from '@/features/auth/components/promo-slider/PromoSlide'
 import { SLIDES } from '@/features/auth/components/promo-slider/slides'
+import { useInstitucion } from '@/shared/institucion'
 
 /*
  * El avance automático lo marca la animación de la barra activa (7 s, `animate-slide-progress` en index.css):
@@ -10,6 +11,7 @@ import { SLIDES } from '@/features/auth/components/promo-slider/slides'
  * `prefers-reduced-motion` no hay animación ni avance automático.
  */
 export function PromoSlider() {
+  const { nombre, sitioWeb } = useInstitucion()
   const [activeIndex, setActiveIndex] = useState(0)
   const activeSlide = SLIDES[activeIndex]
   const { theme } = activeSlide
@@ -26,8 +28,10 @@ export function PromoSlider() {
       )}
     >
       <header className="flex items-center justify-between gap-4">
-        <span className={cn('text-[26px] font-bold tracking-tight transition-colors duration-500', theme.text)}>
-          EnquoCoop
+        <span className={cn('min-w-0 break-words text-[26px] font-bold tracking-tight transition-colors duration-500', theme.text)}>
+          {sitioWeb ? (
+            <a href={sitioWeb} target="_blank" rel="noopener noreferrer" title={`Sitio web de ${nombre}`}>{nombre}</a>
+          ) : nombre}
         </span>
         <span
           className={cn(

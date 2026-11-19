@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Building2, CircleAlert, LoaderCircle, Pencil, Plus } from 'lucide-react'
 
-import { useAuthStore, usePermisos } from '@/features/auth'
+import { usePuedeFuncion, useAuthStore, usePermisos } from '@/features/auth'
 import { Button } from '@/shared/ui'
 import {
   accesoEntidad,
@@ -20,7 +20,9 @@ import { datosCrearEntidad, fechaEntidad, type EntidadForm as Valores } from '@/
 
 export function DatosCooperativaPage() {
   const roles = useAuthStore((store) => store.user?.roles)
-  const acceso = accesoEntidad(roles ?? [], usePermisos())
+  const anterior = accesoEntidad(roles ?? [], usePermisos())
+  const acceso = { consulta: usePuedeFuncion('entidad.consultar', anterior.consulta), edicion: usePuedeFuncion('entidad.editar', anterior.edicion) }
+  const puedeCrear = usePuedeFuncion('entidad.crear', anterior.edicion)
   const cache = useQueryClient()
   const [baseEdicion, setBaseEdicion] = useState<Entidad | null>(null)
   const editando = baseEdicion !== null
@@ -82,7 +84,7 @@ export function DatosCooperativaPage() {
         <p role="alert" className="rounded-2xl border border-border bg-card p-6">
           No tienes permiso para consultar los datos de la cooperativa.
         </p>
-      ) : creando && acceso.edicion ? (
+      ) : creando && puedeCrear ? (
         <section className="rounded-2xl border border-border bg-card p-5 sm:p-8">
           <h2 className="mb-2 text-xl font-semibold text-heading">Crear cooperativa</h2>
           <p className="mb-6 text-sm text-muted-foreground">
@@ -115,12 +117,12 @@ export function DatosCooperativaPage() {
           </h2>
           <p className="text-sm text-muted-foreground">
             {sinEntidad
-              ? (acceso.edicion
+              ? (puedeCrear
                 ? 'Todavía no se ha registrado la información institucional. Crea la cooperativa para consultar y actualizar sus datos.'
                 : 'Todavía no se ha registrado la cooperativa. Solicita a un administrador que complete la configuración inicial.')
               : mensajeErrorEntidad(consulta.error)}
           </p>
-          {sinEntidad ? acceso.edicion && (
+          {sinEntidad ? puedeCrear && (
             <Button
               className="min-h-11 rounded-xl"
               onClick={() => { alta.reset(); setAviso(''); setCreando(true) }}

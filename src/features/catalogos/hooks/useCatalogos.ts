@@ -67,7 +67,7 @@ export const useTiposAntecedente = () =>
 export const useDenominaciones = () =>
   useCatalogo({ queryKey: ['catalogos', 'denominaciones'], queryFn: getDenominaciones })
 
-/** Todas las agencias con su estado: para crear operaciones, ofrecer solo las de `estado === 'A'` */
+/** CAT-06 para selección de agencias activas. Los consumidores conservan compatibilidad con respuestas anteriores. */
 export const useAgencias = () => useCatalogo({ queryKey: ['catalogos', 'agencias'], queryFn: getAgencias })
 
 /**

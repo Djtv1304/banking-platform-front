@@ -1,3 +1,4 @@
+import { usePuedeFuncion } from '@/features/auth'
 import { FolderPlus, Pencil, Power, Trash2, type LucideIcon } from 'lucide-react'
 
 import { Button } from '@/shared/ui'
@@ -17,6 +18,8 @@ export function AccionesCuenta({ nodo, onAccion }: AccionesCuentaProps) {
   const bloqueos = bloqueosCuenta(cuenta, nodo.hijos.length > 0)
   const activa = estaActiva(cuenta)
 
+  const editar = usePuedeFuncion('contabilidad.cuentas.editar', true)
+  const eliminar = usePuedeFuncion('contabilidad.cuentas.eliminar', true)
   const acciones: { tipo: TipoAccion; label: string; Icono: LucideIcon; motivo: string | null; destructiva?: boolean }[] = [
     { tipo: 'subcuenta', label: 'Nueva subcuenta', Icono: FolderPlus, motivo: bloqueos.nuevaSubcuenta },
     { tipo: 'nombre', label: 'Editar nombre', Icono: Pencil, motivo: bloqueos.renombrar },
@@ -26,7 +29,7 @@ export function AccionesCuenta({ nodo, onAccion }: AccionesCuentaProps) {
 
   return (
     <section aria-label="Acciones de la cuenta" className="flex flex-col gap-3 border-t border-border pt-5">
-      {acciones.map(({ tipo, label, Icono, motivo, destructiva }) => {
+      {acciones.filter((accion) => accion.tipo === 'eliminar' ? eliminar : editar).map(({ tipo, label, Icono, motivo, destructiva }) => {
         const idMotivo = `accion-${tipo}-motivo`
         return (
           <div key={tipo} className="flex flex-col gap-1">

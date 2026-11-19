@@ -16,25 +16,32 @@ export class ApiError extends Error {
   readonly code: string
   /** Errores por campo que envió el backend; vacío si no hay */
   readonly fields: readonly ApiFieldError[]
+  readonly traceId?: string
+  readonly bloqueos: readonly string[]
 
-  constructor(message: string, status: number | null, code: string, fields: readonly ApiFieldError[] = []) {
+  constructor(message: string, status: number | null, code: string, fields: readonly ApiFieldError[] = [], traceId?: string, bloqueos: readonly string[] = []) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
     this.fields = fields
+    this.traceId = traceId
+    this.bloqueos = bloqueos
   }
 }
 
+const TRACE_ID = /^[A-Za-z0-9._-]{8,64}$/
 const DEFAULT_MESSAGE = 'Ocurrió un error inesperado. Inténtalo nuevamente.'
 const NETWORK_MESSAGE = 'No pudimos conectarnos con el servidor. Revisa tu conexión.'
 
 interface ApiErrorBody {
+  traceId?: string
   title?: string
   codigo?: string
   code?: string
   detail?: string | { code?: string; message?: string } | Array<{ msg?: string }>
   errors?: unknown
+  bloqueos?: unknown
 }
 
 /** Solo las entradas con `field` y `message` de texto: el resto se ignora */
@@ -52,15 +59,22 @@ export function toApiError(error: unknown): ApiError {
   if (!isAxiosError<ApiErrorBody>(error)) return new ApiError(DEFAULT_MESSAGE, null, 'unknown')
   if (!error.response) return new ApiError(NETWORK_MESSAGE, null, 'network_error')
 
-  const { status, data } = error.response
+  const { status, data, headers } = error.response
   const detail = data?.detail
   const code = data?.codigo ?? data?.code ?? `http_${status}`
   const fields = readFieldErrors(data?.errors)
+  // E0-13: el cuerpo (Problem Details) o, si no lo trae, la cabecera X-Request-Id; solo si tiene forma segura
+  const candidato = typeof data?.traceId === 'string' ? data.traceId : headers?.['x-request-id']
+  const traceId = typeof candidato === 'string' && TRACE_ID.test(candidato) ? candidato : undefined
 
-  if (typeof detail === 'string') return new ApiError(detail, status, code, fields)
+  const bloqueos = status === 409 && Array.isArray(data?.bloqueos)
+    ? data.bloqueos.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : []
+
+  if (typeof detail === 'string') return new ApiError(detail, status, code, fields, traceId, bloqueos)
   if (Array.isArray(detail)) {
-    return new ApiError(detail[0]?.msg ?? DEFAULT_MESSAGE, status, 'validation_error')
+    return new ApiError(detail[0]?.msg ?? DEFAULT_MESSAGE, status, 'validation_error', [], traceId)
   }
-  if (detail) return new ApiError(detail.message ?? DEFAULT_MESSAGE, status, detail.code ?? code)
-  return new ApiError(data?.title ?? DEFAULT_MESSAGE, status, code, fields)
+  if (detail) return new ApiError(detail.message ?? DEFAULT_MESSAGE, status, detail.code ?? code, fields, traceId, bloqueos)
+  return new ApiError(data?.title ?? DEFAULT_MESSAGE, status, code, fields, traceId, bloqueos)
 }

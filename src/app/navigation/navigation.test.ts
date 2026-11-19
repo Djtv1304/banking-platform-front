@@ -4,13 +4,19 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SelectorAgencia } from '@/features/auth/components/SelectorAgencia'
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
-import { getRoleNavigation, getVisibleSections } from '@/app/navigation/navigation'
-import { getAccessProfile } from '@/features/auth'
+import { getPestanasConfigurables, getRoleNavigation, getVisibleSections } from '@/app/navigation/navigation'
+import { getAccessProfile, PERMISOS } from '@/features/auth'
 import { ROLES_USUARIO } from '@/features/usuarios'
 
 const opciones = (rol: string) => getRoleNavigation(rol).flatMap((s) => s.opciones.map((o) => o.titulo))
 
 describe('vista de roles y menú comparten la configuración', () => {
+  it('Aprobaciones requiere capacidad efectiva y no se ofrece como seccion configurable', () => {
+    const rutas = (efectiva: boolean) => getVisibleSections(getAccessProfile(['CONTADOR']), ['CONTADOR'], [], { '/aprobaciones': ['CONTADOR'] }, undefined, { aprobaciones: efectiva }).flatMap(s => s.items.map(i => i.to))
+    expect(rutas(false)).not.toContain('/aprobaciones')
+    expect(rutas(true)).toContain('/aprobaciones')
+    expect(getPestanasConfigurables().map(p => p.to)).not.toContain('/aprobaciones')
+  })
   it.each(ROLES_USUARIO)('%s muestra exactamente las opciones del menú, sin mantener otra matriz', (rol) => {
     const menu = getVisibleSections(getAccessProfile([rol]), [rol], []).flatMap((s) => s.items.map((i) => i.label))
     expect(opciones(rol)).toEqual(menu)
@@ -38,10 +44,18 @@ it('consultar cuentas conserva los roles del backend y no aparece para contador'
 
 
 describe('contratos de consulta por rol', () => {
-  it('contador y auditor solo reciben consultas contables del menu disponible', () => {
+  it('contador y auditor solo reciben consultas contables y de bóvedas del menu disponible', () => {
     for (const rol of ['CONTADOR', 'AUDITOR']) {
-      expect(opciones(rol)).toEqual(['Inicio', 'Plan de cuentas', 'Asientos contables', 'Fecha contable'])
+      expect(opciones(rol)).toEqual(['Inicio', 'Bóvedas', 'Plan de cuentas', 'Asientos contables', 'Fecha contable'])
     }
+  })
+
+  it.each(['SUPERVISOR', 'CONTADOR', 'AUDITOR', 'ADMIN'])('%s ve Bóvedas (BOV-01 a BOV-03)', (rol) => {
+    expect(opciones(rol)).toContain('Bóvedas')
+  })
+
+  it.each(['ASESOR', 'CAJERO', 'APROBADOR_CREDITO'])('%s no ve Bóvedas', (rol) => {
+    expect(opciones(rol)).not.toContain('Bóvedas')
   })
 
   it.each(['ASESOR', 'SUPERVISOR', 'ADMIN'])('%s puede consultar tarjetas', (rol) => {
@@ -59,8 +73,21 @@ describe('contratos de consulta por rol', () => {
   it('los permisos reales siguen determinando las entradas de escritura', () => {
     const secciones = getVisibleSections(getAccessProfile(['ASESOR']), ['ASESOR'], [])
     expect(secciones.flatMap((s) => s.items.map((i) => i.to))).not.toContain('/cuentas/abrir')
-    const conPermiso = getVisibleSections(getAccessProfile(['ASESOR']), ['ASESOR'], ['cuentas:abrir'])
+    const conPermiso = getVisibleSections(getAccessProfile(['ASESOR']), ['ASESOR'], ['cuentasAbrir'])
     expect(conPermiso.flatMap((s) => s.items.map((i) => i.to))).toContain('/cuentas/abrir')
+  })
+
+  it('ubica Plantillas entre Asientos y Fecha contable cuando el usuario tiene permiso', () => {
+    const roles = ['CONTADOR']
+    const contabilidad = (permisos: Parameters<typeof getVisibleSections>[2]) =>
+      getVisibleSections(getAccessProfile(roles), roles, permisos)
+        .find(seccion => seccion.title === 'Cuentas contables')?.items.map(item => item.label)
+
+    expect(contabilidad([])).toEqual(['Plan de cuentas', 'Asientos contables', 'Fecha contable'])
+    expect(contabilidad([PERMISOS.plantillasEditar])).toEqual([
+      'Plan de cuentas', 'Asientos contables', 'Plantillas contables', 'Fecha contable',
+    ])
+    expect(getPestanasConfigurables().map(pestana => pestana.to)).not.toContain('/contabilidad/plantillas')
   })
 
   it('los roles combinados conservan las consultas autorizadas por cualquiera de ellos', () => {
@@ -74,16 +101,18 @@ describe('contratos de consulta por rol', () => {
 
 describe('matriz completa de consultas del menu por rol', () => {
   const rutas: Record<string, string[]> = {
-    ADMIN: ['/', '/organizacion/entidad', '/organizacion/agencias', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/roles'],
-    ASESOR: ['/', '/organizacion/entidad', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas'],
+    ADMIN: ['/', '/organizacion/entidad', '/parametros', '/organizacion/agencias', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/bovedas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/pestanas', '/seguridad/roles'],
+    ASESOR: ['/', '/organizacion/entidad', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas'],
     CAJERO: ['/', '/clientes-busqueda', '/cuentas'],
-    SUPERVISOR: ['/', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas'],
-    APROBADOR_CREDITO: ['/'],
-    CONTADOR: ['/', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
-    AUDITOR: ['/', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
+    SUPERVISOR: ['/', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas', '/bovedas'],
+    APROBADOR_CREDITO: ['/', '/productos'],
+    CONTADOR: ['/', '/productos', '/bovedas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
+    AUDITOR: ['/', '/productos', '/bovedas', '/contabilidad', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
   }
   it.each(Object.entries(rutas))('%s respeta todos los contratos de consulta disponibles', (rol, esperadas) => {
-    const actuales = getVisibleSections(getAccessProfile([rol]), [rol], []).flatMap((s) => s.items.map((i) => i.to))
+    // Productos se consulta con prd-consultar, que en WorkOS tienen todos los roles menos CAJERO
+    const acciones = rol === 'CAJERO' ? [] : [PERMISOS.productosConsultar]
+    const actuales = getVisibleSections(getAccessProfile([rol]), [rol], acciones).flatMap((s) => s.items.map((i) => i.to))
     expect(actuales).toEqual(esperadas)
   })
 })
@@ -104,5 +133,34 @@ describe('presentacion del alcance de agencias', () => {
     if (todas) expect(html).toContain('Acceso a todas las agencias')
     if (cantidad === 1) expect(html).toContain('Agencia operativa: Agencia 1')
     client.clear()
+  })
+})
+
+describe('pestañas por rol (SEG07)', () => {
+  const rutas = (rol: string, pestanas?: Record<string, readonly string[]>) =>
+    getVisibleSections(getAccessProfile([rol]), [rol], [], pestanas).flatMap((s) => s.items.map((i) => i.to))
+
+  it('la configuración reemplaza los roles por defecto de la pestaña', () => {
+    expect(rutas('CAJERO')).not.toContain('/catalogos')
+    expect(rutas('CAJERO', { '/catalogos': ['CAJERO'] })).toContain('/catalogos')
+    expect(rutas('ASESOR', { '/catalogos': ['CAJERO'] })).not.toContain('/catalogos')
+  })
+
+  it('las pestañas de Seguridad e Inicio no se personalizan', () => {
+    expect(rutas('ADMIN', { '/seguridad/roles': [], '/seguridad/pestanas': [], '/': [] })).toEqual(
+      expect.arrayContaining(['/', '/seguridad/roles', '/seguridad/pestanas']),
+    )
+    const configurables = getPestanasConfigurables().map((p) => p.to)
+    expect(configurables).not.toContain('/')
+    expect(configurables).not.toContain('/seguridad/roles')
+    expect(configurables).not.toContain('/seguridad/workos')
+  })
+
+  it('cada pestaña configurable trae los roles que la ven por defecto', () => {
+    const catalogos = getPestanasConfigurables().find((p) => p.to === '/catalogos')
+    expect(catalogos?.rolesPorDefecto).toContain('ADMIN')
+    expect(catalogos?.rolesPorDefecto).not.toContain('CAJERO')
+    expect(getPestanasConfigurables().find((p) => p.to === '/cuentas/abrir')?.requiereAccion).toBe(true)
+    expect(getPestanasConfigurables().find((p) => p.to === '/solicitar-tarjeta')?.rolesPorDefecto).toEqual(['ADMIN', 'ASESOR'])
   })
 })

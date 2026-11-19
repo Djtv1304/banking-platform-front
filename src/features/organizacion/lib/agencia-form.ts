@@ -38,7 +38,7 @@ const camposAgencia = z.object({
   /** '' = sin ciudad elegida */
   idCiudad: z
     .string()
-    .refine((valor) => valor === '' || /^\d+$/.test(valor), 'Elige una ciudad de la lista.')
+    .refine((valor) => valor === '' || (/^\d+$/.test(valor) && Number(valor) >= 1 && Number(valor) <= 2_147_483_647), 'Elige una ciudad de la lista.')
     .transform((valor) => (valor ? Number(valor) : undefined)),
   telefono: opcional(
     (valor) => valor.length >= 6 && valor.length <= 15 && /^[0-9+() -]+$/.test(valor),
@@ -145,7 +145,7 @@ export type MotivoFormData = z.output<typeof motivoFormSchema>
 
 /*
  * Errores de ORG-01/ORG-02 por `code`. Los que no están aquí (MATRIZ_NO_DESACTIVABLE,
- * AGENCIA_CON_ACTIVIDAD, que lista lo que sigue activo, y los demás) muestran el mensaje del backend.
+ * AGENCIA_CON_OPERACION, que lista lo que sigue activo, y los demás) muestran el mensaje del backend.
  */
 const MENSAJES: Record<string, string> = {
   AGENCIA_YA_EXISTE: 'No se pudo asignar el ID de la agencia. Solicita que revisen la numeración del sistema.',

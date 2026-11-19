@@ -10,9 +10,15 @@ export type { AuthStatus } from '@/features/auth/store/auth.store';
 export { registerAuthHandlers, restoreSession, refreshSession, startSessionSync, signOut } from '@/features/auth/session';
 export { sanitizeReturnTo } from '@/features/auth/lib/return-to';
 export type { MeResponse } from '@/features/auth/api/auth.contract';
+export { permiteFuncion, usePuedeFuncion } from '@/features/auth/lib/funciones';
+export type { AutorizacionFunciones } from '@/features/auth/lib/funciones';
+export { EstadoActualizacionAccesos } from '@/features/auth/components/EstadoActualizacionAccesos';
 export { formatRol, formatRoles } from '@/features/auth/lib/roles';
 
 export { SelectorAgencia } from '@/features/auth/components/SelectorAgencia';
 export { agenciaAsignadaSchema } from '@/features/auth/api/auth.contract';
 
 export { obtenerContextoAgencias } from '@/features/auth/api/auth.api';
+export { permiteSeccion } from '@/features/auth/lib/accesos-secciones';
+export { ActualizarAccesosButton } from '@/features/auth/components/ActualizarAccesosButton';
+export { publicar as publicarEventoSesion } from '@/features/auth/lib/canal-sesion';
