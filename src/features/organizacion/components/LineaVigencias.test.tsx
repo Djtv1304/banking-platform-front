@@ -6,9 +6,9 @@ import { detalleSchema } from '@/features/aprobaciones/api/aprobaciones.contract
 import { LineaVigencias } from '@/features/organizacion/components/LineaVigencias'
 import { HistorialSolicitudesProducto } from '@/features/organizacion/components/HistorialSolicitudesProducto'
 import { FichaCambioProducto } from '@/features/organizacion/components/FichaCambioProducto'
-import { compararProducto } from '@/features/organizacion/lib/cambios-producto'
+import { compararProducto, filtrarSolicitudes } from '@/features/organizacion/lib/cambios-producto'
 
-vi.mock('@/shared/ui', async () => ({ ...await import('@/shared/ui/aviso'), ...await import('@/shared/ui/button'), ...await import('@/shared/ui/dialog') }))
+vi.mock('@/shared/ui', async () => ({ ...await import('@/shared/ui/aviso'), ...await import('@/shared/ui/button'), ...await import('@/shared/ui/dialog'), ...await import('@/shared/ui/input') }))
 
 const datos = { vigenciaDesde: '2026-12-01', vigenciaHasta: null, montoAperturaMinimo: '75', saldoMinimo: '10', tasaInteresAnual: '1.5', periodicidadInteres: 'Mensual', costoMantenimiento: '0', periodicidadCosto: null, mesesInactividad: 12, aplicaACuentasExistentes: false }
 const previo = { IdCondicion: 1, Estado: 'Vigente', VigenciaDesde: '2026-01-01', VigenciaHasta: null, MontoAperturaMinimo: '50.00', SaldoMinimo: '10.00', TasaInteresAnual: '1.5000', PeriodicidadInteres: 'Mensual', CostoMantenimiento: '0.00', PeriodicidadCosto: null, MesesInactividad: 12, AplicaACuentasExistentes: false }
@@ -68,5 +68,27 @@ describe('historial breve con ficha completa congelada', () => {
     expect(html).toContain('No hay cambios aplicados')
     expect(html).toContain('Solicitudes sin cambios aplicados')
     expect(html).toContain('/aprobaciones/9')
+  })
+})
+
+
+describe('filtros locales del historial', () => {
+  const filas = [
+    { idSolicitud: 1, estado: 'Ejecutada' as const, fecha: '2026-11-20T03:00:00Z', responsable: 'Jose Casa(12)', clase: 'condiciones' as const, accion: 'programar' as const },
+    { idSolicitud: 2, estado: 'Ejecutada' as const, fecha: '2026-11-20T06:00:00Z', responsable: 'Persona QA(112)', clase: 'cupos' as const, accion: 'programar' as const },
+  ]
+  it('incluye los limites de fecha usando el dia de Ecuador', () => {
+    expect(filtrarSolicitudes(filas, { desde: '2026-11-19', hasta: '2026-11-19', usuario: '' }).map(v => v.idSolicitud)).toEqual([1])
+  })
+  it('busca nombres sin distinguir mayusculas y exige ID exacto', () => {
+    expect(filtrarSolicitudes(filas, { desde: '', hasta: '', usuario: 'JOSE CASA' }).map(v => v.idSolicitud)).toEqual([1])
+    expect(filtrarSolicitudes(filas, { desde: '', hasta: '', usuario: '12' }).map(v => v.idSolicitud)).toEqual([1])
+  })
+  it('combina fecha y usuario y rechaza intervalos invertidos', () => {
+    expect(filtrarSolicitudes(filas, { desde: '2026-11-20', hasta: '', usuario: '12' })).toEqual([])
+    expect(filtrarSolicitudes(filas, { desde: '2026-11-20', hasta: '2026-11-19', usuario: '' })).toEqual([])
+  })
+  it('sin filtros conserva los datos y no requiere nuevas consultas', () => {
+    expect(filtrarSolicitudes(filas, { desde: '', hasta: '', usuario: '' })).toEqual(filas)
   })
 })

@@ -4,11 +4,11 @@ import { useQuery } from '@tanstack/react-query'
 import { obtenerSolicitud } from '@/features/aprobaciones/api/aprobaciones.api'
 import type { VigenciasProducto } from '@/features/organizacion/api/programacion.contract'
 import { obtenerCupos } from '@/features/organizacion/api/productos.api'
-import { compararProducto } from '@/features/organizacion/lib/cambios-producto'
+import { compararProducto, filtrarSolicitudes } from '@/features/organizacion/lib/cambios-producto'
 import { FichaCambioProducto } from '@/features/organizacion/components/FichaCambioProducto'
 import { mostrarValor } from '@/shared/ui/comparador-cambios'
 import { toApiError } from '@/shared/api'
-import { Aviso, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
+import { Aviso, Button, Input, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
 
 type Solicitud = VigenciasProducto['solicitudes'][number]
 function CambioAplicado({ solicitud: s }: { solicitud: Solicitud }) {
@@ -28,7 +28,15 @@ function CambioAplicado({ solicitud: s }: { solicitud: Solicitud }) {
 }
 export function HistorialSolicitudesProducto({ solicitudes }: { solicitudes: VigenciasProducto['solicitudes'] }) {
   const [limite, setLimite] = useState(5)
-  const aplicadas = solicitudes.filter(s => s.estado === 'Ejecutada').sort((a, b) => b.fecha.localeCompare(a.fecha) || b.idSolicitud - a.idSolicitud)
-  const otras = solicitudes.filter(s => s.estado !== 'Ejecutada')
-  return <div className="min-w-0 space-y-4">{aplicadas.length ? <><ol className="space-y-4" aria-label="Cambios aplicados">{aplicadas.slice(0, limite).map(s => <CambioAplicado key={s.idSolicitud} solicitud={s} />)}</ol>{limite < aplicadas.length && <Button variant="outline" onClick={() => setLimite(v => v + 5)}>Ver mas cambios</Button>}</> : <p className="text-muted-foreground">No hay cambios aplicados registrados en el historial de aprobaciones.</p>}{otras.length > 0 && <details className="rounded-xl border border-border p-4"><summary className="cursor-pointer text-sm font-medium">Solicitudes sin cambios aplicados ({otras.length})</summary><ul className="mt-3 space-y-2 text-sm">{otras.map(s => <li key={s.idSolicitud}><Link className="text-primary underline" to={`/aprobaciones/${s.idSolicitud}`}>Solicitud #{s.idSolicitud}</Link> - {s.estado}</li>)}</ul></details>}</div>
+  const [filtros, setFiltros] = useState({ desde: '', hasta: '', usuario: '' })
+  const cambiar = (campo: keyof typeof filtros, valor: string) => { setFiltros(v => ({ ...v, [campo]: valor })); setLimite(5) }
+  const filtradas = filtrarSolicitudes(solicitudes, filtros)
+  const aplicadas = filtradas.filter(s => s.estado === 'Ejecutada').sort((a, b) => b.fecha.localeCompare(a.fecha) || b.idSolicitud - a.idSolicitud)
+  const otras = filtradas.filter(s => s.estado !== 'Ejecutada')
+  return <div className="min-w-0 space-y-4"><div role="search" aria-label="Filtrar historial de cambios" className="grid gap-3 rounded-xl bg-muted/40 p-4 sm:grid-cols-2 xl:grid-cols-4">
+      <label className="min-w-0 space-y-1 text-sm">Fecha de solicitud desde<Input type="date" value={filtros.desde} max={filtros.hasta || undefined} onChange={e => cambiar('desde', e.target.value)} /></label>
+      <label className="min-w-0 space-y-1 text-sm">Fecha de solicitud hasta<Input type="date" value={filtros.hasta} min={filtros.desde || undefined} onChange={e => cambiar('hasta', e.target.value)} /></label>
+      <label className="min-w-0 space-y-1 text-sm">Usuario solicitante (nombre o ID)<Input type="search" placeholder="Nombre o ID interno" value={filtros.usuario} onChange={e => cambiar('usuario', e.target.value)} /></label>
+      <Button variant="outline" className="self-end" disabled={!filtros.desde && !filtros.hasta && !filtros.usuario} onClick={() => { setFiltros({ desde: '', hasta: '', usuario: '' }); setLimite(5) }}>Limpiar filtros</Button>
+    </div>{filtros.desde && filtros.hasta && filtros.desde > filtros.hasta && <Aviso tono="error">La fecha inicial no puede ser posterior a la final.</Aviso>}{aplicadas.length ? <><ol className="space-y-4" aria-label="Cambios aplicados">{aplicadas.slice(0, limite).map(s => <CambioAplicado key={s.idSolicitud} solicitud={s} />)}</ol>{limite < aplicadas.length && <Button variant="outline" onClick={() => setLimite(v => v + 5)}>Ver mas cambios</Button>}</> : <p className="text-muted-foreground">{filtros.desde || filtros.hasta || filtros.usuario ? 'No hay cambios aplicados que coincidan con los filtros.' : 'No hay cambios aplicados registrados en el historial de aprobaciones.'}</p>}{otras.length > 0 && <details className="rounded-xl border border-border p-4"><summary className="cursor-pointer text-sm font-medium">Solicitudes sin cambios aplicados ({otras.length})</summary><ul className="mt-3 space-y-2 text-sm">{otras.map(s => <li key={s.idSolicitud}><Link className="text-primary underline" to={`/aprobaciones/${s.idSolicitud}`}>Solicitud #{s.idSolicitud}</Link> - {s.estado}</li>)}</ul></details>}</div>
 }

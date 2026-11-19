@@ -1,3 +1,4 @@
+import type { VigenciasProducto } from '@/features/organizacion/api/programacion.contract'
 import type { DetalleSolicitud } from '@/features/aprobaciones/api/aprobaciones.contract'
 import { valoresIguales } from '@/shared/ui/comparador-cambios'
 
@@ -52,4 +53,24 @@ export function compararProducto(s: DetalleSolicitud, canales: { idCanal: number
   }
   const valores = cambios.filter(c => !['vigenciaDesde', 'vigenciaHasta'].includes(c.campo))
   return { antes, despues, cambios: valores.length ? valores : cambios, titulo: p.accion === 'fin' ? 'Se programo el fin de una restriccion' : `Se actualizaron ${nombres[clase] ?? 'los valores'}` }
+}
+
+
+export interface FiltrosHistorial { desde: string; hasta: string; usuario: string }
+export function filtrarSolicitudes(solicitudes: VigenciasProducto['solicitudes'], filtros: FiltrosHistorial) {
+  const normalizar = (v: string) => v.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('es').trim()
+  const usuario = normalizar(filtros.usuario)
+  if (filtros.desde && filtros.hasta && filtros.desde > filtros.hasta) return []
+  return solicitudes.filter(s => {
+    if (usuario) {
+      const id = s.responsable.match(/\((\d+)\)\s*$/)?.[1]
+      if (/^[0-9]+$/.test(usuario) ? id !== usuario.replace(/^0+(?=\d)/, '') : !usuario.split(/\s+/).every(v => normalizar(s.responsable).includes(v))) return false
+    }
+    if (!filtros.desde && !filtros.hasta) return true
+    const instante = new Date(s.fecha)
+    if (Number.isNaN(instante.valueOf())) return false
+    const partes = new Intl.DateTimeFormat('en', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'America/Guayaquil' }).formatToParts(instante)
+    const fecha = ['year', 'month', 'day'].map(c => partes.find(p => p.type === c)?.value).join('-')
+    return (!filtros.desde || fecha >= filtros.desde) && (!filtros.hasta || fecha <= filtros.hasta)
+  })
 }
