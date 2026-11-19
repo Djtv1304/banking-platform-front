@@ -1,10 +1,10 @@
 import type { MotivoCierre } from '@/features/auth/api/auth.contract'
 import { esMotivoCierre } from '@/features/auth/api/auth.contract'
-import { sanitizeReturnTo } from '@/features/auth/lib/return-to'
+import { sanitizeReturnTo, soloRuta } from '@/features/auth/lib/return-to'
 
 /*
  * Aviso y ruta de vuelta que deben sobrevivir al viaje por el logout de WorkOS (navegación completa
- * que vuelve a /login sin parámetros). Solo en esta pestaña y solo hasta que /login lo lea.
+ * que vuelve a /login sin parámetros). Solo en esta pestaña y solo hasta que /login lo lea. Guarda la ruta sin query ni hash (E0-07).
  */
 
 const CLAVE = 'enquocoop-cierre-pendiente'
@@ -16,7 +16,9 @@ export interface CierrePendiente {
 
 export function guardarCierrePendiente(cierre: CierrePendiente) {
   try {
-    sessionStorage.setItem(CLAVE, JSON.stringify(cierre))
+    // Sólo la ruta: los filtros de la URL no se guardan en el navegador
+    const returnTo = cierre.returnTo === undefined ? undefined : sanitizeReturnTo(soloRuta(cierre.returnTo))
+    sessionStorage.setItem(CLAVE, JSON.stringify({ motivo: cierre.motivo, returnTo }))
   } catch {
     // Sin almacenamiento (modo privado estricto): /login se muestra sin aviso
   }

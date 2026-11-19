@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { sanitizeReturnTo } from '@/features/auth/lib/return-to'
+import { sanitizeReturnTo, soloRuta } from '@/features/auth/lib/return-to'
 
 describe('sanitizeReturnTo', () => {
   it('acepta rutas internas con su query', () => {
@@ -24,5 +24,16 @@ describe('sanitizeReturnTo', () => {
     expect(sanitizeReturnTo('')).toBeUndefined()
     expect(sanitizeReturnTo(null)).toBeUndefined()
     expect(sanitizeReturnTo(undefined)).toBeUndefined()
+  })
+})
+
+describe('soloRuta', () => {
+  it('quita la query y el hash', () => {
+    expect(soloRuta('/clientes?q=ana&cedula=1712345675#fila-2')).toBe('/clientes')
+    expect(soloRuta('/clientes/42#datos')).toBe('/clientes/42')
+  })
+
+  it('deja intacta una ruta sin query', () => {
+    expect(soloRuta('/cuentas/ahorros')).toBe('/cuentas/ahorros')
   })
 })
