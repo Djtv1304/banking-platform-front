@@ -27,7 +27,7 @@ const PUNTO: Record<TonoEstado, string> = {
 function resumenEstado(tono: TonoEstado, vinculado: boolean) {
   if (tono === 'bloqueado') return 'No puede ingresar hasta que lo desbloquees.'
   if (tono === 'inactivo') return 'No puede ingresar hasta que lo actives.'
-  if (tono === 'activo') return vinculado ? 'Puede ingresar a EnquoCoop.' : 'Podrá ingresar en cuanto complete su primer ingreso.'
+  if (tono === 'activo') return vinculado ? 'Puede ingresar al sistema.' : 'Podrá ingresar en cuanto complete su primer ingreso.'
   return 'Revisa este estado con el equipo de backend.'
 }
 
