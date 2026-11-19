@@ -22,7 +22,6 @@ export function ParametrosPage() {
   const seleccionClase = 'rounded-lg border border-border bg-field px-3 py-2 text-sm'
   return <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
     <header><h1 className="flex items-center gap-3 text-[40px] font-bold tracking-tight text-heading"><SlidersHorizontal />Parametros</h1><p className="mt-2 text-muted-foreground">Valores de negocio, programaciones e historial. Las condiciones pasadas se conservan.</p></header>
-    <Link className="w-fit font-semibold text-primary underline underline-offset-4" to="/parametros/comisiones">Comisiones</Link>
     <section className="rounded-3xl border border-border bg-card p-6">
       <form className="mb-6 flex flex-wrap items-end gap-4" onSubmit={e => e.preventDefault()}>
         <label className="flex min-w-60 flex-1 flex-col gap-2 text-sm"><span className="flex items-center gap-2"><Search size={16} />Buscar parametro</span><Input value={buscar} onChange={e => filtrar(setBuscar, e.target.value)} placeholder="Clave o descripcion" /></label>

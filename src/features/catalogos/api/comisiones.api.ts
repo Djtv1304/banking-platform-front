@@ -1,7 +1,17 @@
 import { z } from 'zod'
+import type { QueryClient } from '@tanstack/react-query'
 import { aceptadaSchema, ApiError, apiClient } from '@/shared/api'
 
 const base = '/api/v1/parametros/comisiones'
+export const OPERACION_TARIFA_COMISION = 'PAR-COMISION'
+export const CLAVE_GESTION_COMISIONES = ['catalogos', 'comisiones', 'gestion'] as const
+
+export function invalidarComisiones(cliente: QueryClient) {
+  return Promise.all([
+    cliente.invalidateQueries({ queryKey: ['catalogos', 'comisiones'] }),
+    cliente.invalidateQueries({ queryKey: ['catalogos', 'administracion', 'comisiones'] }),
+  ])
+}
 const estado = z.enum(['A', 'I'])
 const vigencia = { vigenciaDesde: z.iso.date(), vigenciaHasta: z.iso.date().nullable() }
 const comision = z.object({

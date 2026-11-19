@@ -1,5 +1,4 @@
 import { ParametrosPage, ParametroDetallePage } from '@/features/parametros'
-import { ComisionesPage } from '@/features/parametros/pages/ComisionesPage'
 import { PARAMETROS_ROLES } from '@/features/parametros/api/parametros.contract'
 import { PlantillasPage } from '@/features/contabilidad/pages/PlantillasPage'
 import { AprobacionesPage, DetalleAprobacionPage } from '@/features/aprobaciones'
@@ -45,7 +44,7 @@ export const router = createBrowserRouter([
           { element: <RequireRoles allowed={PARAMETROS_ROLES} />, children: [
             { path: '/parametros', element: <ParametrosPage /> },
             { path: '/parametros/:clave', element: <ParametroDetallePage /> },
-            { path: '/parametros/comisiones', element: <ComisionesPage /> },
+            { path: '/parametros/comisiones', element: <Navigate to="/catalogos?catalogo=comisiones" replace /> },
           ] },
           { element: <RequirePermiso permiso={PERMISOS.plantillasEditar} />, children: [
             { path: '/contabilidad/plantillas', element: <PlantillasPage /> },
