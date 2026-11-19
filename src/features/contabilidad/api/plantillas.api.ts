@@ -24,7 +24,11 @@ type Simulacion = {
   lineas: LineaPlantilla[]; montos: Record<string, string>; producto: Record<string, number>;
   contraproducto: Record<string, number>; comision: number | null
 }
-const simulacion = z.object({ total: z.number(), lineas: z.array(z.object({ cuenta: id, lado, monto: z.number() })) })
+// FastAPI puede serializar Decimal como texto. Solo se normaliza para presentación;
+// el cálculo contable continúa en backend con Decimal.
+const importe = z.union([z.number(), z.string().regex(/^-?\d+(?:\.\d+)?$/)])
+  .transform(Number).pipe(z.number().finite())
+const simulacion = z.object({ total: importe, lineas: z.array(z.object({ cuenta: id, lado, monto: importe })) })
 
 export async function listarPlantillas(tipo: number, signal?: AbortSignal) {
   return plantilla.array().parse((await apiClient.get(`${base}/tipos-asiento/${tipo}/plantillas`, { signal })).data)

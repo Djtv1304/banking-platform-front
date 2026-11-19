@@ -5,6 +5,20 @@ import { apiClient } from '@/shared/api'
 vi.mock('@/shared/api', () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }))
 
 describe('versiones de plantillas contables', () => {
+  it('acepta los Decimal como texto devueltos por el backend al simular', async () => {
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: {
+      total: '100.50', lineas: [{ cuenta: 1, lado: 'DEBITO', monto: '100.50' }],
+    } })
+    const entrada = { lineas: [], montos: {}, producto: {}, contraproducto: {}, comision: null }
+    await expect(simularPlantilla(entrada)).resolves.toEqual({
+      total: 100.5, lineas: [{ cuenta: 1, lado: 'DEBITO', monto: 100.5 }],
+    })
+  })
+
+  it.each([null, true, '', 'incorrecto', '1e999'])('rechaza importes inválidos de simulación: %s', async total => {
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { total, lineas: [] } })
+    await expect(simularPlantilla({ lineas: [], montos: {}, producto: {}, contraproducto: {}, comision: null })).rejects.toThrow()
+  })
   it('consulta las versiones publicadas del tipo de asiento seleccionado', async () => {
     const versiones = [{
       IdPlantillaAsiento: 2, CodigoPlantilla: 'RETIRO', Version: 2, Nombre: 'Retiro',
