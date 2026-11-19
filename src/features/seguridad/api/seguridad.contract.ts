@@ -48,5 +48,5 @@ export const pestanaRolesSchema = z.object({
 })
 export type PestanaRoles = z.infer<typeof pestanaRolesSchema>
 
-/** Pestañas que no se personalizan (el backend también las rechaza): un ADMIN no se quita el acceso. */
-export const PESTANAS_FIJAS: readonly string[] = ['/', '/seguridad/roles', '/seguridad/pestanas']
+/** Entradas sin configuración individual por rol. Plantillas usa su permiso de WorkOS. */
+export const PESTANAS_FIJAS: readonly string[] = ['/', '/seguridad/roles', '/seguridad/pestanas', '/contabilidad/plantillas']

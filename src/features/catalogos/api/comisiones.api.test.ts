@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest'
-import { cambiosMetadatos, resultadoComision, tarifaHistorica } from '@/features/parametros/api/comisiones.api'
+import { describe, expect, it, vi } from 'vitest'
+import { QueryClient } from '@tanstack/react-query'
+import { apiClient } from '@/shared/api'
+import { cambiarComision, cambiosMetadatos, CLAVE_GESTION_COMISIONES, invalidarComisiones, resultadoComision, tarifaHistorica } from '@/features/catalogos/api/comisiones.api'
 
 describe('contrato de comisiones E1-12', () => {
   it('conserva el identificador de la aprobación devuelto por PATCH', () => {
@@ -29,5 +31,30 @@ describe('contrato de comisiones E1-12', () => {
     const actual = { descripcion: 'Retiro', estado: 'A' as const, idCuentaContableIngreso: 42 }
     expect(cambiosMetadatos(actual, { ...actual, idCuentaContableIngreso: null })).toEqual({ idCuentaContableIngreso: null })
     expect(cambiosMetadatos(actual, actual)).toEqual({})
+  })
+
+  it('solicita la tarifa por E1-12 sin modificar la tarifa en caché', async () => {
+    const patch = vi.spyOn(apiClient, 'patch').mockResolvedValueOnce({
+      status: 202, data: { idSolicitud: 345, estado: 'Pendiente', requiereAprobacion: true },
+    })
+    try {
+      const entrada = { valor: '0.3750', vigenciaDesde: '2026-12-01' }
+      await expect(cambiarComision(42, entrada)).resolves.toMatchObject({ tipo: 'solicitud', idSolicitud: 345 })
+      expect(patch).toHaveBeenCalledExactlyOnceWith('/api/v1/parametros/comisiones/42', entrada)
+    } finally {
+      patch.mockRestore()
+    }
+  })
+
+  it('invalida la tabla, el catálogo para productos y las consultas de tarifa', async () => {
+    const cliente = new QueryClient()
+    const claves = [
+      ['catalogos', 'administracion', 'comisiones'],
+      ['catalogos', 'comisiones'],
+      [...CLAVE_GESTION_COMISIONES, 42, 'tarifa', '2026-12-01'],
+    ]
+    claves.forEach(clave => cliente.setQueryData(clave, []))
+    await invalidarComisiones(cliente)
+    expect(claves.every(clave => cliente.getQueryState(clave)?.isInvalidated)).toBe(true)
   })
 })

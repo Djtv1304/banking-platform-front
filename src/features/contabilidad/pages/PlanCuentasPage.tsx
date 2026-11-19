@@ -1,6 +1,5 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
-import { Link } from 'react-router'
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando, Checkbox, Input, Label } from '@/shared/ui'
@@ -23,8 +22,7 @@ interface Abiertos {
 
 /** E2-02 · Plan de cuentas (CON-03): CONTADOR, AUDITOR y ADMIN consultan; mantener exige contabilidad:editar */
 export function PlanCuentasPage() {
-  const permisos = usePermisos()
-  const puedeMantener = hasPermission(permisos, PERMISOS.contabilidadEditar)
+  const puedeMantener = hasPermission(usePermisos(), PERMISOS.contabilidadEditar)
   const puedeEliminar = usePuedeFuncion('contabilidad.cuentas.eliminar', puedeMantener)
 
   const plan = usePlanCuentas()
@@ -109,7 +107,6 @@ export function PlanCuentasPage() {
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
       <header>
         <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">Plan de cuentas</h1>
-        {hasPermission(permisos, PERMISOS.plantillasEditar) && <Link className="text-primary underline underline-offset-4" to="/contabilidad/plantillas">Plantillas contables</Link>}
         <p className="mt-2 text-base text-muted-foreground">
           Catálogo de cuentas contables de la cooperativa. Busca una cuenta por código o nombre y revisa su saldo
           {puedeMantener ? ', o crea y mantén las subcuentas propias.' : '. Tienes acceso de solo consulta.'}
