@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import { consultarPlantilla, crearVersion, listarPlantillas, opcionesLinea, prepararLineas, simularPlantilla, type LineaPlantilla } from '@/features/contabilidad/api/plantillas.api'
 import { Aviso, Button, Cargando, ErrorApi, Input } from '@/shared/ui'
 
@@ -7,6 +8,8 @@ const selectClass = 'block w-full rounded-lg border border-border bg-field p-2'
 const clave = ['contabilidad', 'plantillas'] as const
 
 export function PlantillasPage() {
+  const permisos = usePermisos()
+  const puedeEditar = hasPermission(permisos, PERMISOS.plantillasEditar)
   const [tipo, setTipo] = useState(0)
   const [id, setId] = useState(0)
   const lista = useQuery({ queryKey: [...clave, 'tipo', tipo], queryFn: ({ signal }) => listarPlantillas(tipo, signal), enabled: tipo > 0, retry: false })
@@ -37,14 +40,27 @@ export function PlantillasPage() {
       </label>}
       {detalle.isFetching && <Cargando texto="Consultando detalle…" />}
       {detalle.isError && <ErrorApi error={detalle.error} reintentar={() => void detalle.refetch()} />}
-      {detalle.data && <EditorPlantilla key={id} tipo={tipo} plantilla={detalle.data} seleccionar={setId} />}
+      {detalle.data && (
+        <DetallePlantilla
+          key={id}
+          tipo={tipo}
+          plantilla={detalle.data}
+          seleccionar={setId}
+          puedeEditar={puedeEditar}
+        />
+      )}
     </section>
   </main>
 }
 
-function EditorPlantilla({ tipo, plantilla, seleccionar }: {
-  tipo: number; plantilla: Awaited<ReturnType<typeof consultarPlantilla>>; seleccionar: (id: number) => void
-}) {
+interface DetallePlantillaProps {
+  tipo: number
+  plantilla: Awaited<ReturnType<typeof consultarPlantilla>>
+  seleccionar: (id: number) => void
+  puedeEditar: boolean
+}
+
+export function DetallePlantilla({ tipo, plantilla, seleccionar, puedeEditar }: DetallePlantillaProps) {
   const cliente = useQueryClient()
   const [editando, setEditando] = useState(false)
   const [lineas, setLineas] = useState(() => prepararLineas(plantilla))
@@ -64,6 +80,7 @@ function EditorPlantilla({ tipo, plantilla, seleccionar }: {
 
   function enviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!puedeEditar) return
     const datos = new FormData(e.currentTarget)
     const accion = (e.nativeEvent as SubmitEvent).submitter?.getAttribute('value')
     if (accion === 'guardar') {
@@ -79,11 +96,20 @@ function EditorPlantilla({ tipo, plantilla, seleccionar }: {
   return <div className="space-y-4 border-t border-border pt-4">
     <h2 className="text-lg font-semibold">{plantilla.Nombre} · versión {plantilla.Version}</h2>
     <p>Inicio de vigencia {plantilla.VigenciaDesde}{plantilla.VigenciaHasta && ` · Fin ${plantilla.VigenciaHasta}`} · {plantilla.Estado ? 'Aprobada' : 'Pendiente'}</p>
-    {!editando && <>
-      <ol className="list-decimal space-y-1 pl-6">{lineas.map((linea, i) => <li key={i}>{linea.lado} · {linea.base} · {linea.origen} {linea.cuenta ?? linea.rol}</li>)}</ol>
-      <Button type="button" onClick={() => setEditando(true)}>Preparar nueva versión</Button>
+    {(!editando || !puedeEditar) && <>
+      {!puedeEditar && (
+        <p className="text-muted-foreground">Acceso de solo consulta. Puedes revisar las versiones y sus líneas.</p>
+      )}
+      <ol className="list-decimal space-y-1 pl-6">
+        {prepararLineas(plantilla).map((linea, i) => (
+          <li key={i}>{linea.lado} · {linea.base} · {linea.origen} {linea.cuenta ?? linea.rol}</li>
+        ))}
+      </ol>
+      {puedeEditar && (
+        <Button type="button" onClick={() => setEditando(true)}>Preparar nueva versión</Button>
+      )}
     </>}
-    {editando && <form className="space-y-4" onSubmit={enviar}>
+    {editando && puedeEditar && <form className="space-y-4" onSubmit={enviar}>
       <fieldset className="space-y-4" disabled={version.isPending || simulacion.isPending}>
         <legend className="font-semibold">Líneas de la nueva versión</legend>
         {lineas.map((linea, i) => <fieldset key={i} className="grid items-end gap-2 rounded-lg border border-border p-3 md:grid-cols-5">
