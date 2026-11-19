@@ -232,7 +232,7 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
                             Ficha
                           </Link>
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setParametrizar(sub)} aria-label={`Parámetros de ${sub.codigoSubProducto}`}>
+                        <Button variant="ghost" size="sm" onClick={() => sub.estadoCatalogo === 'Borrador' ? setParametrizar(sub) : navegar(`/productos/subproductos/${sub.idSubProducto}/condiciones`)} aria-label={`Parámetros de ${sub.codigoSubProducto}`}>
                           <SlidersHorizontal />
                           Parámetros
                         </Button>

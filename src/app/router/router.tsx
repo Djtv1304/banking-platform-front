@@ -11,6 +11,7 @@ import {
   DetalleProductoPage,
   FichaSubProductoPage,
   ProductosPage,
+  ProgramacionSubProductoPage,
 } from '@/features/organizacion'
 import { CATALOGOS_ROLES, CatalogosPage } from '@/features/catalogos'
 import { DetalleUsuarioPage, UsuariosPage, ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
@@ -107,6 +108,7 @@ export const router = createBrowserRouter([
               { path: '/productos', element: <ProductosPage /> },
               { path: '/productos/:idProducto', element: <DetalleProductoPage /> },
               { path: '/productos/subproductos/:idSubProducto/ficha', element: <FichaSubProductoPage /> },
+              { path: '/productos/subproductos/:idSubProducto/condiciones', element: <ProgramacionSubProductoPage /> },
             ],
           },
           {

@@ -1,8 +1,9 @@
 import { aceptadaSchema, apiClient, ApiError } from '@/shared/api'
-import { accesosSchema, bandejaSchema, detalleSchema, resultadoSchema, type Accion, type BandejaNombre, type SolicitudEntrada } from '@/features/aprobaciones/api/aprobaciones.contract'
+import { accesosSchema, bandejaSchema, detalleSchema, notificacionesSchema, resultadoSchema, type Accion, type BandejaNombre, type SolicitudEntrada } from '@/features/aprobaciones/api/aprobaciones.contract'
 
 const BASE = '/api/v1/aprobaciones'
 export async function obtenerAccesos() { return accesosSchema.parse((await apiClient.get(`${BASE}/accesos`)).data) }
+export async function obtenerNotificaciones() { return notificacionesSchema.parse((await apiClient.get(`${BASE}/notificaciones`)).data) }
 export async function obtenerBandeja(bandeja: BandejaNombre, page: number) { return bandejaSchema.parse((await apiClient.get(BASE, { params: { bandeja, page, pageSize: 20 } })).data) }
 export async function obtenerSolicitud(id: number) { return detalleSchema.parse((await apiClient.get(`${BASE}/${id}`)).data) }
 export async function resolverSolicitud(id: number, accion: Accion, comentario: string) { return resultadoSchema.parse((await apiClient.post(`${BASE}/${id}/${accion}`, { comentario })).data) }
