@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useAuthStore } from '@/features/auth'
+import { useAuthStore, usePuedeFuncion } from '@/features/auth'
 import { toApiError } from '@/shared/api'
 import { Aviso, AvisoRequiereAprobacion, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, LineaDeTiempo } from '@/shared/ui'
 import { consultarVigencias, programarConjunto, cancelarConjunto, finalizarRestriccion } from '@/features/organizacion/api/programacion.api'
@@ -17,6 +17,8 @@ export function ProgramacionSubProductoPage() {
   const { idSubProducto = '' } = useParams(), id = Number(idSubProducto)
   const valido = Number.isSafeInteger(id) && id > 0
   const usuario = useAuthStore(s => s.user)
+  const permisoCondicion = Boolean(usuario?.roles.includes('ADMIN') && usuario.permisos.includes('prd-condicion'))
+  const puedeProgramar = usePuedeFuncion('productos.programar', permisoCondicion) && permisoCondicion
   const cliente = useQueryClient()
   const ficha = useQuery({ queryKey: ['productos', 'ficha', id], queryFn: () => obtenerFicha(id), enabled: valido })
   const vigencias = useQuery({ queryKey: ['productos', 'vigencias', id], queryFn: ({ signal }) => consultarVigencias(id, signal), enabled: valido })
@@ -33,7 +35,7 @@ export function ProgramacionSubProductoPage() {
   if (ficha.isError || vigencias.isError) return <Aviso tono="error">{toApiError(ficha.error ?? vigencias.error).message}</Aviso>
   const data = vigencias.data, tipo = ficha.data.producto.tipoProducto
   const pendientes = data.solicitudes.filter(s => s.estado === 'Pendiente' || s.estado === 'Aprobada')
-  const puede = usuario?.roles.includes('ADMIN') && usuario.permisos.includes('prd-condicion') && ficha.data.subproducto.estadoCatalogo !== 'Retirado'
+  const puede = puedeProgramar && ficha.data.subproducto.estadoCatalogo !== 'Retirado'
   const tabs: ClaseConjunto[] = tipo === 'Cuenta' ? ['condiciones', 'cupos', 'restricciones'] : tipo === 'Tarjeta' ? ['condiciones', 'cupos'] : ['condiciones']
   const filas = filasDeVigencia(data, tab, canales.data ?? [])
   const actuales = filas.filter(v => v.estado === 'Vigente')

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toApiError } from '@/shared/api'
-import { useAuthStore } from '@/features/auth'
+import { useAuthStore, usePuedeFuncion } from '@/features/auth'
 import { Aviso, AvisoRequiereAprobacion, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui'
 import { consultarVigencias, programarConjunto } from '@/features/organizacion/api/programacion.api'
 import { obtenerCupos } from '@/features/organizacion/api/productos.api'
@@ -61,6 +61,10 @@ export function ParametrosSubProductoDialog({ producto, subproducto, soloLectura
 function DatosBorrador({ producto, subproducto, soloLectura, onCerrar, onGuardado }: Omit<ParametrosSubProductoDialogProps, 'subproducto'> & { subproducto: SubProductoAdmin }) {
   const id = subproducto.idSubProducto, cliente = useQueryClient()
   const usuario = useAuthStore(s => s.user)
+  const puedeEditar = usePuedeFuncion('productos.editar', !soloLectura)
+  const puedeVincular = usePuedeFuncion('productos.configurar', !soloLectura)
+  const permisoCondicion = Boolean(usuario?.roles.includes('ADMIN') && usuario.permisos.includes('prd-condicion'))
+  const puedeProgramar = usePuedeFuncion('productos.programar', permisoCondicion) && permisoCondicion
   const vigencias = useQuery({ queryKey: ['productos', 'vigencias', id], queryFn: ({ signal }) => consultarVigencias(id, signal) })
   const canales = useQuery({ queryKey: ['productos', 'cupos', id], queryFn: () => obtenerCupos(id), enabled: producto.tipoProducto !== 'Credito' })
   const [solicitud, setSolicitud] = useState<number | null>(null)
@@ -68,20 +72,20 @@ function DatosBorrador({ producto, subproducto, soloLectura, onCerrar, onGuardad
   if (vigencias.isPending) return <Cargando texto="Cargando parametros del borrador..." />
   if (vigencias.isError) return <Aviso tono="error">{toApiError(vigencias.error).message}</Aviso>
   const pendiente = vigencias.data.solicitudes.some(s => s.estado === 'Pendiente' || s.estado === 'Aprobada')
-  const bloqueado = soloLectura || pendiente || subproducto.estadoCatalogo !== 'Borrador'
+  const bloqueado = pendiente || subproducto.estadoCatalogo !== 'Borrador'
   const clases: ClaseConjunto[] = producto.tipoProducto === 'Cuenta' ? ['condiciones', 'cupos', 'restricciones'] : producto.tipoProducto === 'Tarjeta' ? ['condiciones', 'cupos'] : ['condiciones']
   const nombres = { condiciones: 'Condiciones', cupos: 'Cupos por canal', restricciones: 'Restricciones' }
   return <>
     {solicitud && <AvisoRequiereAprobacion idSolicitud={solicitud} />}
     {pendiente && <Aviso>Este borrador tiene una solicitud pendiente. Espera su resolucion para continuar configurandolo.</Aviso>}
-    <SeccionElegibilidad subproducto={subproducto} soloLectura={bloqueado} onGuardado={onGuardado} />
+    <SeccionElegibilidad subproducto={subproducto} soloLectura={bloqueado || !puedeEditar} onGuardado={onGuardado} />
     {clases.map(clase => <details key={clase} className="rounded-2xl border border-border p-4"><summary className="cursor-pointer font-semibold">{nombres[clase]}</summary><div className="mt-4">
-      {clase === 'cupos' && canales.isError ? <Aviso tono="error">{toApiError(canales.error).message}</Aviso> : clase === 'cupos' && canales.isPending ? <Cargando texto="Cargando canales..." /> : <fieldset disabled={bloqueado || programar.isPending || !usuario?.permisos.includes('prd-condicion')}>
+      {clase === 'cupos' && canales.isError ? <Aviso tono="error">{toApiError(canales.error).message}</Aviso> : clase === 'cupos' && canales.isPending ? <Cargando texto="Cargando canales..." /> : <fieldset disabled={bloqueado || programar.isPending || !puedeProgramar}>
         {programar.isError && <Aviso tono="error">{toApiError(programar.error).message}</Aviso>}
         <ProgramacionForm clase={clase} fecha={vigencias.data.fechaConsulta} vigencias={vigencias.data} canales={canales.data ?? []} ocupado={programar.isPending} onEnviar={datos => programar.mutate({ clase, datos })} onCerrar={onCerrar} />
       </fieldset>}
     </div></details>)}
-    <SeccionVinculos producto={producto} destino={{ tipo: 'subproducto', id }} soloLectura={bloqueado} onGuardado={onGuardado} />
+    <SeccionVinculos producto={producto} destino={{ tipo: 'subproducto', id }} soloLectura={bloqueado || !puedeVincular} onGuardado={onGuardado} />
   </>
 }
 
