@@ -38,7 +38,6 @@ function mostrar(funciones: string[], permisos: string[] = []) {
     plantilla={plantilla}
     seleccionar={vi.fn()}
     puedeEditar={acciones.includes('plantillasEditar')}
-    puedeVerPlan={funciones.includes('contabilidad.cuentas.consultar')}
   /></MemoryRouter>)
 }
 
@@ -75,8 +74,8 @@ describe('consulta y edición de Plantillas por función', () => {
     expect(accionesPermitidas(['CONTADOR'], ['con-plantilla-editar'])).toContain('plantillasEditar')
   })
 
-  it('no ofrece volver a Plan de cuentas si solo se concedió Plantillas', () => {
+  it('conserva la retirada del enlace redundante a Plan de cuentas de develop', () => {
     expect(mostrar([consulta])).not.toContain('href="/contabilidad"')
-    expect(mostrar([consulta, 'contabilidad.cuentas.consultar'])).toContain('href="/contabilidad"')
+    expect(mostrar([consulta, 'contabilidad.cuentas.consultar'])).not.toContain('href="/contabilidad"')
   })
 })

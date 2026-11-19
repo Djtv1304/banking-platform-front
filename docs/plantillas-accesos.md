@@ -4,7 +4,7 @@ La ruta `/contabilidad/plantillas` y su entrada bajo Cuentas contables usan `con
 
 `contabilidad.plantillas.editar` controla preparar una versión, editar sus líneas, simular y enviar la nueva versión pendiente. Su valor inicial conserva CONTADOR según la matriz previa. Sin edición, la ficha muestra las líneas persistidas como lectura. Si el acceso cambia durante la edición, los controles se ocultan y el manejador no envía escrituras; backend vuelve a autorizar cada petición.
 
-Con el control desactivado, menú y ruta conservan la autorización anterior por `con-plantilla-editar`. La función nueva no obliga a crear permisos en WorkOS. El enlace de regreso al Plan de cuentas solo aparece cuando se puede consultar ese módulo.
+Con el control desactivado, menú y ruta conservan la autorización anterior por `con-plantilla-editar`. La función nueva no obliga a crear permisos en WorkOS. Se conserva la retirada del enlace redundante al Plan de cuentas ya integrada en develop.
 
 Las respuestas de simulación admiten importes numéricos o texto decimal, como los que devuelve FastAPI. Se normalizan para presentación, rechazando valores inválidos; los cálculos financieros siguen ejecutándose con Decimal en backend.
 

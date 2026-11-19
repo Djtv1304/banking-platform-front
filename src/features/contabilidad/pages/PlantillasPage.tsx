@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router'
-import { hasPermission, PERMISOS, useAuthStore, usePuedeFuncion, usePermisos } from '@/features/auth'
+import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import { consultarPlantilla, crearVersion, listarPlantillas, opcionesLinea, prepararLineas, simularPlantilla, type LineaPlantilla } from '@/features/contabilidad/api/plantillas.api'
 import { Aviso, Button, Cargando, ErrorApi, Input } from '@/shared/ui'
 
@@ -11,11 +10,6 @@ const clave = ['contabilidad', 'plantillas'] as const
 export function PlantillasPage() {
   const permisos = usePermisos()
   const puedeEditar = hasPermission(permisos, PERMISOS.plantillasEditar)
-  const roles = useAuthStore(state => state.user?.roles ?? [])
-  const puedeVerPlan = usePuedeFuncion(
-    'contabilidad.cuentas.consultar',
-    roles.some(rol => ['ADMIN', 'CONTADOR', 'AUDITOR'].includes(rol)),
-  )
   const [tipo, setTipo] = useState(0)
   const [id, setId] = useState(0)
   const lista = useQuery({ queryKey: [...clave, 'tipo', tipo], queryFn: ({ signal }) => listarPlantillas(tipo, signal), enabled: tipo > 0, retry: false })
@@ -53,7 +47,6 @@ export function PlantillasPage() {
           plantilla={detalle.data}
           seleccionar={setId}
           puedeEditar={puedeEditar}
-          puedeVerPlan={puedeVerPlan}
         />
       )}
     </section>
@@ -65,10 +58,9 @@ interface DetallePlantillaProps {
   plantilla: Awaited<ReturnType<typeof consultarPlantilla>>
   seleccionar: (id: number) => void
   puedeEditar: boolean
-  puedeVerPlan: boolean
 }
 
-export function DetallePlantilla({ tipo, plantilla, seleccionar, puedeEditar, puedeVerPlan }: DetallePlantillaProps) {
+export function DetallePlantilla({ tipo, plantilla, seleccionar, puedeEditar }: DetallePlantillaProps) {
   const cliente = useQueryClient()
   const [editando, setEditando] = useState(false)
   const [lineas, setLineas] = useState(() => prepararLineas(plantilla))
@@ -149,6 +141,5 @@ export function DetallePlantilla({ tipo, plantilla, seleccionar, puedeEditar, pu
       {simulacion.isError && <ErrorApi error={simulacion.error} />}
       {simulacion.data && <Aviso><p>Total de débitos: {simulacion.data.total}</p><ul>{simulacion.data.lineas.map((l, i) => <li key={i}>{l.lado} · Cuenta {l.cuenta} · {l.monto}</li>)}</ul></Aviso>}
     </form>}
-    {puedeVerPlan && <Link className="text-primary underline" to="/contabilidad">Plan de cuentas</Link>}
   </div>
 }
