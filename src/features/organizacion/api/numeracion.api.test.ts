@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiClient } from '@/shared/api'
-import { obtenerNumeracion, previsualizarNumeracion, solicitarNumeracion } from './numeracion.api'
-import { reglaNumeracionSchema } from './numeracion.contract'
+import { obtenerNumeracion, previsualizarNumeracion, solicitarNumeracion } from '@/features/organizacion/api/numeracion.api'
+import { reglaNumeracionSchema } from '@/features/organizacion/api/numeracion.contract'
 
 vi.mock('@/shared/api', async importOriginal => {
   const original = await importOriginal<typeof import('@/shared/api')>()
