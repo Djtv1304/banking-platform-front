@@ -54,9 +54,17 @@ describe('bloqueosCuenta', () => {
     }
   })
 
-  it('una cuenta propia sin saldo ni subcuentas admite todo', () => {
-    expect(bloqueosCuenta(cuenta('21014001'), false)).toEqual({
-      nuevaSubcuenta: null,
+  it('solo se crean subcuentas bajo una cuenta de 6 dígitos', () => {
+    expect(bloqueosCuenta(cuenta('210140'), false).nuevaSubcuenta).toBeNull()
+    expect(bloqueosCuenta(cuenta('2101'), false).nuevaSubcuenta).toMatch(/catálogo del regulador/)
+    expect(bloqueosCuenta(cuenta('21014001'), false).nuevaSubcuenta).toBe(
+      'Las subcuentas que se crean son de 8 dígitos y van bajo una cuenta de 6: créala bajo 210140.',
+    )
+    expect(bloqueosCuenta(cuenta('2101400101'), false).nuevaSubcuenta).toMatch(/bajo 210140\./)
+  })
+
+  it('una cuenta propia de 8 dígitos sin saldo ni subcuentas admite todo menos subcuentas', () => {
+    expect(bloqueosCuenta(cuenta('21014001'), false)).toMatchObject({
       renombrar: null,
       cambiarEstado: null,
       eliminar: null,

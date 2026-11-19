@@ -20,7 +20,7 @@ import {
 import { CampoCuenta, inputCuentaClassName } from '@/features/contabilidad/components/CampoCuenta'
 import { useCrearCuenta } from '@/features/contabilidad/hooks/useMantenimientoCuentas'
 import type { NodoCuenta } from '@/features/contabilidad/lib/arbol'
-import { LARGO_MAXIMO_CODIGO, etiquetaNaturaleza } from '@/features/contabilidad/lib/cuenta-contable'
+import { LARGO_CODIGO_SUBCUENTA, etiquetaNaturaleza } from '@/features/contabilidad/lib/cuenta-contable'
 import {
   LARGO_MAXIMO_NOMBRE,
   siguienteCodigoLibre,
@@ -90,11 +90,15 @@ function FormularioSubcuenta({ padre, onCancelar, onHecho }: { padre: NodoCuenta
   }
 
   const ayudaCodigo = siguienteLibre
-    ? `Es ${codigoPadre} más 2 dígitos (01 a 99). Siguiente libre: ${siguienteLibre}.`
+    ? `Son ${LARGO_CODIGO_SUBCUENTA} dígitos: ${codigoPadre} más 2 (01 a 99). Siguiente libre: ${siguienteLibre}.`
     : undefined
 
   return (
     <form onSubmit={handleSubmit(guardar)} noValidate className="flex flex-col gap-5">
+      {padre.cuenta.esImputable && (
+        <Aviso>{`La cuenta ${codigoPadre} dejará de recibir movimientos: los recibirán sus subcuentas.`}</Aviso>
+      )}
+
       {siguienteLibre === null && (
         <Aviso tono="error">{`La cuenta ${codigoPadre} no admite más subcuentas: ya no quedan códigos libres bajo ella.`}</Aviso>
       )}
@@ -104,7 +108,7 @@ function FormularioSubcuenta({ padre, onCancelar, onHecho }: { padre: NodoCuenta
           id="subcuenta-codigo"
           inputMode="numeric"
           autoComplete="off"
-          maxLength={LARGO_MAXIMO_CODIGO}
+          maxLength={LARGO_CODIGO_SUBCUENTA}
           className={`${inputCuentaClassName} font-mono`}
           {...a11yCampoCuenta('subcuenta-codigo', errors.codigoCuenta?.message, ayudaCodigo)}
           {...register('codigoCuenta')}

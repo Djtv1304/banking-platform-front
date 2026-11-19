@@ -9,8 +9,11 @@ export const mensajeResultado = (pendiente: boolean, hecho: string) =>
   pendiente ? 'Solicitud enviada a aprobación: el cambio se verá en el plan cuando la aprueben.' : hecho
 
 const MENSAJES: Record<string, string> = {
-  CODIGO_NO_CORRESPONDE_AL_PADRE: 'El código debe empezar por el código de la cuenta superior y tener más dígitos.',
+  CODIGO_NO_CORRESPONDE_AL_PADRE: 'El código debe empezar por el de la cuenta superior y tener 8 dígitos.',
   CODIGO_DUPLICADO: 'Ya existe una cuenta con ese código.',
+  CUENTA_SUPERIOR_CON_MOVIMIENTOS: 'La cuenta superior ya tiene movimientos o saldo: no se le pueden crear subcuentas.',
+  CUENTA_SUPERIOR_NO_ENCONTRADA: 'La cuenta superior ya no existe. Recarga el plan de cuentas.',
+  DB_51100: 'La cuenta superior recibe movimientos y no admite subcuentas.',
   CUENTA_CON_SALDO: 'La cuenta tiene saldo distinto de cero: no se puede desactivar ni eliminar.',
   CUENTA_EN_USO: 'La cuenta tiene movimientos o se usa en la configuración contable: no se puede eliminar. Desactívala si ya no debe usarse.',
   CUENTA_CONTABLE_NO_ENCONTRADA: 'La cuenta ya no existe. Recarga el plan de cuentas.',
