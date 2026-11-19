@@ -77,7 +77,6 @@ export function RolesAccesosPage({ roles, seccionesParaRol }: RolesAccesosPagePr
         <div><h2 className="font-semibold text-heading">Editor principal de accesos</h2><p className="mt-1 text-sm text-muted-foreground">Concede o retira consultas y operaciones por rol. Revisa los cambios y el motivo antes de guardarlos.</p></div>
         <Button asChild className="min-h-11 rounded-xl"><Link to="/seguridad/pestanas">Editar accesos por función<ArrowRight aria-hidden /></Link></Button>
       </section>
-      <p className="text-sm text-muted-foreground">Los permisos que aún utiliza WorkOS se administran por separado en <Link to="/seguridad/workos" className="font-semibold text-link underline underline-offset-4">WorkOS avanzado</Link>.</p>
 
       {roles.length === 0 ? (
         <Aviso>No hay roles disponibles para consultar.</Aviso>

@@ -31,11 +31,11 @@ El backend debe incluir el contrato y la migración de `Seguridad.AccesoFuncionR
 
 La demo y sus interruptores de fallo permanecen fuera de este repositorio. No forman parte del código publicable ni sustituyen la validación posterior con identidad real.
 
-## Separación local de la administración de WorkOS
+## Retirada de WorkOS avanzado de la interfaz
 
-La propuesta local deja `/seguridad/roles` como consulta de roles y usuarios, con un acceso destacado al editor principal `/seguridad/pestanas`. Catálogo y Asignación se conservan en `/seguridad/workos`, reservado a ADMIN y excluido de la personalización de menú. No se eliminan sus APIs ni se cambian permisos del proveedor.
+`/seguridad/roles` conserva la consulta de roles y usuarios y el acceso al editor principal `/seguridad/pestanas`. Se retiran la pantalla WorkOS avanzado, su entrada de menú, enlaces, exportación y registro de ruta. Las URLs antiguas `/seguridad/workos` y su variante `?vista=asignacion` siguen la redirección general a Inicio; ninguna personalización del menú las vuelve a crear.
 
-Catálogo mantiene definiciones en WorkOS; una definición nueva no añade por sí misma una API ni una función al editor SQL. Asignación vincula esas definiciones a roles. Las operaciones que comprueban un permiso existente siguen necesitándolo, aunque se retiraran estos formularios del frontend.
+WorkOS continúa proporcionando el login, MFA, identidad y roles. Las consultas compartidas, los contratos HTTP y las APIs del backend se conservan. Esta retirada de pantalla no modifica la configuración del proveedor, asignaciones, permisos de personas ni el estado del control por funciones.
 
 Dependencias confirmadas en backend:
 
@@ -45,4 +45,4 @@ Dependencias confirmadas en backend:
 - `con-reclasificacion-preparar` y `con-reclasificacion-aprobar`: preparación y aprobación de reclasificaciones, en `modules/contabilidad/corte_workos.py`.
 - Los permisos `prd-*` y `con-cuenta-editar` siguen siendo relevantes con el modelo nuevo desactivado. Con el control activo, solo las operaciones exactamente clasificadas utilizan la decisión por funciones; las restantes conservan sus guardas anteriores.
 
-El nuevo apartado avanzado explica el estado activo/desactivado usando la sesión del backend. Crear, editar, borrar y asignar siguen siendo las implementaciones existentes; su reubicación no acredita una escritura real en WorkOS. La demo ofrece datos de lectura ficticios para revisar su presentación y mantiene bloqueadas las escrituras hacia el proveedor.
+Los permisos de procesos todavía no migrados mantienen su administración técnica en WorkOS y sus verificaciones anteriores. Esta tarea no unifica esas integraciones ni retira los escritores del backend. Los componentes internos y adaptadores HTTP anteriores se conservan sin una pantalla que los monte; la retirada no supone una revocación de sus endpoints. La demo usa identidad simulada y bloquea conexiones al proveedor y a SQL externo.

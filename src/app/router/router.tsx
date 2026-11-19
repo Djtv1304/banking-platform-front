@@ -14,7 +14,7 @@ import {
 } from '@/features/organizacion'
 import { CATALOGOS_ROLES, CatalogosPage } from '@/features/catalogos'
 import { DetalleUsuarioPage, UsuariosPage, ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
-import { FuncionesRolPage, RolesAccesosPage, WorkOSAvanzadoPage, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
+import { FuncionesRolPage, RolesAccesosPage, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
 import { getRoleNavigation } from '@/app/navigation/navigation'
 import { BOVEDA_ROLES, BovedasPage, DetalleBovedaPage, DetalleSolicitudPage } from '@/features/boveda'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
@@ -141,7 +141,6 @@ export const router = createBrowserRouter([
             children: [
               { path: '/seguridad/roles', element: <RolesAccesosPage roles={ROLES_USUARIO} seccionesParaRol={getRoleNavigation} /> },
               { path: '/seguridad/pestanas', element: <FuncionesRolPage /> },
-              { path: '/seguridad/workos', element: <WorkOSAvanzadoPage roles={ROLES_USUARIO} /> },
             ],
           },
           {

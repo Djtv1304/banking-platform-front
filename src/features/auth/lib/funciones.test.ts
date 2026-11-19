@@ -11,12 +11,13 @@ const politica: NonNullable<MeResponse['autorizacion']> = {
   version: 'a'.repeat(64), activa: true, funciones: ['clientes.registrar'], rutas: ['/', '/registrar-cliente'],
 }
 describe('Funciones efectivas compartidas por la interfaz', () => {
-  it('mantiene WorkOS avanzado reservado a ADMIN incluso con una personalización de menú', () => {
+  it.each(['ADMIN', 'SUPERVISOR', 'ASESOR', 'CAJERO', 'CONTADOR', 'AUDITOR', 'APROBADOR_CREDITO'])('no recupera la pantalla retirada para %s con una personalización antigua', (rol) => {
     const personalizacion = { '/seguridad/workos': ['SUPERVISOR'] }
-    const rutas = (rol: string) => getVisibleSections(getAccessProfile([rol]), [rol], [], personalizacion, undefined, {}, politica)
-      .flatMap((s) => s.items.map((i) => i.to))
-    expect(rutas('ADMIN')).toContain('/seguridad/workos')
-    expect(rutas('SUPERVISOR')).not.toContain('/seguridad/workos')
+    for (const autorizacion of [undefined, { ...politica, rutas: [...politica.rutas, '/seguridad/workos'] }]) {
+      const rutas = getVisibleSections(getAccessProfile([rol]), [rol], [], personalizacion, undefined, {}, autorizacion)
+        .flatMap((s) => s.items.map((i) => i.to))
+      expect(rutas).not.toContain('/seguridad/workos')
+    }
   })
   it('permite conceder y retirar independientemente de los permisos anteriores', () => {
     expect(permiteFuncion(politica, 'clientes.registrar', false)).toBe(true)

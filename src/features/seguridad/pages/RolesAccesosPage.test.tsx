@@ -4,8 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { RolesAccesosPage } from '@/features/seguridad/pages/RolesAccesosPage'
 
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
-vi.mock('@/features/seguridad/components/CatalogoPermisos', () => ({ CatalogoPermisos: () => <p>catalogo-permisos</p> }))
-vi.mock('@/features/seguridad/components/AsignacionPermisos', () => ({ AsignacionPermisos: () => <p>asignacion-permisos</p> }))
 vi.mock('@/features/seguridad/hooks/useConfiguracionAccesos', () => ({
   useConfiguracionAccesos: () => ({ data: { pestanas: [{ pestana: '/clientes-busqueda', roles: ['ADMIN'] }] }, isPending: false, refetch: vi.fn() }),
 }))
@@ -34,7 +32,8 @@ describe('Roles y accesos de consulta', () => {
     expect(salida).not.toContain('org-admin') // el bloque de roles muestra solo el nombre
     expect(salida).toContain('/seguridad/pestanas')
     expect(salida).toContain('Editar accesos por función')
-    expect(salida).toContain('/seguridad/workos')
+    expect(salida).not.toContain('/seguridad/workos')
+    expect(salida).not.toContain('WorkOS avanzado')
     expect(salida).not.toContain('>Permisos</h2>')
     expect(salida).not.toContain('catalogo-permisos')
     expect(salida).not.toContain('asignacion-permisos')

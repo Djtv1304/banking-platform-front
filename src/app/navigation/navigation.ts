@@ -117,7 +117,6 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
       },
       { to: '/seguridad/pestanas', label: 'Accesos por función', Icon: ShieldCheck, roles: ROLES_CONSULTA_ROLES },
       { to: '/seguridad/roles', label: 'Roles y accesos', Icon: ShieldCheck, roles: ROLES_CONSULTA_ROLES },
-      { to: '/seguridad/workos', label: 'WorkOS avanzado', Icon: ShieldCheck, roles: ROLES_CONSULTA_ROLES },
     ],
   },
 ]
