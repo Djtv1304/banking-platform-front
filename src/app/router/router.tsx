@@ -1,4 +1,7 @@
 import { ParametrosPage, ParametroDetallePage } from '@/features/parametros'
+import { ComisionesPage } from '@/features/parametros/pages/ComisionesPage'
+import { PARAMETROS_ROLES } from '@/features/parametros/api/parametros.contract'
+import { PlantillasPage } from '@/features/contabilidad/pages/PlantillasPage'
 import { AprobacionesPage, DetalleAprobacionPage } from '@/features/aprobaciones'
 import { createBrowserRouter, Navigate } from 'react-router'
 
@@ -39,7 +42,14 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/', element: <HomePage /> },
-          { element: <RequireRoles allowed={['ADMIN', 'SUPERVISOR', 'ASESOR']} />, children: [{ path: '/parametros', element: <ParametrosPage /> }, { path: '/parametros/:clave', element: <ParametroDetallePage /> }] },
+          { element: <RequireRoles allowed={PARAMETROS_ROLES} />, children: [
+            { path: '/parametros', element: <ParametrosPage /> },
+            { path: '/parametros/:clave', element: <ParametroDetallePage /> },
+            { path: '/parametros/comisiones', element: <ComisionesPage /> },
+          ] },
+          { element: <RequirePermiso permiso={PERMISOS.plantillasEditar} />, children: [
+            { path: '/contabilidad/plantillas', element: <PlantillasPage /> },
+          ] },
           { path: '/aprobaciones', element: <AprobacionesPage /> },
           { path: '/aprobaciones/:idSolicitud', element: <DetalleAprobacionPage /> },
           {

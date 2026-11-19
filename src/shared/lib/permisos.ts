@@ -23,6 +23,7 @@ const ESCRITURAS = {
   tarjetasEmitir: { roles: ['ASESOR', 'ADMIN'] },
   tarjetasEstado: { roles: ['ASESOR', 'SUPERVISOR', 'ADMIN'] },
   contabilidadEditar: { roles: ['CONTADOR'] },
+  plantillasEditar: { permiso: 'con-plantilla-editar' },
   cajaOperar: { roles: ['CAJERO'] },
   cajaAutorizar: { roles: ['SUPERVISOR'] },
   bovedaOperar: { roles: ['SUPERVISOR', 'ADMIN'] },
