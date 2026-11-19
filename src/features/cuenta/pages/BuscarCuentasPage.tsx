@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 
-import { toApiError } from '@/shared/api'
-import { Paginacion } from '@/shared/ui'
+import { Paginacion, ErrorApi } from '@/shared/ui'
 import type { Cuenta } from '@/features/cuenta/api/cuentas.contract'
 import { Aviso, Cargando } from '@/features/cuenta/components/Aviso'
 import { EstadoCuentaBadge } from '@/features/cuenta/components/EstadoCuentaBadge'
@@ -34,10 +33,10 @@ export function BuscarCuentasPage() {
   }
 
   const resultado = (() => {
-    if (cliente.isError) return <Aviso tono="error">{toApiError(cliente.error).message}</Aviso>
+    if (cliente.isError) return <ErrorApi error={cliente.error} />
     if (cliente.isLoading) return <Cargando texto="Buscando al cliente…" />
     if (identificacion && cliente.data === null) return <Aviso>No hay un cliente con esa identificación.</Aviso>
-    if (cuentas.isError) return <Aviso tono="error">{toApiError(cuentas.error).message}</Aviso>
+    if (cuentas.isError) return <ErrorApi error={cuentas.error} />
     if (cuentas.isPending) return <Cargando texto="Buscando cuentas…" />
     if (cuentas.data.items.length === 0) return <Aviso>No se encontraron cuentas con esos filtros.</Aviso>
 

@@ -4,8 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '@/features/auth'
-import { toApiError } from '@/shared/api'
-import { Aviso, AvisoRequiereAprobacion, LineaDeTiempo, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input } from '@/shared/ui'
+import { Aviso, AvisoRequiereAprobacion, LineaDeTiempo, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, ErrorApi } from '@/shared/ui'
 import { cancelarValor, consultarParametro, programarValor } from '@/features/parametros/api/parametros.api'
 import { entradaSchema, type EntradaValor, type Parametro, type ValorParametro } from '@/features/parametros/api/parametros.contract'
 import { hoyEcuador, validarValor } from '@/features/parametros/lib/validacion'
@@ -24,7 +23,7 @@ export function ParametroDetallePage() {
   const refrescar = () => cliente.invalidateQueries({ queryKey: ['parametros'] })
   const cancelacion = useMutation({ mutationFn: (v: ValorParametro) => cancelarValor(clave, v.idParametroValor, v.idAgencia), onSuccess: () => { setCancelar(null); setMensaje('Programacion cancelada. El valor anterior se conserva.'); void refrescar() } })
   if (parametro.isPending) return <Cargando texto="Cargando detalle del parametro..." />
-  if (parametro.isError) return <Aviso tono="error">{toApiError(parametro.error).message}</Aviso>
+  if (parametro.isError) return <ErrorApi error={parametro.error} />
   const p = parametro.data
   const puedeEditar = p.puedeEditar && p.estado === 'A'
   return <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -38,7 +37,7 @@ export function ParametroDetallePage() {
     <section className="rounded-3xl border border-border bg-card p-6"><h2 className="mb-4 text-xl font-semibold">Proximos valores</h2>{p.valoresProgramados.length === 0 ? <p className="text-muted-foreground">Sin valores programados aprobados.</p> : <ul className="space-y-3">{p.valoresProgramados.map(v => <li key={v.idParametroValor} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4"><div><strong className="break-words">{v.valor}</strong><p className="text-sm text-muted-foreground">Desde {v.vigenciaDesde} · {v.idAgencia ? `Agencia ${v.idAgencia}` : 'Global'}</p></div>{puedeEditar && v.vigenciaDesde > hoyEcuador() && <Button variant="outline" onClick={() => { cancelacion.reset(); setCancelar(v) }}>Cancelar programacion</Button>}</li>)}</ul>}</section>
     <section className="rounded-3xl border border-border bg-card p-6"><h2 className="mb-4 text-xl font-semibold">Historial</h2><p className="mb-5 text-sm text-muted-foreground">Los valores historicos son de solo lectura. Una correccion registra un valor nuevo desde hoy.</p>{p.historial.length === 0 ? <p>Sin historial.</p> : <LineaDeTiempo etiqueta="Historial del parametro" eventos={p.historial.map(v => ({ clave: String(v.idParametroValor), etiqueta: `${v.valor} - ${v.estado === 'C' ? 'Cancelado' : v.vigenciaDesde > p.fechaConsulta ? 'Programado' : v.vigenciaHasta && v.vigenciaHasta < p.fechaConsulta ? 'Historico' : 'Vigente'}`, fecha: v.fechaCreacion, responsable: v.responsable, comentario: `Vigencia desde ${v.vigenciaDesde} hasta ${v.vigenciaHasta ?? 'sin fecha final'}. ${v.idAgencia ? `Agencia ${v.idAgencia}` : 'Global'}.` }))} />}</section>
     {formulario && <ValorForm parametro={p} alCerrar={() => setFormulario(false)} alGuardar={(m, id) => { setFormulario(false); setSolicitud(id ?? null); setMensaje(id ? null : m); void refrescar() }} />}
-    <Dialog open={cancelar !== null} onOpenChange={abierto => { if (!abierto && !cancelacion.isPending) setCancelar(null) }}><DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto"><DialogHeader><DialogTitle>Cancelar valor futuro</DialogTitle><DialogDescription>Se cancelara el valor {cancelar?.valor} previsto desde {cancelar?.vigenciaDesde}. Se conservara la continuidad del valor anterior.</DialogDescription></DialogHeader>{cancelacion.isError && <Aviso tono="error">{toApiError(cancelacion.error).message}</Aviso>}<DialogFooter><Button variant="outline" disabled={cancelacion.isPending} onClick={() => setCancelar(null)}>Volver</Button><Button disabled={cancelacion.isPending || !cancelar} onClick={() => cancelar && cancelacion.mutate(cancelar)}>{cancelacion.isPending ? 'Cancelando...' : 'Confirmar cancelacion'}</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={cancelar !== null} onOpenChange={abierto => { if (!abierto && !cancelacion.isPending) setCancelar(null) }}><DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto"><DialogHeader><DialogTitle>Cancelar valor futuro</DialogTitle><DialogDescription>Se cancelara el valor {cancelar?.valor} previsto desde {cancelar?.vigenciaDesde}. Se conservara la continuidad del valor anterior.</DialogDescription></DialogHeader>{cancelacion.isError && <ErrorApi error={cancelacion.error} />}<DialogFooter><Button variant="outline" disabled={cancelacion.isPending} onClick={() => setCancelar(null)}>Volver</Button><Button disabled={cancelacion.isPending || !cancelar} onClick={() => cancelar && cancelacion.mutate(cancelar)}>{cancelacion.isPending ? 'Cancelando...' : 'Confirmar cancelacion'}</Button></DialogFooter></DialogContent></Dialog>
   </div>
 }
 
@@ -55,7 +54,7 @@ function ValorForm({ parametro: p, alCerrar, alGuardar }: { parametro: Parametro
     {p.esSensible && <Aviso>Requiere aprobacion. Esta propuesta no entrara en vigor hasta que otra persona autorizada la apruebe.</Aviso>}
     <label className="flex flex-col gap-2 text-sm">Valor ({p.tipoDato}){p.tipoDato === 'Booleano' ? <select className="rounded-lg border border-border bg-field p-3" {...form.register('valor')}><option value="">Seleccione</option><option value="true">Verdadero</option><option value="false">Falso</option></select> : <Input autoFocus type={p.tipoDato === 'Hora' ? 'time' : 'text'} maxLength={500} aria-invalid={!!form.formState.errors.valor} {...form.register('valor')} />}<span className="text-xs text-muted-foreground">{p.minimo !== null || p.maximo !== null ? `Rango: ${p.minimo ?? 'sin minimo'} a ${p.maximo ?? 'sin maximo'}.` : ''}{p.tipoDato === 'Lista' ? ' Lista JSON de textos.' : ''}</span>{form.formState.errors.valor && <span role="alert" className="text-destructive">{form.formState.errors.valor.message}</span>}</label>
     <label className="flex flex-col gap-2 text-sm">Fecha de inicio<Input type="date" min={hoyEcuador()} {...form.register('vigenciaDesde')} aria-invalid={!!form.formState.errors.vigenciaDesde} />{form.formState.errors.vigenciaDesde && <span role="alert">Ingrese una fecha valida desde hoy.</span>}</label>
-    {mutacion.isError && <Aviso tono="error">{toApiError(mutacion.error).message}</Aviso>}
+    {mutacion.isError && <ErrorApi error={mutacion.error} />}
     <DialogFooter><Button type="button" variant="outline" disabled={mutacion.isPending} onClick={alCerrar}>Volver</Button><Button type="submit" disabled={mutacion.isPending}>{mutacion.isPending ? 'Guardando...' : p.esSensible ? 'Enviar a aprobacion' : 'Guardar valor'}</Button></DialogFooter>
   </form></DialogContent></Dialog>
 }
