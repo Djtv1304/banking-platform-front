@@ -135,10 +135,10 @@ export function FuncionesRolPage() {
         <textarea id="motivo-funciones" rows={2} maxLength={160} value={editor.motivo} onChange={(e) => editor.setMotivo(e.target.value)} disabled={editor.ocupado} aria-describedby="ayuda-motivo-funciones" aria-invalid={!!editor.motivo && !!editor.errorMotivo}
           className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Explica por qué necesitas cambiar estos accesos…" />
         <p id="ayuda-motivo-funciones" className={`mt-1 text-xs ${editor.motivo && editor.errorMotivo ? 'text-destructive' : 'text-muted-foreground'}`}>{editor.errorMotivo ?? 'Motivo válido.'} · {editor.motivo.trim().length}/160 caracteres</p>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Button variant="outline" className="h-11 w-full rounded-xl" disabled={editor.ocupado || (!editor.cambios.length && !editor.motivo)} onClick={() => setConfirmacion('descartar')}>Descartar borrador</Button>
-          <Button variant="outline" className="h-11 w-full rounded-xl" disabled={editor.ocupado} onClick={() => void editor.actualizar()}><RefreshCw className={editor.consulta.isFetching ? 'animate-spin' : ''} /> Actualizar configuración</Button>
-          <Button className="h-11 w-full rounded-xl" disabled={!editor.puedeGuardar} onClick={() => setConfirmacion('guardar')}><Save /> Revisar y guardar</Button>
+        <div className="mt-5 grid auto-rows-fr grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))] gap-3">
+          <Button variant="outline" className="h-auto min-h-11 w-full min-w-0 rounded-xl px-4 py-2 text-center wrap-anywhere whitespace-normal" disabled={editor.ocupado || (!editor.cambios.length && !editor.motivo)} onClick={() => setConfirmacion('descartar')}>Descartar borrador</Button>
+          <Button variant="outline" className="h-auto min-h-11 w-full min-w-0 rounded-xl px-4 py-2 text-center wrap-anywhere whitespace-normal" disabled={editor.ocupado} onClick={() => void editor.actualizar()}><RefreshCw className={editor.consulta.isFetching ? 'animate-spin' : ''} /> Actualizar configuración</Button>
+          <Button className="h-auto min-h-11 w-full min-w-0 rounded-xl px-4 py-2 text-center wrap-anywhere whitespace-normal" disabled={!editor.puedeGuardar} onClick={() => setConfirmacion('guardar')}><Save /> Revisar y guardar</Button>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">Actualizar configuración conserva tu borrador. Guardar no activa ni desactiva el control.</p>
       </section>
