@@ -5,7 +5,7 @@ import { funcionesDeRuta } from '@/app/router/funciones-ruta'
 import { actualizarAccesosPorActividad } from '@/features/auth/session'
 
 import { Aviso } from '@/shared/ui'
-import { canAccess, hasAnyRole, hasPermission, permiteSeccion, sanitizeReturnTo, useAccessProfile, useAuthStatus, useAuthStore, usePermisos, type AccessProfile, type Permiso } from '@/features/auth'
+import { canAccess, hasAnyRole, hasPermission, permiteSeccion, rutaLoginConRetorno, sanitizeReturnTo, useAccessProfile, useAuthStatus, useAuthStore, usePermisos, type AccessProfile, type Permiso } from '@/features/auth'
 
 // Pantalla vacía mientras GET /api/v1/auth/me responde
 function SessionRestoring() {
@@ -25,9 +25,7 @@ export function RequireAuth() {
 
   if (status === 'restoring') return <SessionRestoring />
   if (status === 'anonymous') {
-    const returnTo = sanitizeReturnTo(`${pathname}${search}`)
-    const query = returnTo && returnTo !== '/' ? `?${new URLSearchParams({ return_to: returnTo })}` : ''
-    return <Navigate to={`/login${query}`} replace />
+    return <Navigate to={rutaLoginConRetorno(pathname, search)} replace />
   }
   if (!autorizacion && !permiteSeccion(pathname, accesos)) {
     return pathname.replace(/\/$/, '').toLowerCase() === '/organizacion/agencias'

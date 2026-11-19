@@ -5,6 +5,7 @@ vi.mock('@/features/auth/api/auth.api', () => ({ ...api, logout: vi.fn() }))
 
 import { apiClient, ApiError } from '@/shared/api'
 import { registerAuthHandlers, refreshSession, startSessionSync } from '@/features/auth/session'
+import { leerCierrePendiente, borrarCierrePendiente } from '@/features/auth/lib/cierre-pendiente'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 import type { MeResponse } from '@/features/auth/api/auth.contract'
 
@@ -39,6 +40,30 @@ describe('sincronización del acceso de la sesión', () => {
       expect(api.getMe).toHaveBeenCalledOnce()
       expect(api.refresh).not.toHaveBeenCalled()
     } finally { detener() }
+  })
+
+  it('al cerrar por inactividad guarda la ruta actual (sin query) para volver tras el login', async () => {
+    vi.useFakeTimers()
+    const guardado = new Map<string, string>()
+    vi.stubGlobal('sessionStorage', {
+      getItem: (k: string) => guardado.get(k) ?? null,
+      setItem: (k: string, v: string) => void guardado.set(k, v),
+      removeItem: (k: string) => void guardado.delete(k),
+    })
+    vi.stubGlobal('window', Object.assign(new EventTarget(), {
+      location: { pathname: '/clientes/42', search: '?cedula=1712345675', href: '' },
+    }))
+    vi.stubGlobal('document', Object.assign(new EventTarget(), { visibilityState: 'visible' }))
+    const detener = startSessionSync()
+    try {
+      await vi.advanceTimersByTimeAsync(16 * 60_000)
+      expect(useAuthStore.getState()).toMatchObject({ status: 'anonymous', motivoCierre: 'SESION_INACTIVA' })
+      expect(leerCierrePendiente()).toEqual({ motivo: 'SESION_INACTIVA', returnTo: '/clientes/42' })
+      expect([...guardado.values()].join()).not.toContain('1712345675')
+    } finally {
+      borrarCierrePendiente()
+      detener()
+    }
   })
 
   it('un cierre en otra pestaña cierra esta con el mismo motivo', async () => {
