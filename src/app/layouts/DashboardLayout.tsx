@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
   CircleHelp,
+  Building2,
   LogOut,
   Moon,
   PanelLeft,
@@ -16,7 +17,7 @@ import { usePestanas } from '@/features/seguridad'
 import { cn } from '@/shared/lib'
 import { useThemeStore } from '@/shared/theme'
 import { useAgencias } from '@/features/catalogos'
-import { INSTITUCION } from '@/shared/config'
+import { InstitucionDocumentTitle, useInstitucion } from '@/shared/institucion'
 import {
   Badge,
   Button,
@@ -43,6 +44,7 @@ function useSidebarCollapsed() {
 
 // Layout exclusivo para usuarios autenticados (lo protege RequireAuth en el router)
 export function DashboardLayout() {
+  const { nombre, sitioWeb } = useInstitucion()
   const [collapsed, toggleCollapsed] = useSidebarCollapsed()
   const { pathname } = useLocation()
   const roles = useAuthStore((state) => state.user?.roles)
@@ -64,6 +66,7 @@ export function DashboardLayout() {
 
   return (
     <div className="flex h-svh bg-panel print:block print:h-auto print:bg-white">
+      <InstitucionDocumentTitle />
       <aside
         className={cn(
           'flex shrink-0 flex-col print:hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200',
@@ -74,9 +77,13 @@ export function DashboardLayout() {
           {!collapsed && (
             <span className="flex min-w-0 items-center gap-2.5 pl-1">
               <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-brand-amber text-sm font-bold text-brand-ink">
-                E
+                <Building2 className="size-4" aria-hidden="true" />
               </span>
-              <span className="truncate text-[17px] font-bold tracking-tight text-heading">EnquoCoop</span>
+              <span className="truncate text-[17px] font-bold tracking-tight text-heading" title={nombre}>
+                {sitioWeb ? (
+                  <a href={sitioWeb} target="_blank" rel="noopener noreferrer" title={`Sitio web de ${nombre}`}>{nombre}</a>
+                ) : nombre}
+              </span>
             </span>
           )}
           <Button
@@ -191,6 +198,7 @@ function useAgenciaLabel() {
 
 /** Usuario, rol, agencia e institución en el encabezado (desde `md`; en móvil se ven en el menú de usuario) */
 function HeaderUser() {
+  const { nombre } = useInstitucion()
   const user = useAuthStore((state) => state.user)
   const agencia = useAgenciaLabel()
   if (!user) return null
@@ -199,13 +207,14 @@ function HeaderUser() {
     <div className="ml-2 hidden max-w-72 min-w-0 flex-col items-end md:flex">
       <span className="max-w-full truncate text-sm font-semibold text-heading">{user.nombre || user.email}</span>
       <span className="max-w-full truncate text-xs text-muted-foreground">
-        {formatRoles(user.roles)} · {agencia} · {INSTITUCION.nombre}
+        {formatRoles(user.roles)} · {agencia} · {nombre}
       </span>
     </div>
   )
 }
 
 function UserMenu() {
+  const { nombre } = useInstitucion()
   const user = useAuthStore((state) => state.user)
   const agencia = useAgenciaLabel()
   const theme = useThemeStore((state) => state.theme)
@@ -227,7 +236,7 @@ function UserMenu() {
           <span className="truncate text-sm font-semibold text-heading">{displayName}</span>
           <span className="truncate text-sm text-muted-foreground">{user?.email}</span>
           <span className="truncate text-xs text-muted-foreground">
-            {agencia} · {INSTITUCION.nombre}
+            {agencia} · {nombre}
           </span>
           {user && user.roles.length > 0 ? (
             <span className="mt-1.5 flex flex-wrap gap-1">

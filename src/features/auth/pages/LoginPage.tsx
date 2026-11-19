@@ -10,6 +10,7 @@ import { borrarCierrePendiente, leerCierrePendiente } from '@/features/auth/lib/
 import { getLoginErrorMessage, getMotivoCierreMessage, type AvisoLogin } from '@/features/auth/lib/login-errors'
 import { sanitizeReturnTo } from '@/features/auth/lib/return-to'
 import { useAuthStore } from '@/features/auth/store/auth.store'
+import { InstitucionDocumentTitle } from '@/shared/institucion'
 
 export function LoginPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -42,6 +43,7 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-svh gap-6 bg-shell p-4 sm:p-6">
+      <InstitucionDocumentTitle />
       <aside className="hidden w-120 shrink-0 flex-col gap-6 lg:flex">
         <PromoSlider />
         <HelpCenterCard />

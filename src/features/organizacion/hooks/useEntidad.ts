@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { editarEntidad, ENTIDAD_KEY, obtenerEntidad, type Entidad } from '@/features/organizacion/api/entidad'
+import { INSTITUCION_KEY } from '@/shared/institucion'
 
 /** Conserva la cancelación y evita refrescar la ficha mientras se edita su borrador. */
 
@@ -22,6 +23,7 @@ export async function confirmarEntidadEnCache(cache: QueryClient, entidad: Entid
     queryKey: ENTIDAD_KEY
   })
   cache.setQueryData(ENTIDAD_KEY, entidad)
+  await cache.invalidateQueries({ queryKey: INSTITUCION_KEY })
 }
 
 export function useActualizarEntidad() {
