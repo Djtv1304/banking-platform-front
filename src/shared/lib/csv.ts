@@ -46,5 +46,6 @@ export function descargarCsv(nombreArchivo: string, texto: string): void {
   document.body.append(enlace)
   enlace.click()
   enlace.remove()
-  URL.revokeObjectURL(url)
+  // Se revoca después: hacerlo en el mismo turno del click puede cortar la descarga en algunos navegadores
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }
