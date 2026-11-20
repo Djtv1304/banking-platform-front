@@ -1,6 +1,7 @@
 import { ParametrosPage, ParametroDetallePage } from '@/features/parametros'
 import { PARAMETROS_ROLES } from '@/features/parametros/api/parametros.contract'
 import { PlantillasPage } from '@/features/contabilidad/pages/PlantillasPage'
+import { ImportarCatalogoPage } from '@/features/contabilidad/pages/ImportarCatalogoPage'
 import { AprobacionesPage, DetalleAprobacionPage } from '@/features/aprobaciones'
 import { createBrowserRouter, Navigate } from 'react-router'
 
@@ -134,6 +135,7 @@ export const router = createBrowserRouter([
                 element: <RequireRoles allowed={CONTABILIDAD_ROLES.consultar} />,
                 children: [
                   { path: '/contabilidad', element: <PlanCuentasPage /> },
+                  { path: '/contabilidad/importar-catalogo', element: <ImportarCatalogoPage /> },
                   // CON-04: mismos roles que el plan de cuentas, solo consulta
                   { path: '/contabilidad/asientos', element: <AsientosPage /> },
                   // E4-05: fecha contable vigente y calendario, solo consulta
