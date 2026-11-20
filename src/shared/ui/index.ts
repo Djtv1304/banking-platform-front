@@ -49,3 +49,4 @@ export {
   type PaginacionTabla,
   type TablaPaginadaProps,
 } from '@/shared/ui/tabla-paginada';
+export { SelectorCatalogo, type ConsultaCatalogo, type SelectorCatalogoProps } from '@/shared/ui/selector-catalogo';
