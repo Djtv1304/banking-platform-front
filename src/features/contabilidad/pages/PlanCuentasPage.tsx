@@ -1,5 +1,6 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
+import { Link } from 'react-router'
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando, Checkbox, Input, Label } from '@/shared/ui'
@@ -9,6 +10,7 @@ import { ArbolCuentas } from '@/features/contabilidad/components/ArbolCuentas'
 import { ConfirmarCuentaDialog, type Confirmacion } from '@/features/contabilidad/components/ConfirmarCuentaDialog'
 import { DetalleCuenta } from '@/features/contabilidad/components/DetalleCuenta'
 import { EditarNombreCuentaDialog } from '@/features/contabilidad/components/EditarNombreCuentaDialog'
+import { usePermisosImportacion } from '@/features/contabilidad/hooks/usePermisosImportacion'
 import { NuevaSubcuentaDialog } from '@/features/contabilidad/components/NuevaSubcuentaDialog'
 import { usePlanCuentas } from '@/features/contabilidad/hooks/usePlanCuentas'
 import { construirArbol, filtrarArbol, idsPrimerNivel, normalizar, type NodoCuenta } from '@/features/contabilidad/lib/arbol'
@@ -24,6 +26,8 @@ interface Abiertos {
 export function PlanCuentasPage() {
   const puedeMantener = hasPermission(usePermisos(), PERMISOS.contabilidadEditar)
   const puedeEliminar = usePuedeFuncion('contabilidad.cuentas.eliminar', puedeMantener)
+  const permisosImportacion = usePermisosImportacion()
+  const puedeImportar = permisosImportacion.preparar || permisosImportacion.consultar
 
   const plan = usePlanCuentas()
   const arbol = useMemo(() => construirArbol(plan.data ?? []), [plan.data])
@@ -105,12 +109,18 @@ export function PlanCuentasPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
-      <header>
-        <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">Plan de cuentas</h1>
-        <p className="mt-2 text-base text-muted-foreground">
-          Catálogo de cuentas contables de la cooperativa. Busca una cuenta por código o nombre y revisa su saldo
-          {puedeMantener ? ', o crea y mantén las subcuentas propias.' : '. Tienes acceso de solo consulta.'}
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">Plan de cuentas</h1>
+          <p className="mt-2 text-base text-muted-foreground">
+            Catálogo de cuentas contables de la cooperativa. Busca una cuenta por código o nombre y revisa su saldo
+            {puedeMantener ? ', o crea y mantén las subcuentas propias.' : '.'}
+            {!puedeMantener && !puedeEliminar && !puedeImportar && ' Tienes acceso de solo consulta.'}
+          </p>
+        </div>
+        {puedeImportar && (
+          <Button asChild variant="outline"><Link to="/contabilidad/importar-catalogo">Importar catálogo</Link></Button>
+        )}
       </header>
 
       {resultado && <Aviso>{resultado}</Aviso>}

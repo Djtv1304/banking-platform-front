@@ -1,5 +1,6 @@
 import type { ComponentProps } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { CuentaContable } from '@/features/contabilidad/api/contabilidad.contract'
@@ -25,6 +26,8 @@ const estado = vi.hoisted(() => ({
 vi.mock('@/features/auth', async () => {
   const { hasPermission, PERMISOS } = await import('@/shared/lib')
   return {
+    useAuthStore: (selector: (state: { user: { permisos: string[] } }) => boolean) =>
+      selector({ user: { permisos: estado.roles.includes('CONTADOR') ? ['con-cuenta-editar'] : [] } }),
     usePuedeFuncion: (_funcion: string, anterior: boolean) => anterior,
     hasPermission,
     PERMISOS,
@@ -36,7 +39,8 @@ vi.mock('@/features/contabilidad/components/NuevaSubcuentaDialog', () => ({ Nuev
 vi.mock('@/features/contabilidad/components/EditarNombreCuentaDialog', () => ({ EditarNombreCuentaDialog: () => null }))
 vi.mock('@/features/contabilidad/components/ConfirmarCuentaDialog', () => ({ ConfirmarCuentaDialog: () => null }))
 vi.mock('@/shared/ui', () => ({
-  Button: ({ children, ...props }: ComponentProps<'button'>) => <button {...props}>{children}</button>,
+  Button: ({ children, asChild, ...props }: ComponentProps<'button'> & { asChild?: boolean }) =>
+    asChild ? children : <button {...props}>{children}</button>,
   Badge: ({ children }: ComponentProps<'span'>) => <span>{children}</span>,
   Input: (props: ComponentProps<'input'>) => <input {...props} />,
   Label: ({ children }: ComponentProps<'label'>) => <label>{children}</label>,
@@ -45,7 +49,7 @@ vi.mock('@/shared/ui', () => ({
   Cargando: ({ texto }: { texto: string }) => <div>{texto}</div>,
 }))
 
-const html = () => renderToStaticMarkup(<PlanCuentasPage />)
+const html = () => renderToStaticMarkup(<MemoryRouter><PlanCuentasPage /></MemoryRouter>)
 
 beforeEach(() => {
   estado.roles = ['CONTADOR']
@@ -74,8 +78,10 @@ describe('PlanCuentasPage', () => {
     estado.roles = ['AUDITOR']
     expect(html()).toContain('solo consulta')
     expect(html()).not.toContain('dialogo-subcuenta')
+    expect(html()).not.toContain('Importar catálogo')
     estado.roles = ['CONTADOR']
     expect(html()).toContain('dialogo-subcuenta')
+    expect(html()).toContain('href="/contabilidad/importar-catalogo"')
   })
 
   it('muestra los estados de carga, vacío y error', () => {
