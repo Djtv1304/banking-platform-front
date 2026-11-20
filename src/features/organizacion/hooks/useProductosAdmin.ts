@@ -98,7 +98,14 @@ export function useGuardarVinculos(destino: DestinoVinculos) {
   return useMutation({
     mutationFn: (body: Vinculos) => guardarVinculos(destino, body),
     retry: false,
-    onSuccess: () => Promise.all([queryClient.invalidateQueries({ queryKey: ['organizacion', 'vinculos'] }), queryClient.invalidateQueries({ queryKey: ['organizacion', 'ficha'] })]),
+    onSuccess: (datos) => {
+      queryClient.setQueryData(claveVinculos(destino), datos)
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['organizacion', 'vinculos'] }),
+        queryClient.invalidateQueries({ queryKey: ['organizacion', 'ficha'] }),
+        queryClient.invalidateQueries({ queryKey: ['productos', 'ficha'] }),
+      ])
+    },
   })
 }
 
