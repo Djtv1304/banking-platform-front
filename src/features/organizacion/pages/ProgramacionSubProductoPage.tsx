@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { PestanasSubProducto } from '@/features/organizacion/components/PestanasSubProducto'
+import { ConfiguracionSubProducto } from '@/features/organizacion/components/ConfiguracionSubProducto'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore, usePuedeFuncion } from '@/features/auth'
 import { toApiError } from '@/shared/api'
@@ -16,6 +17,11 @@ import type { CupoCanal } from '@/features/organizacion/api/productos.contract'
 const NOMBRES: Record<ClaseConjunto, string> = { condiciones: 'Condiciones', cupos: 'Cupos por canal', restricciones: 'Restricciones' }
 interface Confirmacion { clase: ClaseConjunto; id: number; accion: 'cancelar' | 'fin'; titulo: string }
 export function ProgramacionSubProductoPage() {
+  const [busqueda] = useSearchParams()
+  return busqueda.get('tab') === 'configuracion' ? <ConfiguracionSubProducto /> : <ProgramacionConVigencias />
+}
+
+function ProgramacionConVigencias() {
   const { idSubProducto = '' } = useParams(), id = Number(idSubProducto)
   const valido = Number.isSafeInteger(id) && id > 0
   const usuario = useAuthStore(s => s.user)

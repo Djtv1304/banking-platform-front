@@ -104,9 +104,12 @@ function Formulario({ producto, destino, soloLectura, onGuardado, inicial }: Sec
   const esCredito = producto.tipoProducto === 'Credito'
   const permitidas = tasasPermitidas(producto, tasas.data)
 
-  if (tasas.isPending || comisiones.isPending || seguros.isPending) return <Cargando texto="Cargando catálogos…" />
+  const fallos = [tasas, comisiones, seguros, ...(esCredito ? [sistemas] : [])].filter(q => q.isError)
+  if (fallos.length) return <div className="space-y-3"><Aviso tono="error">No se cargaron todos los catalogos. {toApiError(fallos[0].error).message}</Aviso><Button type="button" variant="outline" onClick={() => { for (const q of fallos) void q.refetch() }}>Reintentar catalogos</Button></div>
+  if (tasas.isPending || comisiones.isPending || seguros.isPending || (esCredito && sistemas.isPending)) return <Cargando texto="Cargando catálogos…" />
 
-  const enviar = () =>
+  const enviar = () => {
+    if (soloLectura || guardar.isPending) return
     guardar.mutate(v, {
       onSuccess: () =>
         onGuardado(
@@ -115,9 +118,10 @@ function Formulario({ producto, destino, soloLectura, onGuardado, inicial }: Sec
             : 'Guardamos los vínculos del subproducto.',
         ),
     })
+  }
 
   return (
-    <div className="flex flex-col gap-5">
+    <fieldset disabled={guardar.isPending} className="flex min-w-0 flex-col gap-5">
       <Grupo titulo="Tasas de interés" vacio={permitidas.length === 0 ? 'No hay tasas activas para este tipo de producto.' : null}>
         {permitidas.map((t) => {
           const delProducto = heredado?.tasasInteres.includes(t.idTasaInteres) ?? false
@@ -252,6 +256,6 @@ function Formulario({ producto, destino, soloLectura, onGuardado, inicial }: Sec
           </Button>
         </div>
       )}
-    </div>
+    </fieldset>
   )
 }
