@@ -3,6 +3,7 @@
 
 export { LoginPage } from '@/features/auth/pages/LoginPage';
 export { AvisoInactividad } from '@/features/auth/components/AvisoInactividad';
+export { useActividadReciente } from '@/features/auth/inactividad';
 export { useAccessProfile, useAuthStatus, useAuthStore, usePermisos } from '@/features/auth/store/auth.store';
 export { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, getAccessProfile, hasAnyRole, hasPermission, PERMISOS, ROLES } from '@/features/auth/lib/access';
 export type { AccessProfile, Permiso } from '@/features/auth/lib/access';
@@ -11,6 +12,7 @@ export { registerAuthHandlers, restoreSession, refreshSession, startSessionSync,
 export { sanitizeReturnTo } from '@/features/auth/lib/return-to';
 export type { MeResponse } from '@/features/auth/api/auth.contract';
 export { permiteFuncion, usePuedeFuncion } from '@/features/auth/lib/funciones';
+export { ConPermiso, type ConPermisoProps } from '@/features/auth/components/ConPermiso';
 export type { AutorizacionFunciones } from '@/features/auth/lib/funciones';
 export { EstadoActualizacionAccesos } from '@/features/auth/components/EstadoActualizacionAccesos';
 export { formatRol, formatRoles } from '@/features/auth/lib/roles';
