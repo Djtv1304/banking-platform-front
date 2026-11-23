@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router'
 import { obtenerContextoAgencias } from '@/features/auth/api/auth.api'
+import { hasAnyRole, useAuthStore, usePuedeFuncion } from '@/features/auth'
+import { CONTABILIDAD_ROLES } from '@/features/contabilidad/api/contabilidad.contract'
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando, Paginacion } from '@/shared/ui'
@@ -30,6 +33,8 @@ export function AsientosPage() {
   const [orden, setOrden] = useState<OrdenAsientos>(ORDEN_ASIENTOS_INICIAL)
   const [page, setPage] = useState(1)
   const [seleccionado, setSeleccionado] = useState<number | null>(null)
+  const roles = useAuthStore(s => s.user?.roles)
+  const puedeRegistrar = usePuedeFuncion('contabilidad.asientos.crear', hasAnyRole(roles ?? [], CONTABILIDAD_ROLES.asientosManuales))
   const contexto = useQuery({ queryKey: ['auth', 'agencias'], queryFn: ({ signal }) => obtenerContextoAgencias(signal), retry: false })
   const bloquearAgencia = !contexto.data?.alcanceGlobal && !contexto.data?.accesoTodasAgencias
   const agenciaFija = bloquearAgencia ? contexto.data?.idAgencia ?? '' : undefined
@@ -84,12 +89,17 @@ export function AsientosPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-      <header>
-        <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">Asientos contables</h1>
-        <p className="mt-2 text-base text-muted-foreground">
-          Libro diario de la cooperativa, del más reciente al más antiguo. Filtra por fecha, agencia, origen o estado.
-          Tienes acceso de solo consulta.
-        </p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">Asientos contables</h1>
+          <p className="mt-2 text-base text-muted-foreground">
+            Libro diario de la cooperativa, del más reciente al más antiguo. Filtra por fecha, agencia, origen o estado.
+            {puedeRegistrar ? ' Los asientos manuales pasan por aprobación antes de contabilizarse.' : ' Tienes acceso de solo consulta.'}
+          </p>
+        </div>
+        {puedeRegistrar && (
+          <Button asChild className="shrink-0"><Link to="/contabilidad/asientos/nuevo">Nuevo asiento</Link></Button>
+        )}
       </header>
 
       <section aria-label="Filtros" className="rounded-3xl border border-border bg-card p-6 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-8">
