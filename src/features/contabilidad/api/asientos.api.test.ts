@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { actualizarAsiento, crearAsiento, enviarAsiento } from '@/features/contabilidad/api/asientos.api'
+import { actualizarAsiento, anularAsiento, crearAsiento, enviarAsiento, solicitarReverso } from '@/features/contabilidad/api/asientos.api'
 import type { AsientoManual } from '@/features/contabilidad/api/asientos.contract'
 import { apiClient } from '@/shared/api'
 
@@ -42,5 +42,17 @@ describe('asientos manuales (E4-04, contrato propuesto)', () => {
     vi.mocked(apiClient.post).mockResolvedValueOnce({ data: null, status })
     await expect(enviarAsiento(41)).resolves.toEqual({ pendiente })
     expect(apiClient.post).toHaveBeenCalledWith('/api/v1/contabilidad/asientos/41/envio')
+  })
+
+  it('anula el borrador con el motivo en el cuerpo', async () => {
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: null, status: 200 })
+    await anularAsiento(41, 'Registrado por error')
+    expect(apiClient.post).toHaveBeenCalledWith('/api/v1/contabilidad/asientos/41/anulacion', { motivo: 'Registrado por error' })
+  })
+
+  it.each([[202, true], [200, false]])('el reverso con %i queda pendiente = %s', async (status, pendiente) => {
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: null, status })
+    await expect(solicitarReverso(41, 'Cuenta equivocada')).resolves.toEqual({ pendiente })
+    expect(apiClient.post).toHaveBeenCalledWith('/api/v1/contabilidad/asientos/41/reverso', { motivo: 'Cuenta equivocada' })
   })
 })

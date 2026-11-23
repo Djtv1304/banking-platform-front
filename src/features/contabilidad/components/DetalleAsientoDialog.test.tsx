@@ -43,6 +43,7 @@ const estado = vi.hoisted(() => ({
 vi.mock('@/features/contabilidad/hooks/useAsientos', () => ({
   useAsiento: (id: number) => estado.porId[id] ?? estado.asiento,
 }))
+vi.mock('@/features/contabilidad/components/AccionesAsiento', () => ({ AccionesAsiento: () => null }))
 vi.mock('@/features/contabilidad/hooks/usePlanCuentas', () => ({ usePlanCuentas: () => estado.plan }))
 vi.mock('@/shared/ui', () => ({
   Button: ({ children, ...props }: ComponentProps<'button'>) => <button {...props}>{children}</button>,

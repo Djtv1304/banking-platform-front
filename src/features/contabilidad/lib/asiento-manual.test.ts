@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import { CONCEPTO_ASIENTO_MAXIMO } from '@/features/contabilidad/api/asientos.contract'
 import {
+  accionesDeAsiento,
   cuerpoAsiento,
   detalleErroresAsiento,
   errorAgencia,
   errorConcepto,
+  esAsientoDeOperacion,
   esBorrador,
+  MENSAJE_ASIENTO_DE_OPERACION,
   MENSAJE_ASIENTO_MANUAL_NO_DISPONIBLE,
   mensajeErrorAsientoManual,
 } from '@/features/contabilidad/lib/asiento-manual'
@@ -72,5 +75,56 @@ describe('errores del backend', () => {
       { field: 'idAgencia', message: 'No existe' },
     ])
     expect(detalleErroresAsiento(error)).toEqual(['Línea 1: Debe ser mayor que cero', 'Concepto: Demasiado largo', 'No existe'])
+  })
+})
+
+describe('accionesDeAsiento', () => {
+  const todo = { puedeCrear: true, puedeReversar: true }
+  const nada = { puedeCrear: false, puedeReversar: false }
+  const asiento = (estado: string, origen = 'MANUAL', idAsientoReversion: number | null = null) => ({ estado, origen, idAsientoReversion })
+
+  it('un borrador con permiso se edita, se envía y se anula, pero no se reversa', () => {
+    expect(accionesDeAsiento(asiento('BORRADOR'), todo)).toEqual({ editar: true, enviar: true, anular: true, reversar: false })
+  })
+
+  it('el borrador exige puedeCrear; el reverso no lo reemplaza', () => {
+    expect(accionesDeAsiento(asiento('BORRADOR'), { puedeCrear: false, puedeReversar: true })).toEqual({
+      editar: false,
+      enviar: false,
+      anular: false,
+      reversar: false,
+    })
+  })
+
+  it('un manual contabilizado se reversa sólo con permiso, sin comparar mayúsculas ni espacios', () => {
+    expect(accionesDeAsiento(asiento(' contabilizado ', ' manual '), todo).reversar).toBe(true)
+    expect(accionesDeAsiento(asiento('CONTABILIZADO'), { puedeCrear: true, puedeReversar: false }).reversar).toBe(false)
+    expect(accionesDeAsiento(asiento('CONTABILIZADO'), todo)).toMatchObject({ editar: false, enviar: false, anular: false })
+  })
+
+  it('un asiento de operación contabilizado no se reversa desde aquí', () => {
+    expect(accionesDeAsiento(asiento('CONTABILIZADO', 'CAJA'), todo).reversar).toBe(false)
+  })
+
+  it('un reverso no se vuelve a reversar', () => {
+    expect(accionesDeAsiento(asiento('CONTABILIZADO', 'MANUAL', 12), todo).reversar).toBe(false)
+  })
+
+  it.each(['REVERSADO', 'ANULADO', 'PENDIENTE'])('en estado %s no hay acciones', (estado) => {
+    expect(accionesDeAsiento(asiento(estado), todo)).toEqual({ editar: false, enviar: false, anular: false, reversar: false })
+  })
+
+  it('sin permisos no hay acciones', () => {
+    expect(accionesDeAsiento(asiento('BORRADOR'), nada)).toEqual({ editar: false, enviar: false, anular: false, reversar: false })
+    expect(accionesDeAsiento(asiento('CONTABILIZADO'), nada).reversar).toBe(false)
+  })
+})
+
+describe('esAsientoDeOperacion', () => {
+  it('sólo un contabilizado de origen distinto de MANUAL', () => {
+    expect(esAsientoDeOperacion({ estado: 'CONTABILIZADO', origen: 'CAJA' })).toBe(true)
+    expect(esAsientoDeOperacion({ estado: 'CONTABILIZADO', origen: 'manual ' })).toBe(false)
+    expect(esAsientoDeOperacion({ estado: 'BORRADOR', origen: 'CAJA' })).toBe(false)
+    expect(MENSAJE_ASIENTO_DE_OPERACION).toContain('operación')
   })
 })

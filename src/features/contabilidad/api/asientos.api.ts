@@ -43,3 +43,14 @@ export async function enviarAsiento(idAsiento: number) {
   const { status } = await apiClient.post(ASIENTOS_ENDPOINTS.envio(idAsiento))
   return { pendiente: status === 202 }
 }
+
+/** E4-04 · Anular un borrador (sólo BORRADOR) con su motivo */
+export async function anularAsiento(idAsiento: number, motivo: string) {
+  await apiClient.post(ASIENTOS_ENDPOINTS.anulacion(idAsiento), { motivo })
+}
+
+/** E4-04 · Reverso de un asiento manual contabilizado: 202 = queda pendiente de aprobación */
+export async function solicitarReverso(idAsiento: number, motivo: string) {
+  const { status } = await apiClient.post(ASIENTOS_ENDPOINTS.reverso(idAsiento), { motivo })
+  return { pendiente: status === 202 }
+}
