@@ -28,6 +28,10 @@ dist-ssr
 /.env.development
 .env.*
 
+# Secretos locales y caché de Wrangler (DSO-009)
+.dev.vars*
+.wrangler/
+
 # Local browser test artifacts
 /playwright-report/
 /test-results/
