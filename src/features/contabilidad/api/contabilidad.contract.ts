@@ -37,6 +37,11 @@ export const cuentaContableSchema = z.object({
   /** null en las cuentas de primer nivel */
   idCuentaSuperior: z.number().nullable(),
   esImputable: z.boolean(),
+  /**
+   * E4-04 · propuesto: la cuenta sólo admite asientos automáticos (p. ej. trg_MovimientosContables_SoloAutomatica).
+   * El backend todavía no lo envía; si falta, el front no la descarta y el servidor responde 422 CUENTA_SOLO_AUTOMATICA.
+   */
+  soloAutomatica: z.boolean().optional(),
   saldo: z.number(),
   /** «Activo» o «Inactivo» */
   estado: z.string(),
