@@ -16,6 +16,7 @@ export function funcionesDeRuta(ruta: string): readonly string[] | null {
   if (ruta === '/catalogos') return ['catalogos.consultar']
   if (ruta === '/contabilidad/asientos/nuevo' || /^\/contabilidad\/asientos\/[^/]+\/editar$/.test(ruta)) return ['contabilidad.asientos.crear']
   if (ruta === '/contabilidad/asientos') return ['contabilidad.asientos.consultar']
+  if (ruta === '/contabilidad/cuentas-producto') return ['contabilidad.cuentas_producto.consultar']
   if (/^\/contabilidad\/plantillas\/?$/i.test(ruta)) return ['contabilidad.plantillas.consultar']
   if (ruta === '/contabilidad/fecha-contable') return ['contabilidad.fecha.consultar']
   if (ruta === '/contabilidad' || /^\/contabilidad\/importar-catalogo\/?$/.test(ruta)) return ['contabilidad.cuentas.consultar']

@@ -24,6 +24,7 @@ const ESCRITURAS = {
   tarjetasEstado: { roles: ['ASESOR', 'SUPERVISOR', 'ADMIN'] },
   contabilidadEditar: { roles: ['CONTADOR'] },
   plantillasEditar: { permiso: 'con-plantilla-editar' },
+  cuentasProductoEditar: { permiso: 'con-cuenta-editar' },
   cajaOperar: { roles: ['CAJERO'] },
   cajaAutorizar: { roles: ['SUPERVISOR'] },
   bovedaOperar: { roles: ['SUPERVISOR', 'ADMIN'] },
@@ -46,6 +47,7 @@ const FUNCIONES_ACCION: Partial<Record<Permiso, string>> = {
   cuentasCupos: 'cuentas.cupos.modificar', tarjetasEmitir: 'tarjetas.emitir', tarjetasEstado: 'tarjetas.cambiarEstado',
   contabilidadEditar: 'contabilidad.cuentas.editar',
   plantillasEditar: 'contabilidad.plantillas.editar',
+  cuentasProductoEditar: 'contabilidad.cuentas_producto.editar',
 }
 
 export function accionesPermitidas(roles: readonly string[], permisos: readonly string[], funciones?: readonly string[]): Permiso[] {

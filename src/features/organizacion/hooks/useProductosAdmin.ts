@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { obtenerListaActivacion } from '@/features/organizacion/api/productos.api'
 import {
   actualizarProducto,
   actualizarSubProducto,
@@ -133,5 +134,13 @@ export function useImprimirFicha(idSubProducto: number) {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
       window.print()
     },
+  })
+}
+
+export function useListaActivacion(idSubProducto: number, habilitada = true) {
+  return useQuery({
+    queryKey: ['organizacion', 'activacion', idSubProducto],
+    queryFn: () => obtenerListaActivacion(idSubProducto),
+    enabled: habilitada && Number.isInteger(idSubProducto) && idSubProducto > 0,
   })
 }

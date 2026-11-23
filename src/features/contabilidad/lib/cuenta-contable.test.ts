@@ -56,7 +56,9 @@ describe('bloqueosCuenta', () => {
 
   it('solo se crean subcuentas bajo una cuenta de 6 dígitos', () => {
     expect(bloqueosCuenta(cuenta('210140'), false).nuevaSubcuenta).toBeNull()
-    expect(bloqueosCuenta(cuenta('2101'), false).nuevaSubcuenta).toMatch(/catálogo del regulador/)
+    expect(bloqueosCuenta(cuenta('2101'), true).nuevaSubcuenta).toMatch(/catálogo del regulador/)
+    // E3-05: una cuenta de 4 dígitos sin subcuentas en el CUC es del último nivel y admite una de 6
+    expect(bloqueosCuenta(cuenta('2105'), false).nuevaSubcuenta).toBeNull()
     expect(bloqueosCuenta(cuenta('21014001'), false).nuevaSubcuenta).toBe(
       'Las subcuentas que se crean son de 8 dígitos y van bajo una cuenta de 6: créala bajo 210140.',
     )

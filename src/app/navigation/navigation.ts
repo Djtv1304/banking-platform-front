@@ -91,6 +91,13 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
         roles: CONTABILIDAD_ROLES.consultar,
       },
       {
+        to: '/contabilidad/cuentas-producto',
+        label: 'Cuentas por producto',
+        Icon: Package,
+        profiles: ROUTE_ACCESS.cuentasContables,
+        roles: CONTABILIDAD_ROLES.consultar,
+      },
+      {
         to: '/contabilidad/asientos',
         label: 'Asientos contables',
         Icon: BookOpenText,

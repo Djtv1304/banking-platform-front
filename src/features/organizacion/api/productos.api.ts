@@ -16,6 +16,7 @@ import {
   type SubProductoCreate,
   type SubProductoUpdate,
   type Vinculos,
+  listaActivacionSchema,
 } from '@/features/organizacion/api/productos.contract'
 
 const RESPUESTA_INVALIDA = 'No pudimos leer la respuesta del servidor. Inténtalo más tarde.'
@@ -97,4 +98,10 @@ export async function obtenerFicha(idSubProducto: number, imprimible = false) {
 export async function listarTiposProducto() {
   const { data, status } = await apiClient.get<unknown>(PRODUCTOS_ENDPOINTS.tipos)
   return validar(tipoProductoInfoSchema.array(), data, status)
+}
+
+/** E3-06 · Qué falta para activar el subproducto */
+export async function obtenerListaActivacion(idSubProducto: number) {
+  const { data, status } = await apiClient.get<unknown>(PRODUCTOS_ENDPOINTS.activacion(idSubProducto))
+  return validar(listaActivacionSchema, data, status)
 }
