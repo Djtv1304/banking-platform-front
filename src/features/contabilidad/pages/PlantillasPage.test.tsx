@@ -10,7 +10,7 @@ import { DetallePlantilla } from '@/features/contabilidad/pages/PlantillasPage'
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
 vi.mock('@tanstack/react-query', () => ({
   useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) => ({
-    data: queryKey.includes('detalle') ? plantilla : [plantilla],
+    data: queryKey.includes('solicitud') ? null : [plantilla],
     isFetching: false,
     isError: false,
   }),
@@ -24,7 +24,14 @@ const ruta = '/contabilidad/plantillas'
 const plantilla: Parameters<typeof DetallePlantilla>[0]['plantilla'] = {
   IdPlantillaAsiento: 1, CodigoPlantilla: 'QA', Nombre: 'Depósito QA', Version: 1,
   VigenciaDesde: '2026-01-01', VigenciaHasta: null, Estado: true,
-  lineas: [{ TipoMovimiento: 'DEBITO', OrigenCuenta: 'FIJA', ComponenteImporte: 'PRINCIPAL', IdCuentaContable: 1, CodigoRol: null }],
+  Origen: 'CAJA', IdTipoAsiento: 1, IdConceptoContable: 1, CodigoTipoAsiento: 'DEP', NombreTipoAsiento: 'Depósito',
+  CodigoConcepto: 'CAP', ConceptoDetalle: 'Capital',
+  lineas: [
+    { TipoMovimiento: 'DEBITO', OrigenCuenta: 'FIJA', ComponenteImporte: 'PRINCIPAL', IdCuentaContable: 1, CodigoRol: null,
+      Orden: 1, CodigoCuenta: '11010101', NombreCuenta: 'Caja auxiliar' },
+    { TipoMovimiento: 'CREDITO', OrigenCuenta: 'PRODUCTO', ComponenteImporte: 'PRINCIPAL', IdCuentaContable: null, CodigoRol: 'CAPITAL',
+      Orden: 2, CodigoCuenta: null, NombreCuenta: null },
+  ],
 }
 
 function politica(funciones: string[]) {
@@ -34,9 +41,9 @@ function politica(funciones: string[]) {
 function mostrar(funciones: string[], permisos: string[] = []) {
   const acciones = accionesPermitidas(['CONTADOR'], permisos, funciones)
   return renderToStaticMarkup(<MemoryRouter><DetallePlantilla
-    tipo={1}
     plantilla={plantilla}
     seleccionar={vi.fn()}
+    alGuardar={vi.fn()}
     puedeEditar={acciones.includes('plantillasEditar')}
   /></MemoryRouter>)
 }
@@ -77,5 +84,12 @@ describe('consulta y edición de Plantillas por función', () => {
   it('conserva la retirada del enlace redundante a Plan de cuentas de develop', () => {
     expect(mostrar([consulta])).not.toContain('href="/contabilidad"')
     expect(mostrar([consulta, 'contabilidad.cuentas.consultar'])).not.toContain('href="/contabilidad"')
+  })
+
+  it('presenta cuentas fijas por código y nombre y reconoce una cuenta dinámica sin ID', () => {
+    const html = mostrar([consulta])
+    expect(html).toContain('11010101 · Caja auxiliar')
+    expect(html).toContain('Cuenta dinámica de producto · Rol CAPITAL')
+    expect(html).toContain('No hay una solicitud visible')
   })
 })
