@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { LoaderCircle } from 'lucide-react'
-import { useCiudades, usePaises } from '@/features/catalogos'
+import { useCiudades, usePaises, useTiposDireccion } from '@/features/catalogos'
 import { Button, Checkbox, Input, Label } from '@/shared/ui'
 import { EstadoCatalogo } from '@/features/clientes/components/EstadoCatalogo'
 import { Field, fieldClassName, SelectField } from '@/features/clientes/components/form-fields'
 import { a11y } from '@/features/clientes/lib/a11y'
 import { direccionFormSchema, payloadDireccion, valoresDireccion, type DireccionForm as Valores } from '@/features/clientes/lib/direcciones'
-import { TIPOS_DIRECCION_GESTION, type DireccionGestion, type DireccionNueva } from '@/features/clientes/api/direcciones.contract'
+import type { DireccionGestion, DireccionNueva } from '@/features/clientes/api/direcciones.contract'
 
 interface Props {
   direccion?: DireccionGestion
@@ -23,6 +23,18 @@ export function DireccionForm({ direccion, pendiente, error, onGuardar, onCancel
   const { register, control, setValue, setError, clearErrors, handleSubmit, formState: { errors } } = form
   const [codigoPais, idCiudad] = useWatch({ control, name: ['codigoPais', 'idCiudad'] })
   const paises = usePaises()
+  const tipos = useTiposDireccion()
+  const tiposActivos = tipos.data.filter((tipo) => tipo.estado === 'A')
+  const tipoGuardado = direccion
+    ? tipos.data.find((tipo) => tipo.codigo === direccion.tipoDireccion)
+    : undefined
+  const opcionesTipo = tiposActivos.map((tipo) => ({ value: tipo.codigo, label: tipo.nombre }))
+  if (direccion && !tiposActivos.some((tipo) => tipo.codigo === direccion.tipoDireccion)) {
+    opcionesTipo.push({
+      value: direccion.tipoDireccion,
+      label: `${tipoGuardado?.nombre ?? direccion.tipoDireccion} (${tipoGuardado?.estado === 'I' ? 'tipo retirado' : 'tipo guardado'})`,
+    })
+  }
   const paisValido = paises.data.some((p) => p.codigoPais === codigoPais)
   const ciudades = useCiudades(paisValido ? codigoPais : undefined)
   const ciudad = ciudades.data.find((c) => String(c.idCiudad) === idCiudad)
@@ -30,9 +42,15 @@ export function DireccionForm({ direccion, pendiente, error, onGuardar, onCancel
   const provincia = provinciaElegida ?? ciudad?.provincia ?? ''
   const provincias = [...new Set(ciudades.data.map((c) => c.provincia))].sort((a, b) => a.localeCompare(b, 'es'))
   const catalogosDisponibles = paisValido && !paises.isError && !ciudades.isError && !ciudades.isFetching && !!ciudad
+    && !tipos.isPending && !tipos.isError && opcionesTipo.length > 0
   const id = (campo: string) => `gestion-direccion-${campo}`
 
   const guardar = handleSubmit(async (valores) => {
+    const conservaTipo = direccion?.tipoDireccion === valores.tipoDireccion
+    if (tipos.isError || (!conservaTipo && !tiposActivos.some((tipo) => tipo.codigo === valores.tipoDireccion))) {
+      setError('tipoDireccion', { message: 'Selecciona un tipo activo del catálogo' })
+      return
+    }
     if (!paisValido || paises.isError) { setError('codigoPais', { message: 'Recupera el catálogo y selecciona un país válido' }); return }
     if (!ciudad || ciudad.codigoPais !== valores.codigoPais || ciudad.provincia !== provincia || ciudades.isError) {
       setError('idCiudad', { message: 'Selecciona una ciudad válida para el país y provincia' }); return
@@ -46,7 +64,9 @@ export function DireccionForm({ direccion, pendiente, error, onGuardar, onCancel
         <Controller control={control} name="tipoDireccion" render={({ field, fieldState }) => (
           <Field id={id('tipo')} label="Tipo de dirección" error={fieldState.error?.message}>
             <SelectField id={id('tipo')} value={field.value} onChange={field.onChange} onBlur={field.onBlur}
-              options={TIPOS_DIRECCION_GESTION.map((value) => ({ value, label: value }))} placeholder="Selecciona el tipo" error={fieldState.error?.message} />
+              options={opcionesTipo} placeholder="Selecciona el tipo" error={fieldState.error?.message}
+              disabled={tipos.isPending || tipos.isError || !opcionesTipo.length} descriptionId={id('estado-tipos')} />
+            <EstadoCatalogo id={id('estado-tipos')} nombre="tipos de dirección" consulta={{ ...tipos, data: opcionesTipo }} />
           </Field>
         )} />
         <Controller control={control} name="codigoPais" render={({ field, fieldState }) => (

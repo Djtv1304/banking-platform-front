@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CircleAlert, LoaderCircle, MapPin, Plus, Star } from 'lucide-react'
 import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
+import { useTiposDireccion } from '@/features/catalogos'
 import type { DireccionGestion, DireccionNueva } from '@/features/clientes/api/direcciones.contract'
 import { useDirecciones } from '@/features/clientes/hooks/useDirecciones'
 import { accionesDireccion, cambiosDireccion } from '@/features/clientes/lib/direcciones'
@@ -11,12 +12,14 @@ type Confirmacion = { accion: 'principal' | 'baja'; direccion: DireccionGestion 
 
 export function GestionDirecciones({ idCliente, soloLectura = false }: Props) {
   const { consulta, alta, edicion, baja, pendiente } = useDirecciones(idCliente)
+  const { data: tipos } = useTiposDireccion()
+  const nombreTipo = (codigo: string) => tipos.find((tipo) => tipo.codigo === codigo)?.nombre ?? codigo
   const [formulario, setFormulario] = useState<DireccionGestion | 'nueva' | null>(null)
   const [confirmacion, setConfirmacion] = useState<Confirmacion | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [mensaje, setMensaje] = useState<string | null>(null)
   const activas = (consulta.data ?? []).filter((d) => d.estado === 'Activo').sort((a, b) => Number(b.esPrincipal) - Number(a.esPrincipal))
-  const inactivas = (consulta.data ?? []).filter((d) => d.estado === 'Inactivo')
+  const inactivas = (consulta.data ?? []).filter((d) => d.estado !== 'Activo')
   const bloqueado = pendiente || consulta.isFetching || consulta.isError || soloLectura
   const abrir = (direccion: DireccionGestion | 'nueva') => { setError(null); setMensaje(null); setFormulario(direccion) }
 
@@ -56,7 +59,7 @@ export function GestionDirecciones({ idCliente, soloLectura = false }: Props) {
         {!soloLectura && <Button type="button" disabled={bloqueado || !consulta.data} onClick={() => abrir('nueva')}><Plus className="size-4" />Agregar dirección</Button>}
       </div>
       {mensaje && <p role="status" className="rounded-xl border border-border bg-muted p-3 text-sm text-heading">{mensaje}</p>}
-      {soloLectura && <p className="text-sm text-muted-foreground">El cliente está eliminado; sus direcciones se muestran solo para consulta.</p>}
+      {soloLectura && <p className="text-sm text-muted-foreground">Direcciones disponibles solo para consulta.</p>}
       {consulta.isPending && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin" />Cargando direcciones…</p>}
       {consulta.isError && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4">
         <p className="flex flex-1 items-center gap-2 text-sm text-destructive"><CircleAlert className="size-4 shrink-0" />{consulta.error.message}</p>
@@ -64,12 +67,13 @@ export function GestionDirecciones({ idCliente, soloLectura = false }: Props) {
       </div>}
       {!consulta.isPending && !consulta.isError && activas.length === 0 && <p className="text-sm text-muted-foreground">El cliente no tiene direcciones activas.</p>}
       <ul className="flex flex-col gap-3">
-        {activas.map((direccion) => <DireccionCard key={direccion.idDireccion} direccion={direccion} bloqueado={bloqueado}
-          onEditar={() => abrir(direccion)} onAccion={(accion) => { setError(null); setMensaje(null); setConfirmacion({ accion, direccion }) }} />)}
+        {activas.map((direccion) => <DireccionCard key={direccion.idDireccion} direccion={direccion} nombreTipo={nombreTipo(direccion.tipoDireccion)} bloqueado={bloqueado}
+          onEditar={soloLectura ? undefined : () => abrir(direccion)}
+          onAccion={soloLectura ? undefined : (accion) => { setError(null); setMensaje(null); setConfirmacion({ accion, direccion }) }} />)}
       </ul>
       {inactivas.length > 0 && <details className="rounded-xl border border-border p-4">
-        <summary className="cursor-pointer text-sm font-semibold text-heading">Direcciones inactivas ({inactivas.length})</summary>
-        <ul className="mt-4 flex flex-col gap-3">{inactivas.map((direccion) => <DireccionCard key={direccion.idDireccion} direccion={direccion} bloqueado />)}</ul>
+        <summary className="cursor-pointer text-sm font-semibold text-heading">Direcciones retiradas ({inactivas.length})</summary>
+        <ul className="mt-4 flex flex-col gap-3">{inactivas.map((direccion) => <DireccionCard key={direccion.idDireccion} direccion={direccion} nombreTipo={nombreTipo(direccion.tipoDireccion)} bloqueado />)}</ul>
       </details>}
       <Dialog open={formulario !== null} onOpenChange={(open) => { if (!open && !pendiente) setFormulario(null) }}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl" showCloseButton={!pendiente}>
@@ -101,16 +105,17 @@ export function GestionDirecciones({ idCliente, soloLectura = false }: Props) {
   )
 }
 
-function DireccionCard({ direccion, bloqueado, onEditar, onAccion }: {
-  direccion: DireccionGestion; bloqueado: boolean; onEditar?: () => void; onAccion?: (accion: 'principal' | 'baja') => void
+function DireccionCard({ direccion, nombreTipo, bloqueado, onEditar, onAccion }: {
+  direccion: DireccionGestion; nombreTipo: string; bloqueado: boolean; onEditar?: () => void; onAccion?: (accion: 'principal' | 'baja') => void
 }) {
   const acciones = accionesDireccion(direccion)
   return <li className="flex gap-4 rounded-xl border border-border bg-field px-4 py-3">
     <MapPin aria-hidden className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
     <div className="flex min-w-0 flex-1 flex-col gap-2">
-      <p className="flex flex-wrap items-center gap-2 font-semibold text-heading">{direccion.tipoDireccion}
+      <p className="flex flex-wrap items-center gap-2 font-semibold text-heading">{nombreTipo}
         {direccion.esPrincipal && direccion.estado === 'Activo' && <Badge><Star className="size-3" />Principal</Badge>}
         {direccion.estado === 'Inactivo' && <Badge variant="outline">Inactiva</Badge>}
+        {direccion.estado === 'Eliminado' && <Badge variant="outline">Retirada</Badge>}
       </p>
       <p className="break-words text-sm text-foreground">{direccion.calleDireccion}</p>
       {direccion.sector && <p className="text-sm text-muted-foreground">Sector: {direccion.sector}</p>}
