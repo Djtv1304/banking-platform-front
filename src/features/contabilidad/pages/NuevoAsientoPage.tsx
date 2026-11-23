@@ -80,6 +80,10 @@ type Resultado = { tipo: 'guardado' } | { tipo: 'error'; error: ApiError }
  * El envío se anuncia en el estado de la navegación y no en el del formulario: al enviar, el asiento
  * recargado deja de ser borrador (el padre cambia de vista) y, desde «nuevo», la ruta cambia de `key`.
  */
+function guardadoDeNavegacion(estado: unknown): boolean {
+  return typeof estado === 'object' && estado !== null && 'guardado' in estado && (estado as { guardado: unknown }).guardado === true
+}
+
 function enviadoDeNavegacion(estado: unknown): { pendiente: boolean } | null {
   if (typeof estado !== 'object' || estado === null || !('enviado' in estado)) return null
   const { enviado } = estado as { enviado: unknown }
@@ -108,13 +112,15 @@ function AsientoEnviado({ pendiente }: { pendiente: boolean }) {
 
 function FormularioAsiento({ plan, asiento }: { plan: CuentaContable[]; asiento?: Asiento }) {
   const navigate = useNavigate()
+  // Al guardar desde «nuevo» la ruta cambia y el formulario se monta de nuevo: el aviso llega por la navegación
+  const guardadoAlNavegar = guardadoDeNavegacion(useLocation().state)
   const [iniciales] = useState(() => (asiento ? lineasDeAsiento(asiento.detalle, indiceDeCuentas(plan)) : undefined))
   const grilla = useGrillaAsiento(plan, iniciales)
   const [idAsiento, setIdAsiento] = useState<number | null>(asiento?.idAsientoContable ?? null)
   const [concepto, setConcepto] = useState(asiento?.concepto ?? '')
   const [agenciaElegida, setAgenciaElegida] = useState(asiento?.idAgencia ?? '')
   const [intentado, setIntentado] = useState(false)
-  const [resultado, setResultado] = useState<Resultado | null>(null)
+  const [resultado, setResultado] = useState<Resultado | null>(() => (guardadoAlNavegar ? { tipo: 'guardado' } : null))
   const guardar = useGuardarAsiento()
   const enviar = useEnviarAsiento()
 
@@ -138,7 +144,7 @@ function FormularioAsiento({ plan, asiento }: { plan: CuentaContable[]; asiento?
     if (idAsiento === null) {
       setIdAsiento(id)
       if (!navegar) return id
-      void navigate(`/contabilidad/asientos/${id}/editar`, { replace: true })
+      void navigate(`/contabilidad/asientos/${id}/editar`, { replace: true, state: { guardado: true } })
     }
     return id
   }
