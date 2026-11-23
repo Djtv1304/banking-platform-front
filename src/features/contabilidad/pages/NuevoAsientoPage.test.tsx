@@ -107,6 +107,12 @@ describe('NuevoAsientoPage (E4-04)', () => {
     expect(pagina).toContain('Provisión de intereses')
   })
 
+  it('tras guardar desde «nuevo» el formulario remontado conserva el aviso de borrador guardado', () => {
+    estado.asiento = { isPending: false, isError: false, data: borrador() }
+    expect(html('/contabilidad/asientos/41/editar', { guardado: true })).toContain('Borrador guardado.')
+    expect(html('/contabilidad/asientos/41/editar')).not.toContain('Borrador guardado.')
+  })
+
   it('un asiento que ya no es borrador no se edita', () => {
     estado.asiento = { isPending: false, isError: false, data: borrador({ estado: 'CONTABILIZADO' }) }
     const pagina = html('/contabilidad/asientos/41/editar')
