@@ -23,6 +23,7 @@ import {
   type Orden,
 } from '@/features/usuarios/lib/filtros'
 import { nombreCompleto } from '@/features/usuarios/lib/formato'
+import { ExportarCsvButton } from '@/features/organizacion/components/ExportarCsvButton'
 
 /** AUT-05 y AUT-06 · Usuarios internos: búsqueda, filtros, orden, paginación y alta con invitación */
 export function UsuariosPage() {
@@ -81,6 +82,7 @@ export function UsuariosPage() {
     return (
       <div className="flex flex-col gap-4">
         {usuarios.isError && <Aviso tono="error">{mensajeErrorListado(usuarios.error)}</Aviso>}
+        <div className="self-end"><ExportarCsvButton ruta="/api/v1/usuarios" parametros={armarParametros(filtros, orden, page)} archivo="usuarios.csv" etiqueta="Exportar página CSV" /></div>
         <TablaUsuarios usuarios={items} orden={orden} ocupado={usuarios.isFetching} onOrdenar={ordenar} />
         <Paginacion
           resumen={resumenPaginacion(page, total, pageSize)}

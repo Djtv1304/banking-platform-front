@@ -5,11 +5,12 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '@/features/auth'
 import { Aviso, AvisoRequiereAprobacion, LineaDeTiempo, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, ErrorApi } from '@/shared/ui'
-import { cancelarValor, consultarParametro, programarValor } from '@/features/parametros/api/parametros.api'
+import { BASE_HISTORIAL_AUDITORIA, cancelarValor, consultarParametro, programarValor } from '@/features/parametros/api/parametros.api'
 import { entradaSchema, type EntradaValor, type Parametro, type ValorParametro } from '@/features/parametros/api/parametros.contract'
 import { hoyEcuador, validarValor } from '@/features/parametros/lib/validacion'
+import { ExportarCsvButton } from '@/features/organizacion/components/ExportarCsvButton'
 
-export function ParametroDetallePage() {
+export function ParametroDetallePage({ auditoria = false }: { auditoria?: boolean }) {
   const { clave = '' } = useParams()
   const [search] = useSearchParams()
   const usuario = useAuthStore(s => s.user)
@@ -19,19 +20,20 @@ export function ParametroDetallePage() {
   const [cancelar, setCancelar] = useState<ValorParametro | null>(null)
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [solicitud, setSolicitud] = useState<number | null>(null)
-  const parametro = useQuery({ queryKey: ['parametros', usuario?.idUsuario, usuario?.idAgencia, clave, agencia], queryFn: ({ signal }) => consultarParametro(clave, agencia, signal) })
+  const parametro = useQuery({ queryKey: ['parametros', usuario?.idUsuario, usuario?.idAgencia, clave, agencia, auditoria], queryFn: ({ signal }) => consultarParametro(clave, agencia, signal, auditoria) })
   const refrescar = () => cliente.invalidateQueries({ queryKey: ['parametros'] })
   const cancelacion = useMutation({ mutationFn: (v: ValorParametro) => cancelarValor(clave, v.idParametroValor, v.idAgencia), onSuccess: () => { setCancelar(null); setMensaje('Programacion cancelada. El valor anterior se conserva.'); void refrescar() } })
   if (parametro.isPending) return <Cargando texto="Cargando detalle del parametro..." />
   if (parametro.isError) return <ErrorApi error={parametro.error} />
   const p = parametro.data
-  const puedeEditar = p.puedeEditar && p.estado === 'A'
+  const puedeEditar = !auditoria && p.puedeEditar && p.estado === 'A'
   return <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-    <Link to="/parametros" className="text-sm text-primary underline">Volver a parametros</Link>
+    <Link to={auditoria ? '/organizacion/historial-parametros' : '/parametros'} className="text-sm text-primary underline">Volver a parametros</Link>
     <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{p.modulo}</p><h1 className="text-3xl font-bold text-heading">{p.descripcion}</h1><p className="mt-2 text-muted-foreground">{p.clave}</p></div><Button variant="outline" disabled={parametro.isFetching} onClick={() => { setSolicitud(null); void parametro.refetch() }}>Actualizar</Button>{puedeEditar && <Button onClick={() => { setMensaje(null); setFormulario(true) }}>Programar valor</Button>}</header>
     {mensaje && <Aviso>{mensaje}</Aviso>}
     {solicitud && <AvisoRequiereAprobacion idSolicitud={solicitud} />}
     {p.esSensible && <Aviso>Este parametro requiere aprobacion de otra persona. Guardar una propuesta no cambia el valor vigente.</Aviso>}
+    <div className="self-end"><ExportarCsvButton ruta={`${auditoria ? BASE_HISTORIAL_AUDITORIA : '/api/v1/parametros'}/${encodeURIComponent(clave)}`} parametros={agencia ? { idAgencia: agencia } : {}} archivo="parametros-historial.csv" etiqueta="Exportar historial CSV" /></div>
     <section className="grid gap-4 rounded-3xl border border-border bg-card p-6 sm:grid-cols-3" aria-label="Definicion"><div><p className="text-sm text-muted-foreground">Tipo y unidad</p><p>{p.tipoDato} {p.unidad ?? ''}</p></div><div><p className="text-sm text-muted-foreground">Rango permitido</p><p>{p.minimo ?? 'Sin minimo'} / {p.maximo ?? 'Sin maximo'}</p></div><div><p className="text-sm text-muted-foreground">Alcance consultado</p><p>{p.agenciaConsultada ? `Agencia ${p.agenciaConsultada}; incluye respaldo global` : 'Global'}</p><p className="text-xs text-muted-foreground">{p.admiteAgencia ? 'Admite valores por agencia' : 'Solo valores globales'}</p></div></section>
     <section className="rounded-3xl border border-border bg-card p-6"><h2 className="mb-3 text-xl font-semibold">Valor vigente</h2>{p.valorActual ? <><p className="break-words text-3xl font-semibold">{p.valorActual.valor} {p.unidad}</p><p className="mt-2 text-sm text-muted-foreground">Desde {p.valorActual.vigenciaDesde} · {p.valorActual.idAgencia ? `Agencia ${p.valorActual.idAgencia}` : 'Global'}</p></> : <Aviso>No existe un valor vigente para este alcance.</Aviso>}</section>
     <section className="rounded-3xl border border-border bg-card p-6"><h2 className="mb-4 text-xl font-semibold">Proximos valores</h2>{p.valoresProgramados.length === 0 ? <p className="text-muted-foreground">Sin valores programados aprobados.</p> : <ul className="space-y-3">{p.valoresProgramados.map(v => <li key={v.idParametroValor} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4"><div><strong className="break-words">{v.valor}</strong><p className="text-sm text-muted-foreground">Desde {v.vigenciaDesde} · {v.idAgencia ? `Agencia ${v.idAgencia}` : 'Global'}</p></div>{puedeEditar && v.vigenciaDesde > hoyEcuador() && <Button variant="outline" onClick={() => { cancelacion.reset(); setCancelar(v) }}>Cancelar programacion</Button>}</li>)}</ul>}</section>
