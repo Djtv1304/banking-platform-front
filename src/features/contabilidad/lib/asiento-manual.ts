@@ -4,9 +4,11 @@
 import {
   CONCEPTO_ASIENTO_MAXIMO,
   CONCEPTO_ASIENTO_MINIMO,
+  type Asiento,
   type AsientoManual,
 } from '@/features/contabilidad/api/asientos.contract'
 import type { LineaAsientoPropuesta } from '@/features/contabilidad/lib/grilla-asiento'
+import { esReverso } from '@/features/contabilidad/lib/asientos'
 import { esNoDisponible } from '@/features/contabilidad/lib/mensajes'
 import type { ApiError } from '@/shared/api'
 
@@ -36,6 +38,39 @@ export function idDeRuta(parametro: string | undefined): number | null | undefin
 /** Sólo un borrador se edita, se envía o se anula */
 export const esBorrador = (estado: string) => estado.trim().toUpperCase() === 'BORRADOR'
 
+const normalizar = (texto: string) => texto.trim().toUpperCase()
+
+export const MENSAJE_ASIENTO_DE_OPERACION = 'Este asiento lo generó una operación: sólo se reversa desde la operación que lo originó.'
+
+export interface AccionesAsiento {
+  editar: boolean
+  enviar: boolean
+  anular: boolean
+  reversar: boolean
+}
+
+/** Es un asiento contabilizado que no es manual (lo generó una operación): no se reversa desde aquí */
+export const esAsientoDeOperacion = (asiento: Pick<Asiento, 'estado' | 'origen'>) =>
+  normalizar(asiento.estado) === 'CONTABILIZADO' && normalizar(asiento.origen) !== 'MANUAL'
+
+/** Qué acciones de E4-04 ofrece el detalle de un asiento según su estado, su origen y los permisos del usuario */
+export function accionesDeAsiento(
+  asiento: Pick<Asiento, 'estado' | 'origen' | 'idAsientoReversion'>,
+  permisos: { puedeCrear: boolean; puedeReversar: boolean },
+): AccionesAsiento {
+  const borrador = esBorrador(asiento.estado) && permisos.puedeCrear
+  return {
+    editar: borrador,
+    enviar: borrador,
+    anular: borrador,
+    reversar:
+      permisos.puedeReversar &&
+      normalizar(asiento.estado) === 'CONTABILIZADO' &&
+      normalizar(asiento.origen) === 'MANUAL' &&
+      !esReverso(asiento),
+  }
+}
+
 export const MENSAJE_ASIENTO_MANUAL_NO_DISPONIBLE =
   'El registro de asientos manuales todavía no está disponible en el servidor. Tu borrador no se guardó.'
 
@@ -47,7 +82,7 @@ const MENSAJES: Record<string, string> = {
   CUENTA_CONTABLE_NO_ENCONTRADA: 'Una de las cuentas ya no existe. Recarga la página y vuelve a elegirla.',
   ASIENTO_NO_EDITABLE: 'Este asiento ya no es un borrador: no se puede cambiar.',
   ASIENTO_NO_ENCONTRADO: 'El asiento ya no existe.',
-  ASIENTO_DE_OPERACION: 'Este asiento lo generó una operación: sólo se reversa desde la operación que lo originó.',
+  ASIENTO_DE_OPERACION: MENSAJE_ASIENTO_DE_OPERACION,
   ASIENTO_YA_REVERSADO: 'Este asiento ya tiene un reverso.',
   FECHA_CONTABLE_CERRADA: 'La fecha contable está cerrada: no se pueden registrar asientos hoy.',
   AUTOAPROBACION_NO_PERMITIDA: 'No puedes aprobar un asiento que registraste tú: debe aprobarlo otra persona.',

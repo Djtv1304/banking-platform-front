@@ -23,6 +23,8 @@ export const CONTABILIDAD_ROLES = {
   consultar: ['CONTADOR', 'AUDITOR', 'ADMIN'],
   /** E4-04 · registrar y enviar asientos manuales (si la autorización por funciones no está activa) */
   asientosManuales: ['CONTADOR', 'ADMIN'],
+  /** E4-04 · solicitar el reverso de un asiento manual contabilizado */
+  reversos: ['CONTADOR', 'ADMIN'],
 } as const
 
 /**
