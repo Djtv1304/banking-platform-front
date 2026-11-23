@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 
 import { obtenerContextoAgencias } from '@/features/auth'
 import { useAgencias } from '@/features/catalogos'
@@ -36,9 +36,12 @@ export function NuevoAsientoPage() {
   const id = idDeRuta(parametro)
   const plan = usePlanCuentas()
   const asiento = useAsiento(id ?? null)
+  const enviado = enviadoDeNavegacion(useLocation().state)
 
   const contenido = (() => {
     if (id === undefined) return <Aviso tono="error">El enlace del asiento no es válido.</Aviso>
+    // Antes que el aviso de «sólo borradores»: tras enviar, el asiento recargado ya no es borrador
+    if (enviado) return <AsientoEnviado pendiente={enviado.pendiente} />
     if (plan.isError) return <Aviso tono="error">{mensajeErrorPlanCuentas(toApiError(plan.error), 'consulta')}</Aviso>
     if (id !== null && asiento.isError) return <Aviso tono="error">{mensajeErrorAsientos(toApiError(asiento.error))}</Aviso>
     if (plan.isPending || (id !== null && asiento.isPending)) return <Cargando texto="Preparando el asiento…" />
@@ -59,7 +62,7 @@ export function NuevoAsientoPage() {
           ← Asientos contables
         </Link>
         <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">
-          {id ? 'Editar borrador de asiento' : 'Nuevo asiento manual'}
+          {enviado ? 'Asiento manual' : id ? 'Editar borrador de asiento' : 'Nuevo asiento manual'}
         </h1>
         <p className="text-base text-muted-foreground">
           Registra las líneas, revisa que el debe y el haber cuadren y envíalo a aprobación. Otra persona lo aprueba en
@@ -71,7 +74,37 @@ export function NuevoAsientoPage() {
   )
 }
 
-type Resultado = { tipo: 'guardado' } | { tipo: 'enviado'; pendiente: boolean } | { tipo: 'error'; error: ApiError }
+type Resultado = { tipo: 'guardado' } | { tipo: 'error'; error: ApiError }
+
+/**
+ * El envío se anuncia en el estado de la navegación y no en el del formulario: al enviar, el asiento
+ * recargado deja de ser borrador (el padre cambia de vista) y, desde «nuevo», la ruta cambia de `key`.
+ */
+function enviadoDeNavegacion(estado: unknown): { pendiente: boolean } | null {
+  if (typeof estado !== 'object' || estado === null || !('enviado' in estado)) return null
+  const { enviado } = estado as { enviado: unknown }
+  if (typeof enviado !== 'object' || enviado === null || !('pendiente' in enviado)) return null
+  return { pendiente: (enviado as { pendiente: unknown }).pendiente === true }
+}
+
+function AsientoEnviado({ pendiente }: { pendiente: boolean }) {
+  return (
+    <section className={cn(tarjeta, 'flex flex-col gap-4')} aria-labelledby="asiento-enviado">
+      <h2 id="asiento-enviado" className="text-xl font-semibold text-heading">
+        {pendiente ? 'Asiento enviado a aprobación' : 'Asiento registrado'}
+      </h2>
+      <p className="text-muted-foreground">
+        {pendiente
+          ? 'Queda pendiente hasta que otra persona lo apruebe en Aprobaciones. Al aprobarlo se contabiliza con su número, quién lo registró y quién lo aprobó.'
+          : 'El servidor lo registró sin pasar por aprobación.'}
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <Button asChild><Link to="/aprobaciones">Ver aprobaciones</Link></Button>
+        <Button asChild variant="outline"><Link to="/contabilidad/asientos">Volver a asientos</Link></Button>
+      </div>
+    </section>
+  )
+}
 
 function FormularioAsiento({ plan, asiento }: { plan: CuentaContable[]; asiento?: Asiento }) {
   const navigate = useNavigate()
@@ -100,10 +133,11 @@ function FormularioAsiento({ plan, asiento }: { plan: CuentaContable[]; asiento?
   const motivoNoEnviar = fallaConcepto ?? fallaAgencia ?? grilla.resumen.motivoNoEnviar
   const puedeEnviar = !motivoNoEnviar && !ocupado
 
-  const guardarBorrador = async (lineas: NonNullable<ReturnType<typeof lineasParaBorrador>>) => {
+  const guardarBorrador = async (lineas: NonNullable<ReturnType<typeof lineasParaBorrador>>, navegar = true) => {
     const id = await guardar.mutateAsync({ idAsiento, asiento: cuerpoAsiento(concepto, idAgencia, lineas) })
     if (idAsiento === null) {
       setIdAsiento(id)
+      if (!navegar) return id
       void navigate(`/contabilidad/asientos/${id}/editar`, { replace: true })
     }
     return id
@@ -126,31 +160,13 @@ function FormularioAsiento({ plan, asiento }: { plan: CuentaContable[]; asiento?
     const lineas = lineasParaEnviar(grilla.lineas, grilla.indice)
     if (!puedeEnviar || !lineas) return
     try {
-      const id = await guardarBorrador(lineas)
+      // Sin navegar entre guardar y enviar: desde «nuevo» eso desmontaría el formulario a mitad del envío
+      const id = await guardarBorrador(lineas, false)
       const { pendiente } = await enviar.mutateAsync(id)
-      setResultado({ tipo: 'enviado', pendiente })
+      void navigate(`/contabilidad/asientos/${id}/editar`, { replace: true, state: { enviado: { pendiente } } })
     } catch (error) {
       setResultado({ tipo: 'error', error: toApiError(error) })
     }
-  }
-
-  if (resultado?.tipo === 'enviado') {
-    return (
-      <section className={cn(tarjeta, 'flex flex-col gap-4')} aria-labelledby="asiento-enviado">
-        <h2 id="asiento-enviado" className="text-xl font-semibold text-heading">
-          {resultado.pendiente ? 'Asiento enviado a aprobación' : 'Asiento registrado'}
-        </h2>
-        <p className="text-muted-foreground">
-          {resultado.pendiente
-            ? 'Queda pendiente hasta que otra persona lo apruebe en Aprobaciones. Al aprobarlo se contabiliza con su número, quién lo registró y quién lo aprobó.'
-            : 'El servidor lo registró sin pasar por aprobación.'}
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Button asChild><Link to="/aprobaciones">Ver aprobaciones</Link></Button>
-          <Button asChild variant="outline"><Link to="/contabilidad/asientos">Volver a asientos</Link></Button>
-        </div>
-      </section>
-    )
   }
 
   const idConcepto = 'asiento-concepto'

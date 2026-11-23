@@ -38,9 +38,9 @@ vi.mock('@/features/contabilidad/hooks/useAsientoManual', () => ({
   useEnviarAsiento: () => ({ isPending: false, mutateAsync: vi.fn() }),
 }))
 
-const html = (ruta = '/contabilidad/asientos/nuevo') =>
+const html = (ruta = '/contabilidad/asientos/nuevo', state?: unknown) =>
   renderToStaticMarkup(
-    <MemoryRouter initialEntries={[ruta]}>
+    <MemoryRouter initialEntries={[{ pathname: ruta, state }]}>
       <Routes>
         <Route path="/contabilidad/asientos/nuevo" element={<NuevoAsientoPage />} />
         <Route path="/contabilidad/asientos/:idAsiento/editar" element={<NuevoAsientoPage />} />
@@ -61,6 +61,20 @@ describe('idDeRuta', () => {
 })
 
 describe('NuevoAsientoPage (E4-04)', () => {
+  it('tras enviar muestra la confirmación aunque el asiento recargado ya no sea borrador', () => {
+    estado.asiento = { isPending: false, isError: false, data: borrador({ estado: 'PENDIENTE_APROBACION' }) }
+    const pagina = html('/contabilidad/asientos/41/editar', { enviado: { pendiente: true } })
+    expect(pagina).toContain('Asiento enviado a aprobación')
+    expect(pagina).toContain('href="/aprobaciones"')
+    expect(pagina).not.toContain('Sólo se editan los borradores')
+  })
+
+  it('sin el aviso de envío, un asiento pendiente no se edita', () => {
+    estado.asiento = { isPending: false, isError: false, data: borrador({ estado: 'PENDIENTE_APROBACION' }) }
+    expect(html('/contabilidad/asientos/41/editar')).toContain('Sólo se editan los borradores')
+    expect(html('/contabilidad/asientos/41/editar', { enviado: 'sí' })).toContain('Sólo se editan los borradores')
+  })
+
   it('pinta concepto, agencia, grilla y las dos acciones; enviar empieza deshabilitado', () => {
     const pagina = html()
     expect(pagina).toContain('Nuevo asiento manual')
