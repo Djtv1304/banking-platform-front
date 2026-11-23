@@ -41,3 +41,12 @@ export { EstadoPantalla, type EstadoDePantalla, type EstadoPantallaProps } from 
 export { InsigniaEstado, type InsigniaEstadoProps, type TonoInsignia } from '@/shared/ui/insignia-estado';
 export { Textarea } from '@/shared/ui/textarea';
 export { DialogoConfirmacion, type DialogoConfirmacionProps, type MotivoConfirmacion } from '@/shared/ui/dialogo-confirmacion';
+export {
+  TablaPaginada,
+  type ColumnaTabla,
+  type EstadoTabla,
+  type OrdenTabla,
+  type PaginacionTabla,
+  type TablaPaginadaProps,
+} from '@/shared/ui/tabla-paginada';
+export { SelectorCatalogo, type ConsultaCatalogo, type SelectorCatalogoProps } from '@/shared/ui/selector-catalogo';
