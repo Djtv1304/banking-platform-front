@@ -20,6 +20,8 @@ const RENOVAR_TRAS_MS = 2 * 60_000
 /** Tras un fallo de red no reintentar en cada movimiento del ratón */
 const ESPERA_REINTENTO_MS = 30_000
 const REVISAR_CADA_MS = 1_000
+/** Sin interactuar más que esto, la pestaña deja de consultar en segundo plano (DSO-001) */
+export const ACTIVIDAD_RECIENTE_MS = 2 * 60_000
 
 const EVENTOS_ACTIVIDAD = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'scroll'] as const
 
@@ -29,12 +31,21 @@ interface InactividadState {
   renovando: boolean
   /** La última renovación pedida desde el aviso falló (sin red, servidor caído) */
   fallo: boolean
+  /** El usuario interactuó con esta pestaña hace menos de ACTIVIDAD_RECIENTE_MS */
+  activo: boolean
 }
 
-export const useInactividad = create<InactividadState>()(() => ({ venceEn: null, renovando: false, fallo: false }))
+export const useInactividad = create<InactividadState>()(() => ({ venceEn: null, renovando: false, fallo: false, activo: false }))
+
+/**
+ * Las consultas periódicas (p. ej. la campana de aprobaciones) sólo corren con actividad reciente:
+ * cada petición renueva la sesión en el servidor y, sin esto, una pestaña desatendida no caducaría nunca.
+ */
+export const useActividadReciente = () => useInactividad(s => s.activo)
 
 let ultimaRenovacion = 0
 let ultimoIntento = 0
+let ultimaActividad = 0
 let enCurso: Promise<void> | null = null
 
 /** Una actualización visual no debe revivir una sesión vencida ni cerrar su aviso. */
@@ -88,13 +99,16 @@ export function iniciarControlInactividad(alExpirar: () => void): () => void {
   // venció): se supone lo peor y la primera interacción renueva.
   ultimaRenovacion = Date.now() - DURACION_ACCESS_TOKEN_MS
   ultimoIntento = 0
-  useInactividad.setState({ venceEn: null, renovando: false, fallo: false })
+  // Acaba de entrar o de recargar: cuenta como actividad
+  ultimaActividad = Date.now()
+  useInactividad.setState({ venceEn: null, renovando: false, fallo: false, activo: true })
   let expirada = false
 
   const revisar = () => {
     if (expirada) return
     const venceEn = ultimaRenovacion + INACTIVIDAD_SESION_MS
     const ahora = Date.now()
+    if (useInactividad.getState().activo && ahora - ultimaActividad >= ACTIVIDAD_RECIENTE_MS) useInactividad.setState({ activo: false })
     if (ahora >= venceEn) {
       expirada = true
       useInactividad.setState({ venceEn: null })
@@ -108,6 +122,8 @@ export function iniciarControlInactividad(alExpirar: () => void): () => void {
     // Con el aviso visible hay que elegir un botón: mover el ratón no basta
     if (useInactividad.getState().venceEn !== null) return
     const ahora = Date.now()
+    ultimaActividad = ahora
+    if (!useInactividad.getState().activo) useInactividad.setState({ activo: true })
     if (ahora - ultimaRenovacion < RENOVAR_TRAS_MS || ahora - ultimoIntento < ESPERA_REINTENTO_MS) return
     void renovar()
   }
@@ -131,6 +147,6 @@ export function iniciarControlInactividad(alExpirar: () => void): () => void {
     window.removeEventListener('focus', revisar)
     clearInterval(temporizador)
     dejarDeEscuchar()
-    useInactividad.setState({ venceEn: null, renovando: false, fallo: false })
+    useInactividad.setState({ venceEn: null, renovando: false, fallo: false, activo: false })
   }
 }

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const api = vi.hoisted(() => ({ refresh: vi.fn() }))
 vi.mock('@/features/auth/api/auth.api', () => ({ ...api, getMe: vi.fn(), logout: vi.fn() }))
 
-import { iniciarControlInactividad, seguirConectado, useInactividad } from '@/features/auth/inactividad'
+import { ACTIVIDAD_RECIENTE_MS, iniciarControlInactividad, seguirConectado, useInactividad } from '@/features/auth/inactividad'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 
 const MIN = 60_000
@@ -92,5 +92,27 @@ describe('control de inactividad', () => {
     vi.setSystemTime(Date.now() + 20 * MIN)
     document.dispatchEvent(new Event('visibilitychange'))
     expect(alExpirar).toHaveBeenCalledOnce()
+  })
+
+  it('la actividad reciente se apaga tras 2 minutos quieto y vuelve con la interacción (DSO-001)', async () => {
+    expect(useInactividad.getState().activo).toBe(true)
+    await vi.advanceTimersByTimeAsync(ACTIVIDAD_RECIENTE_MS - 1_000)
+    expect(useInactividad.getState().activo).toBe(true)
+    await vi.advanceTimersByTimeAsync(2_000)
+    expect(useInactividad.getState().activo).toBe(false)
+    interactuar()
+    expect(useInactividad.getState().activo).toBe(true)
+  })
+
+  it('con el aviso visible mover el ratón no cuenta como actividad, y al detener se apaga', async () => {
+    await vi.advanceTimersByTimeAsync(8 * MIN)
+    expect(useInactividad.getState().venceEn).not.toBeNull()
+    interactuar()
+    expect(useInactividad.getState().activo).toBe(false)
+    await seguirConectado()
+    interactuar()
+    expect(useInactividad.getState().activo).toBe(true)
+    detener()
+    expect(useInactividad.getState().activo).toBe(false)
   })
 })
