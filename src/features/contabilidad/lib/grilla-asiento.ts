@@ -217,9 +217,7 @@ export interface LineaAsientoPropuesta {
   monto: number
 }
 
-/** Las líneas útiles listas para enviar; `null` si la grilla todavía no se puede enviar */
-export function lineasParaEnviar(lineas: readonly LineaBorrador[], indice: IndiceCuentas): LineaAsientoPropuesta[] | null {
-  if (!resumenGrilla(lineas, indice).puedeEnviar) return null
+function aPropuesta(lineas: readonly LineaBorrador[], indice: IndiceCuentas): LineaAsientoPropuesta[] {
   return lineas
     .filter(l => !esLineaVacia(l))
     .map(l => {
@@ -231,6 +229,20 @@ export function lineasParaEnviar(lineas: readonly LineaBorrador[], indice: Indic
         monto: dolaresDeCentavos(centavosDeTexto(enDebe ? l.debe : l.haber)!),
       }
     })
+}
+
+/** Las líneas útiles listas para enviar; `null` si la grilla todavía no se puede enviar */
+export function lineasParaEnviar(lineas: readonly LineaBorrador[], indice: IndiceCuentas): LineaAsientoPropuesta[] | null {
+  return resumenGrilla(lineas, indice).puedeEnviar ? aPropuesta(lineas, indice) : null
+}
+
+/**
+ * Para guardar un borrador basta con que lo escrito sea válido: puede no cuadrar todavía.
+ * `null` si hay líneas con errores o ninguna línea útil.
+ */
+export function lineasParaBorrador(lineas: readonly LineaBorrador[], indice: IndiceCuentas): LineaAsientoPropuesta[] | null {
+  const { errores, utiles } = resumenGrilla(lineas, indice)
+  return errores.size === 0 && utiles > 0 ? aPropuesta(lineas, indice) : null
 }
 
 /** Al revés: las líneas de un borrador guardado, para seguir editándolo */

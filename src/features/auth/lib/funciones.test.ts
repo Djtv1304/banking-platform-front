@@ -37,4 +37,9 @@ describe('Funciones efectivas compartidas por la interfaz', () => {
     expect(funcionesDeRuta('/cuentas/13')).toEqual(['cuentas.consultar'])
     expect(funcionesDeRuta('/aprobaciones')).toBeNull()
   })
+  it('registrar y editar asientos manuales pide crear, no sólo consultar (E4-04)', () => {
+    expect(funcionesDeRuta('/contabilidad/asientos/nuevo')).toEqual(['contabilidad.asientos.crear'])
+    expect(funcionesDeRuta('/contabilidad/asientos/41/editar')).toEqual(['contabilidad.asientos.crear'])
+    expect(funcionesDeRuta('/contabilidad/asientos')).toEqual(['contabilidad.asientos.consultar'])
+  })
 })
