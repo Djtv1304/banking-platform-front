@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Bell } from 'lucide-react'
 import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { useAuthStore } from '@/features/auth'
+import { useActividadReciente, useAuthStore } from '@/features/auth'
 import { obtenerNotificaciones } from '@/features/aprobaciones/api/aprobaciones.api'
 import { useAccesosAprobaciones, useClaveAprobaciones } from '@/features/aprobaciones/hooks/useAprobaciones'
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/shared/ui'
@@ -20,8 +20,10 @@ export function NotificacionesAprobaciones() {
 }
 function AvisosDeUsuario({ usuario }: { usuario: string }) {
   const accesos = useAccesosAprobaciones(), key = useClaveAprobaciones()
+  // Sin actividad reciente no se consulta: cada consulta renovaría la sesión (DSO-001)
+  const activo = useActividadReciente()
   const [leidas, setLeidas] = useState(() => leerLeidas(usuario))
-  const consulta = useQuery({ queryKey: [...key, 'notificaciones'], queryFn: obtenerNotificaciones, enabled: Boolean(usuario) && accesos.data?.puedeVer === true, retry: false, staleTime: 15_000, refetchInterval: 30_000, refetchIntervalInBackground: false })
+  const consulta = useQuery({ queryKey: [...key, 'notificaciones'], queryFn: obtenerNotificaciones, enabled: Boolean(usuario) && accesos.data?.puedeVer === true, retry: false, staleTime: 15_000, refetchInterval: activo ? 30_000 : false, refetchIntervalInBackground: false })
   const items = consulta.data?.items ?? [], nuevas = items.filter(s => !leidas.includes(clave(s))).length
   const marcar = (solicitudes: Solicitud[]) => {
     const siguientes = [...new Set([...leidas, ...solicitudes.map(clave)])].slice(-500)
