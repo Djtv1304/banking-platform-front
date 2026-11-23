@@ -8,6 +8,7 @@ import {
   solicitarReverso,
 } from '@/features/contabilidad/api/asientos.api'
 import type { AsientoManual } from '@/features/contabilidad/api/asientos.contract'
+import { marcarReversoSolicitado } from '@/features/contabilidad/store/reversos-solicitados.store'
 
 const CLAVE_ASIENTOS = ['contabilidad', 'asientos'] as const
 
@@ -50,7 +51,8 @@ export function useSolicitarReverso() {
   const cliente = useQueryClient()
   return useMutation({
     mutationFn: ({ idAsiento, motivo }: { idAsiento: number; motivo: string }) => solicitarReverso(idAsiento, motivo),
-    onSuccess: () => {
+    onSuccess: (_respuesta, { idAsiento }) => {
+      marcarReversoSolicitado(idAsiento)
       void cliente.invalidateQueries({ queryKey: CLAVE_ASIENTOS })
       void cliente.invalidateQueries({ queryKey: ['aprobaciones'] })
     },
