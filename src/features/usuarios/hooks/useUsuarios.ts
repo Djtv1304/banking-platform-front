@@ -9,6 +9,7 @@ import {
   editarUsuario,
   listarUsuarios,
   obtenerUsuario,
+  trasladarUsuario,
 } from '@/features/usuarios/api/usuarios.api'
 import type { EdicionUsuario, RolUsuario, UsuarioDetalle } from '@/features/usuarios/api/usuarios.contract'
 
@@ -62,13 +63,19 @@ async function confirmar(cache: QueryClient, usuario: UsuarioDetalle) {
   return cache.invalidateQueries({ queryKey: LISTA_KEY })
 }
 
-function useCambioUsuario<T>(idUsuario: number, enviar: (valor: T) => Promise<UsuarioDetalle>) {
+function useCambioUsuario<T>(idUsuario: number, enviar: (valor: T) => Promise<UsuarioDetalle>, actualizarAgencias = false) {
   const cache = useQueryClient()
   return useMutation({
     mutationFn: enviar,
     retry: false,
     onSuccess: async (usuario) => {
       await confirmar(cache, usuario)
+      if (actualizarAgencias) {
+        await Promise.all([
+          cache.invalidateQueries({ queryKey: ['usuarios', 'agencias', idUsuario] }),
+          cache.invalidateQueries({ queryKey: ['usuarios', 'agencias-historial', idUsuario] }),
+        ])
+      }
       await refreshSession()
     },
     onError: (error) => {
@@ -81,6 +88,9 @@ function useCambioUsuario<T>(idUsuario: number, enviar: (valor: T) => Promise<Us
 export const useEditarUsuario = (idUsuario: number) =>
   useCambioUsuario(idUsuario, (cambios: EdicionUsuario) => editarUsuario(idUsuario, cambios))
 
+export const useTrasladarUsuario = (idUsuario: number) =>
+  useCambioUsuario(idUsuario, (idAgencia: string) => trasladarUsuario(idUsuario, idAgencia), true)
+
 /** AUT-09 · Rol */
 export const useCambiarRol = (idUsuario: number) =>
-  useCambioUsuario(idUsuario, (rol: RolUsuario) => cambiarRolUsuario(idUsuario, rol))
+  useCambioUsuario(idUsuario, (roles: RolUsuario[]) => cambiarRolUsuario(idUsuario, roles))

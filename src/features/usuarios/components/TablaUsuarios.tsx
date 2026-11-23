@@ -91,7 +91,11 @@ export function TablaUsuarios({ usuarios, orden, ocupado, onOrdenar }: TablaUsua
                 {usuario.email}
               </td>
               <td className="px-3 py-3">
-                {usuario.rol ? (
+                {usuario.roles?.length ? (
+                  <div className="flex flex-wrap gap-1">
+                    {usuario.roles.map((rol) => <Badge key={rol} className="h-6 bg-info/30 px-2.5 text-foreground">{formatRol(rol)}</Badge>)}
+                  </div>
+                ) : usuario.rol ? (
                   <Badge className="h-6 bg-info/30 px-2.5 text-foreground">{formatRol(usuario.rol)}</Badge>
                 ) : (
                   <span className="text-muted-foreground">Sin rol</span>

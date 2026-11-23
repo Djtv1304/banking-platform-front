@@ -36,9 +36,15 @@ export async function editarUsuario(idUsuario: number, cambios: EdicionUsuario) 
   return leerDetalle(data, status, idUsuario)
 }
 
+export async function trasladarUsuario(idUsuario: number, idAgencia: string) {
+  const body = edicionUsuarioSchema.parse({ idAgencia })
+  const { data, status } = await apiClient.put<unknown>(USUARIOS_ENDPOINTS.agencia(idUsuario), body)
+  return leerDetalle(data, status, idUsuario)
+}
+
 /** AUT-09 · Reemplaza el rol; el backend rechaza quitar el último ADMIN */
-export async function cambiarRolUsuario(idUsuario: number, rol: RolUsuario) {
-  const body = cambiarRolSchema.parse({ rol })
+export async function cambiarRolUsuario(idUsuario: number, roles: RolUsuario[]) {
+  const body = cambiarRolSchema.parse({ roles })
   const { data, status } = await apiClient.put<unknown>(USUARIOS_ENDPOINTS.roles(idUsuario), body)
   return leerDetalle(data, status, idUsuario)
 }
@@ -106,6 +112,7 @@ export function mensajeErrorDetalle(error: unknown) {
  */
 export function mensajeErrorCambio(error: unknown) {
   const e = toApiError(error)
+  if (e.code === 'AUTOGESTION_NO_PERMITIDA') return e.message
   if (e.status === 403) return 'No tienes permiso para cambiar este usuario. Se requiere el rol ADMIN.'
   if (e.status === 404) return 'Este usuario ya no existe. Vuelve al listado.'
   if (e.status === 429) return 'Hiciste demasiados cambios seguidos. Espera un momento y vuelve a intentarlo.'
