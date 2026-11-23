@@ -11,6 +11,7 @@ import {
   indiceDeCuentas,
   lineaVacia,
   lineasDeAsiento,
+  lineasParaBorrador,
   lineasParaEnviar,
   MENSAJES_GRILLA,
   MINIMO_LINEAS,
@@ -222,5 +223,25 @@ describe('lineasDeAsiento', () => {
       INDICE,
     )
     expect(lineasParaEnviar(vuelta, INDICE)).toEqual(enviadas)
+  })
+})
+
+describe('lineasParaBorrador (E4-04)', () => {
+  it('guarda un borrador que todavía no cuadra, sin las líneas vacías', () => {
+    const lineas = [linea('110105', '100'), lineaVacia(), linea('210135', '', '40')]
+    expect(lineasParaEnviar(lineas, INDICE)).toBeNull()
+    expect(lineasParaBorrador(lineas, INDICE)).toEqual([
+      { idCuentaContable: 2, tipoMovimiento: 'DEBITO', monto: 100 },
+      { idCuentaContable: 3, tipoMovimiento: 'CREDITO', monto: 40 },
+    ])
+  })
+
+  it('una sola línea útil también se guarda como borrador', () => {
+    expect(lineasParaBorrador([linea('110105', '5'), lineaVacia()], INDICE)).toHaveLength(1)
+  })
+
+  it('no guarda si hay errores o si no hay nada escrito', () => {
+    expect(lineasParaBorrador([linea('1101', '5'), lineaVacia()], INDICE)).toBeNull()
+    expect(lineasParaBorrador(grillaInicial(), INDICE)).toBeNull()
   })
 })

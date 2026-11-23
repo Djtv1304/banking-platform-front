@@ -21,6 +21,8 @@ export const CONTABILIDAD_ENDPOINTS = {
 /** `x-roles` de CON-03; mantener el plan depende del permiso contabilidad:editar */
 export const CONTABILIDAD_ROLES = {
   consultar: ['CONTADOR', 'AUDITOR', 'ADMIN'],
+  /** E4-04 · registrar y enviar asientos manuales (si la autorización por funciones no está activa) */
+  asientosManuales: ['CONTADOR', 'ADMIN'],
 } as const
 
 /**

@@ -18,7 +18,38 @@ const BASE = '/api/v1/contabilidad/asientos'
 export const ASIENTOS_ENDPOINTS = {
   asientos: BASE,
   asiento: (idAsiento: number) => `${BASE}/${idAsiento}`,
+  /** E4-04 (propuesto) · 202 = enviado a aprobación */
+  envio: (idAsiento: number) => `${BASE}/${idAsiento}/envio`,
+  /** E4-04 (propuesto) · sólo borradores */
+  anulacion: (idAsiento: number) => `${BASE}/${idAsiento}/anulacion`,
+  /** E4-04 (propuesto) · 202 = el reverso queda pendiente de aprobación */
+  reverso: (idAsiento: number) => `${BASE}/${idAsiento}/reverso`,
 } as const
+
+/*
+ * E4-04 · Asientos manuales (contrato PROPUESTO por el front; el backend aún no lo tiene en develop).
+ *
+ * - POST /contabilidad/asientos                 AsientoManual → 201 { idAsientoContable } en BORRADOR
+ * - PUT  /contabilidad/asientos/{id}            AsientoManual → 200 (sólo BORRADOR; si no, 409 ASIENTO_NO_EDITABLE)
+ * - POST /contabilidad/asientos/{id}/envio      → 202: queda PENDIENTE_APROBACION en /aprobaciones
+ * - POST /contabilidad/asientos/{id}/anulacion  { motivo } → 200 ANULADO (sólo BORRADOR)
+ * - POST /contabilidad/asientos/{id}/reverso    { motivo } → 202 (sólo CONTABILIZADO y manual; si no, 409 ASIENTO_DE_OPERACION)
+ *
+ * La fecha la pone el servidor (fecha contable vigente) y el tipo de asiento también (el manual).
+ * Funciones: contabilidad.asientos.crear y contabilidad.asientos.reversar (CON-ASIENTO-CREAR / CON-ASIENTO-REVERSO).
+ */
+
+/** Largo máximo del concepto (propuesto; el backend tiene la última palabra con 422) */
+export const CONCEPTO_ASIENTO_MAXIMO = 200
+export const CONCEPTO_ASIENTO_MINIMO = 5
+
+export interface AsientoManual {
+  concepto: string
+  idAgencia: string
+  lineas: { idCuentaContable: number; tipoMovimiento: 'DEBITO' | 'CREDITO'; monto: number }[]
+}
+
+export const asientoCreadoSchema = z.object({ idAsientoContable: z.number() })
 
 /** Máximo de filas por página que acepta el backend */
 export const ASIENTOS_PAGE_SIZE = 20
