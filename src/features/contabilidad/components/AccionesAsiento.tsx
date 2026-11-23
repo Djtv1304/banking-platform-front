@@ -11,9 +11,11 @@ import {
   accionesDeAsiento,
   detalleErroresAsiento,
   esAsientoDeOperacion,
+  MAXIMO_MOTIVO,
   MENSAJE_ASIENTO_DE_OPERACION,
   mensajeErrorAsientoManual,
 } from '@/features/contabilidad/lib/asiento-manual'
+import { useReversoSolicitado } from '@/features/contabilidad/store/reversos-solicitados.store'
 
 type Dialogo = 'anular' | 'reversar' | null
 type Resultado = { tono: 'info' | 'error'; mensaje: string; detalle?: string[] }
@@ -23,8 +25,8 @@ export function AccionesAsiento({ asiento }: { asiento: Asiento }) {
   const roles = useAuthStore((estado) => estado.user?.roles)
   const puedeCrear = usePuedeFuncion('contabilidad.asientos.crear', hasAnyRole(roles ?? [], CONTABILIDAD_ROLES.asientosManuales))
   const puedeReversar = usePuedeFuncion('contabilidad.asientos.reversar', hasAnyRole(roles ?? [], CONTABILIDAD_ROLES.reversos))
-  // El asiento sigue CONTABILIZADO hasta que aprueben el reverso: tras pedirlo no se ofrece otra vez
-  const [reversoSolicitado, setReversoSolicitado] = useState(false)
+  // El asiento sigue CONTABILIZADO hasta que aprueben el reverso: tras pedirlo no se ofrece otra vez, ni al reabrir el detalle
+  const reversoSolicitado = useReversoSolicitado(asiento.idAsientoContable)
   const permitidas = accionesDeAsiento(asiento, { puedeCrear, puedeReversar })
   const acciones = { ...permitidas, reversar: permitidas.reversar && !reversoSolicitado }
 
@@ -74,7 +76,6 @@ export function AccionesAsiento({ asiento }: { asiento: Asiento }) {
       {
         onSuccess: ({ pendiente }) => {
           setDialogo(null)
-          setReversoSolicitado(true)
           exito(
             pendiente
               ? 'Reverso solicitado. Queda pendiente hasta que otra persona lo apruebe en Aprobaciones.'
@@ -142,7 +143,7 @@ export function AccionesAsiento({ asiento }: { asiento: Asiento }) {
         descripcion={`El borrador ${asiento.numeroAsiento} quedará anulado y ya no se podrá editar ni enviar.`}
         textoConfirmar="Anular borrador"
         destructiva
-        motivo={{ obligatorio: true, etiqueta: 'Motivo de la anulación' }}
+        motivo={{ obligatorio: true, maximo: MAXIMO_MOTIVO, etiqueta: 'Motivo de la anulación' }}
         onConfirmar={alAnular}
         procesando={anular.isPending}
       />
@@ -152,7 +153,7 @@ export function AccionesAsiento({ asiento }: { asiento: Asiento }) {
         titulo="Solicitar reverso"
         descripcion={`Se pedirá un asiento que deje sin efecto el ${asiento.numeroAsiento}. Otra persona debe aprobarlo en Aprobaciones.`}
         textoConfirmar="Solicitar reverso"
-        motivo={{ obligatorio: true, etiqueta: 'Motivo del reverso' }}
+        motivo={{ obligatorio: true, maximo: MAXIMO_MOTIVO, etiqueta: 'Motivo del reverso' }}
         onConfirmar={alReversar}
         procesando={reversar.isPending}
       />

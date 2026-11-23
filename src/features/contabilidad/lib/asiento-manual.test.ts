@@ -51,7 +51,7 @@ describe('errores del backend', () => {
     expect(mensajeErrorAsientoManual(new ApiError('x', 501, 'cualquiera'))).toBe(MENSAJE_ASIENTO_MANUAL_NO_DISPONIBLE)
   })
 
-  it.each(['ASIENTO_NO_CUADRA', 'CUENTA_SOLO_AUTOMATICA', 'CUENTA_CONTABLE_NO_HABILITADA', 'ASIENTO_DE_OPERACION', 'AUTOAPROBACION_NO_PERMITIDA'])(
+  it.each(['ASIENTO_NO_CUADRA', 'CUENTA_SOLO_AUTOMATICA', 'CUENTA_CONTABLE_NO_HABILITADA', 'ASIENTO_DE_OPERACION', 'AUTOAPROBACION_NO_PERMITIDA', 'MOTIVO_INVALIDO'])(
     '%s tiene un mensaje propio',
     code => {
       const mensaje = mensajeErrorAsientoManual(new ApiError('genérico', 409, code))
@@ -85,6 +85,11 @@ describe('accionesDeAsiento', () => {
 
   it('un borrador con permiso se edita, se envía y se anula, pero no se reversa', () => {
     expect(accionesDeAsiento(asiento('BORRADOR'), todo)).toEqual({ editar: true, enviar: true, anular: true, reversar: false })
+  })
+
+  it('un borrador que dejó otro módulo no se edita, ni se envía ni se anula desde aquí', () => {
+    expect(accionesDeAsiento(asiento('BORRADOR', 'CAJA'), todo)).toEqual({ editar: false, enviar: false, anular: false, reversar: false })
+    expect(accionesDeAsiento(asiento(' borrador ', ' manual '), todo)).toMatchObject({ editar: true, enviar: true, anular: true })
   })
 
   it('el borrador exige puedeCrear; el reverso no lo reemplaza', () => {

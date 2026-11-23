@@ -58,7 +58,9 @@ export function accionesDeAsiento(
   asiento: Pick<Asiento, 'estado' | 'origen' | 'idAsientoReversion'>,
   permisos: { puedeCrear: boolean; puedeReversar: boolean },
 ): AccionesAsiento {
-  const borrador = esBorrador(asiento.estado) && permisos.puedeCrear
+  // Sólo los asientos de origen MANUAL nacen en este flujo: un borrador que deja otro módulo se gestiona allá
+  const manual = normalizar(asiento.origen) === 'MANUAL'
+  const borrador = esBorrador(asiento.estado) && manual && permisos.puedeCrear
   return {
     editar: borrador,
     enviar: borrador,
@@ -66,10 +68,13 @@ export function accionesDeAsiento(
     reversar:
       permisos.puedeReversar &&
       normalizar(asiento.estado) === 'CONTABILIZADO' &&
-      normalizar(asiento.origen) === 'MANUAL' &&
+      manual &&
       !esReverso(asiento),
   }
 }
+
+/** El reverso del backend rechaza motivos de más de 300 caracteres (MOTIVO_INVALIDO); la anulación usa el mismo tope */
+export const MAXIMO_MOTIVO = 300
 
 export const MENSAJE_ASIENTO_MANUAL_NO_DISPONIBLE =
   'El registro de asientos manuales todavía no está disponible en el servidor. Tu borrador no se guardó.'
@@ -84,6 +89,7 @@ const MENSAJES: Record<string, string> = {
   ASIENTO_NO_ENCONTRADO: 'El asiento ya no existe.',
   ASIENTO_DE_OPERACION: MENSAJE_ASIENTO_DE_OPERACION,
   ASIENTO_YA_REVERSADO: 'Este asiento ya tiene un reverso.',
+  MOTIVO_INVALIDO: `Escribe un motivo de hasta ${MAXIMO_MOTIVO} caracteres.`,
   FECHA_CONTABLE_CERRADA: 'La fecha contable está cerrada: no se pueden registrar asientos hoy.',
   AUTOAPROBACION_NO_PERMITIDA: 'No puedes aprobar un asiento que registraste tú: debe aprobarlo otra persona.',
 }

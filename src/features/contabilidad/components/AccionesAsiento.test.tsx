@@ -7,12 +7,16 @@ import { AccionesAsiento } from '@/features/contabilidad/components/AccionesAsie
 import { MENSAJE_ASIENTO_DE_OPERACION } from '@/features/contabilidad/lib/asiento-manual'
 
 const permisos = vi.hoisted(() => ({ crear: true, reversar: true }))
+const solicitados = vi.hoisted(() => new Set<number>())
 
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
 vi.mock('@/features/auth', () => ({
   useAuthStore: (seleccionar: (estado: { user: { roles: string[] } }) => unknown) => seleccionar({ user: { roles: ['CONTADOR'] } }),
   hasAnyRole: () => true,
   usePuedeFuncion: (funcion: string) => (funcion.endsWith('crear') ? permisos.crear : permisos.reversar),
+}))
+vi.mock('@/features/contabilidad/store/reversos-solicitados.store', () => ({
+  useReversoSolicitado: (id: number) => solicitados.has(id),
 }))
 vi.mock('@/features/contabilidad/hooks/useAsientoManual', () => {
   const mutacion = () => ({ isPending: false, mutate: vi.fn() })
@@ -44,6 +48,7 @@ const html = (a: Asiento) =>
 beforeEach(() => {
   permisos.crear = true
   permisos.reversar = true
+  solicitados.clear()
 })
 
 describe('AccionesAsiento', () => {
@@ -67,6 +72,16 @@ describe('AccionesAsiento', () => {
     const salida = html(asiento('CONTABILIZADO', 'CAJA'))
     expect(salida).not.toContain('Solicitar reverso')
     expect(salida).toContain(MENSAJE_ASIENTO_DE_OPERACION)
+  })
+
+  it('tras pedir el reverso, al reabrir el detalle ya no se ofrece otra vez', () => {
+    solicitados.add(7)
+    expect(html(asiento('CONTABILIZADO'))).not.toContain('Solicitar reverso')
+    expect(html({ ...asiento('CONTABILIZADO'), idAsientoContable: 8 })).toContain('Solicitar reverso')
+  })
+
+  it('un borrador de otro módulo no muestra acciones', () => {
+    expect(html(asiento('BORRADOR', 'CAJA'))).toBe('')
   })
 
   it('un reverso no ofrece reversarse otra vez', () => {
