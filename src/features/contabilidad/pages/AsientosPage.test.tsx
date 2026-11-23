@@ -1,5 +1,6 @@
 import type { ComponentProps } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '@/shared/api'
@@ -26,6 +27,13 @@ const asiento = (id: number, extra: Partial<Asiento> = {}): Asiento => ({
 const estado = vi.hoisted(() => ({
   asientos: {} as Record<string, unknown>,
   contexto: { idAgencia: "001", alcanceGlobal: false, accesoTodasAgencias: false },
+  puedeRegistrar: false,
+}))
+
+vi.mock('@/features/auth', () => ({
+  hasAnyRole: () => false,
+  useAuthStore: () => [],
+  usePuedeFuncion: () => estado.puedeRegistrar,
 }))
 
 vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: estado.contexto }) }))
@@ -55,7 +63,7 @@ vi.mock('@/shared/ui', async () => ({
   Paginacion: ({ resumen }: { resumen: string }) => <p>{resumen}</p>,
 }))
 
-const html = () => renderToStaticMarkup(<AsientosPage />)
+const html = () => renderToStaticMarkup(<MemoryRouter><AsientosPage /></MemoryRouter>)
 
 const pagina = (items: Asiento[], total = items.length) => ({
   isPending: false,
@@ -147,4 +155,22 @@ it('permite el filtro de agencias para acceso total', () => {
   estado.contexto = { idAgencia: "", alcanceGlobal: true, accesoTodasAgencias: true }
   expect(html()).not.toMatch(/id="agencia-asiento"[^>]*disabled/);
   expect(html()).toContain('>Todas</option>')
+})
+
+describe('registro de asientos manuales (E4-04)', () => {
+  it('sin la función contabilidad.asientos.crear no hay botón y la página es de solo consulta', () => {
+    estado.puedeRegistrar = false
+    const pagina = html()
+    expect(pagina).not.toContain('Nuevo asiento')
+    expect(pagina).toContain('Tienes acceso de solo consulta.')
+  })
+
+  it('con la función aparece «Nuevo asiento» y apunta al formulario', () => {
+    estado.puedeRegistrar = true
+    const pagina = html()
+    expect(pagina).toContain('href="/contabilidad/asientos/nuevo"')
+    expect(pagina).toContain('pasan por aprobación')
+    expect(pagina).not.toContain('solo consulta')
+    estado.puedeRegistrar = false
+  })
 })
