@@ -59,7 +59,9 @@ export function NuevaSubcuentaDialog({ padre, onCerrar, onHecho }: NuevaSubcuent
 function FormularioSubcuenta({ padre, onCancelar, onHecho }: { padre: NodoCuenta; onCancelar: () => void; onHecho: (mensaje: string) => void }) {
   const codigoPadre = padre.cuenta.codigoCuenta
   const codigosHijas = padre.hijos.map((hija) => hija.cuenta.codigoCuenta)
-  const siguienteLibre = siguienteCodigoLibre(codigoPadre, codigosHijas)
+  const ultimoNivel = padre.hijos.length === 0
+  const largoHija = codigoPadre.length + 2
+  const siguienteLibre = siguienteCodigoLibre(codigoPadre, codigosHijas, ultimoNivel)
   const crear = useCrearCuenta()
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
   const {
@@ -69,7 +71,7 @@ function FormularioSubcuenta({ padre, onCancelar, onHecho }: { padre: NodoCuenta
     setError,
     formState: { errors },
   } = useForm<SubcuentaFormInput, unknown, SubcuentaFormData>({
-    resolver: zodResolver(subcuentaFormSchema(codigoPadre, codigosHijas)),
+    resolver: zodResolver(subcuentaFormSchema(codigoPadre, codigosHijas, ultimoNivel)),
     defaultValues: { codigoCuenta: siguienteLibre ?? codigoPadre, nombreCuenta: '', esImputable: true },
   })
 
@@ -90,7 +92,7 @@ function FormularioSubcuenta({ padre, onCancelar, onHecho }: { padre: NodoCuenta
   }
 
   const ayudaCodigo = siguienteLibre
-    ? `Son ${LARGO_CODIGO_SUBCUENTA} dígitos: ${codigoPadre} más 2 (01 a 99). Siguiente libre: ${siguienteLibre}.`
+    ? `Son ${largoHija} dígitos: ${codigoPadre} más 2 (01 a 99). Siguiente libre: ${siguienteLibre}.`
     : undefined
 
   return (
@@ -108,7 +110,7 @@ function FormularioSubcuenta({ padre, onCancelar, onHecho }: { padre: NodoCuenta
           id="subcuenta-codigo"
           inputMode="numeric"
           autoComplete="off"
-          maxLength={LARGO_CODIGO_SUBCUENTA}
+          maxLength={Math.max(largoHija, LARGO_CODIGO_SUBCUENTA)}
           className={`${inputCuentaClassName} font-mono`}
           {...a11yCampoCuenta('subcuenta-codigo', errors.codigoCuenta?.message, ayudaCodigo)}
           {...register('codigoCuenta')}

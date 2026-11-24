@@ -29,6 +29,8 @@ export const esNivelRegulador = (codigoCuenta: string) => LARGOS_REGULADOR.inclu
 /** Las subcuentas que se crean son de 8 dígitos y cuelgan de una cuenta de 6 (la del regulador) */
 export const LARGO_CODIGO_PADRE = 6
 export const LARGO_CODIGO_SUBCUENTA = 8
+/** Cuenta de 4 dígitos sin subcuentas en el CUC (2105, 3103…): admite una de 6 (E3-05) */
+export const LARGO_CODIGO_ULTIMO_NIVEL = 4
 
 const MOTIVO_REGULADOR = 'Es un nivel del catálogo del regulador (códigos de 1, 2, 4 y 6 dígitos): no se modifica.'
 
@@ -51,7 +53,8 @@ export function bloqueosCuenta(cuenta: CuentaContable, tieneSubcuentas: boolean)
 
   const nuevaSubcuenta = !activa
     ? 'La cuenta está inactiva: actívala para crearle subcuentas.'
-    : cuenta.codigoCuenta.length < LARGO_CODIGO_PADRE
+    : cuenta.codigoCuenta.length < LARGO_CODIGO_PADRE &&
+        !(cuenta.codigoCuenta.length === LARGO_CODIGO_ULTIMO_NIVEL && !tieneSubcuentas)
       ? 'Debajo de este nivel solo van cuentas del catálogo del regulador: crea la subcuenta bajo una cuenta de 6 dígitos.'
       : cuenta.codigoCuenta.length > LARGO_CODIGO_PADRE
         ? `Las subcuentas que se crean son de ${LARGO_CODIGO_SUBCUENTA} dígitos y van bajo una cuenta de ${LARGO_CODIGO_PADRE}: créala bajo ${cuenta.codigoCuenta.slice(0, LARGO_CODIGO_PADRE)}.`

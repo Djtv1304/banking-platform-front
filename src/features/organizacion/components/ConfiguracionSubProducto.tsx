@@ -8,6 +8,7 @@ import { useFichaSubProducto } from '@/features/organizacion/hooks/useProductosA
 import { PestanasSubProducto } from '@/features/organizacion/components/PestanasSubProducto'
 import { SeccionVinculos } from '@/features/organizacion/components/SeccionVinculos'
 import { SeccionElegibilidad } from '@/features/organizacion/components/SeccionesSubProducto'
+import { ListaActivacion } from '@/features/organizacion/components/ListaActivacion'
 
 /** Recupera los formularios existentes sin sustituir las vigencias E3-03 ni la numeracion E3-04. */
 export function ConfiguracionSubProducto() {
@@ -30,6 +31,9 @@ export function ConfiguracionSubProducto() {
     <PestanasSubProducto id={id} tipo={producto.tipoProducto} activa="configuracion" />
     {mensaje && <Aviso>{mensaje}</Aviso>}
     {soloLectura && <Aviso>Solo tiene permisos de lectura.</Aviso>}
+    {subproducto.estadoCatalogo !== 'Activo' && subproducto.estadoCatalogo !== 'Retirado' && (
+      <div className="rounded-3xl border border-border bg-card p-4 sm:p-6"><ListaActivacion idSubProducto={id} /></div>
+    )}
     <section role="tabpanel" aria-label="Tasas y cargos" className="min-w-0 rounded-3xl border border-border bg-card p-4 sm:p-6 [&>section]:border-0 [&>section]:p-0 [&_fieldset>ul]:grid [&_fieldset>ul]:gap-3 md:[&_fieldset>ul]:grid-cols-2">
       <SeccionVinculos key={id} producto={producto} destino={{ tipo: 'subproducto', id }} soloLectura={soloLectura} onGuardado={setMensaje} />
     </section>

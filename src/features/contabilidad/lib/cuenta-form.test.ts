@@ -88,6 +88,7 @@ describe('siguienteCodigoLibre', () => {
 
   it('devuelve null si el padre no es de 6 dígitos', () => {
     expect(siguienteCodigoLibre('2101', [])).toBeNull()
+    expect(siguienteCodigoLibre('2105', [], true)).toBe('210501')
     expect(siguienteCodigoLibre('21014001', [])).toBeNull()
   })
 })
