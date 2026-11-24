@@ -1,7 +1,7 @@
 import { aceptadaSchema } from '@/shared/api/aprobaciones.contract'
 import { z } from 'zod'
 
-export const PARAMETROS_ROLES = ['ADMIN', 'SUPERVISOR', 'ASESOR'] as const
+export const PARAMETROS_ROLES = ['ADMIN', 'SUPERVISOR', 'ASESOR', 'AUDITOR'] as const
 export const valorSchema = z.object({
   idParametroValor: z.number().int().positive(), idAgencia: z.string().nullable(), valor: z.string(),
   vigenciaDesde: z.iso.date(), vigenciaHasta: z.iso.date().nullable(), estado: z.enum(['A', 'C']),

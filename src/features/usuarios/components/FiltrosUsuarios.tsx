@@ -88,6 +88,12 @@ export function FiltrosUsuarios({ buscando, aplicados, onBuscar, iniciales = FIL
 
       <fieldset className="grid min-w-0 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <legend className="sr-only">Filtros</legend>
+        <Campo id="filtro-nombre" label="Nombre" error={errors.nombre?.message}>
+          <Input id="filtro-nombre" type="search" maxLength={BUSQUEDA_MAX_LENGTH} {...ariaCampo('filtro-nombre', errors.nombre?.message)} {...register('nombre')} />
+        </Campo>
+        <Campo id="filtro-id-usuario" label="ID de usuario" error={errors.idUsuario?.message}>
+          <Input id="filtro-id-usuario" inputMode="numeric" maxLength={10} {...ariaCampo('filtro-id-usuario', errors.idUsuario?.message)} {...register('idUsuario')} />
+        </Campo>
         <Campo id="filtro-rol" label="Rol">
           <select id="filtro-rol" className={selectClassName} {...register('rol')}>
             <option value="">Todos</option>

@@ -12,6 +12,7 @@ import { mensajeErrorAgencia } from '@/features/organizacion/lib/agencia-form'
 import { AgenciaFormDialog, type ModoAgencia } from '@/features/organizacion/components/AgenciaFormDialog'
 import { CambiarEstadoAgenciaDialog, type CambioEstado } from '@/features/organizacion/components/CambiarEstadoAgenciaDialog'
 import { EstadoAgenciaBadge } from '@/features/organizacion/components/EstadoAgenciaBadge'
+import { ExportarCsvButton } from '@/features/organizacion/components/ExportarCsvButton'
 import { accionEstado, ETIQUETA_ESTADO } from '@/features/organizacion/lib/agencias'
 
 const TAMANO_PAGINA = 10
@@ -85,6 +86,7 @@ export function AgenciasPage() {
               {Object.entries(ETIQUETA_ESTADO).map(([valor, etiqueta]) => <option key={valor} value={valor}>{etiqueta}</option>)}
             </select>
           </div>
+          <ExportarCsvButton ruta="/api/v1/organizacion/agencias" parametros={{ ...(estado ? { estado } : {}), ...(busqueda ? { q: busqueda } : {}) }} archivo="agencias.csv" />
         </div>
         {filtradas.length === 0 ? <Aviso>No hay agencias que coincidan con los filtros.</Aviso> : (
           <>

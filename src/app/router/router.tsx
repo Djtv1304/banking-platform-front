@@ -10,6 +10,8 @@ import { CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZA
 import { HomePage } from '@/features/dashboard'
 import {
   AgenciasPage,
+  DirectoriosAuditoriaPage,
+  ROLES_MATRIZ_ORGANIZACION,
   DatosCooperativaPage,
   DetalleProductoPage,
   FichaSubProductoPage,
@@ -111,6 +113,14 @@ export const router = createBrowserRouter([
           {
             element: <RequireRoles allowed={ORGANIZACION_ROLES.agencias} sinAcceso={<Aviso tono="error">No tienes permiso para administrar agencias.</Aviso>} />,
             children: [{ path: '/organizacion/agencias', element: <AgenciasPage /> }],
+          },
+          {
+            element: <RequireRoles allowed={ROLES_MATRIZ_ORGANIZACION} permisoAlternativo={PERMISOS.organizacionExportar} />,
+            children: [
+              { path: '/organizacion/directorios', element: <DirectoriosAuditoriaPage /> },
+              { path: '/organizacion/historial-parametros', element: <ParametrosPage auditoria /> },
+              { path: '/organizacion/historial-parametros/:clave', element: <ParametroDetallePage auditoria /> },
+            ],
           },
           {
             // La URL directa respeta los mismos roles que el menú; las acciones son solo de ADMIN

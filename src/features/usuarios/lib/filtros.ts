@@ -21,6 +21,8 @@ export const BUSQUEDA_MAX_LENGTH = 100
 /** Todos son opcionales y se combinan; vacío = sin filtro */
 export const filtrosUsuariosSchema = z.object({
   q: z.string().trim().max(BUSQUEDA_MAX_LENGTH, `Usa hasta ${BUSQUEDA_MAX_LENGTH} caracteres.`),
+  nombre: z.string().trim().max(BUSQUEDA_MAX_LENGTH),
+  idUsuario: z.string().trim().refine(valor => !valor || leerIdUsuario(valor) !== null, 'Ingresa un ID de usuario válido.'),
   estado: z.union([z.literal(''), z.enum(ESTADOS_USUARIO)]),
   rol: z.union([z.literal(''), z.enum(ROLES_USUARIO)]),
   idAgencia: z.union([z.literal(''), z.string().regex(ID_AGENCIA_REGEX)]),
@@ -30,7 +32,7 @@ export const filtrosUsuariosSchema = z.object({
 export type FiltrosUsuariosInput = z.input<typeof filtrosUsuariosSchema>
 export type FiltrosUsuarios = z.output<typeof filtrosUsuariosSchema>
 
-export const FILTROS_VACIOS: FiltrosUsuarios = { q: '', estado: '', rol: '', idAgencia: '', vinculado: '' }
+export const FILTROS_VACIOS: FiltrosUsuarios = { q: '', nombre: '', idUsuario: '', estado: '', rol: '', idAgencia: '', vinculado: '' }
 
 /** Solo un código de rol público puede precargar el filtro desde la vista de roles. */
 export function filtrosDesdeRol(rol: string | null): FiltrosUsuarios {
@@ -60,6 +62,8 @@ export function armarParametros(filtros: FiltrosUsuarios, orden: Orden, page: nu
   const params: Record<string, string> = { page: String(page), pageSize: String(PAGE_SIZE) }
   const q = filtros.q.trim()
   if (q) params.q = q
+  if (filtros.nombre) params.nombre = filtros.nombre
+  if (filtros.idUsuario) params.idUsuario = filtros.idUsuario
   if (filtros.estado) params.estado = filtros.estado
   if (filtros.rol) params.rol = filtros.rol
   if (filtros.idAgencia) params.idAgencia = filtros.idAgencia
@@ -72,7 +76,7 @@ export function armarParametros(filtros: FiltrosUsuarios, orden: Orden, page: nu
 
 /** Cuántos filtros (sin contar la búsqueda) están aplicados */
 export const filtrosActivos = (filtros: FiltrosUsuarios) =>
-  [filtros.estado, filtros.rol, filtros.idAgencia, filtros.vinculado].filter(Boolean).length
+  [filtros.nombre, filtros.idUsuario, filtros.estado, filtros.rol, filtros.idAgencia, filtros.vinculado].filter(Boolean).length
 
 export const totalPaginas = (total: number, pageSize = PAGE_SIZE) => Math.max(1, Math.ceil(total / pageSize))
 

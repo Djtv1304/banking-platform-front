@@ -41,7 +41,7 @@ export const rolUsuarioSchema = z.enum(ROLES_USUARIO)
 // TODO(API): confirmar los valores de `estado` que acepta el filtro de AUT-05 (hoy se ven «Activo» e «Inactivo»)
 export const ESTADOS_USUARIO = ['Activo', 'Inactivo', 'Bloqueado'] as const
 
-export const CAMPOS_ORDEN = ['username', 'nombres', 'apellidos', 'email', 'estado', 'fechaCreacion'] as const
+export const CAMPOS_ORDEN = ['idUsuario', 'username', 'nombres', 'apellidos', 'email', 'roles', 'idAgencia', 'estado', 'fechaCreacion'] as const
 
 export type CampoOrden = (typeof CAMPOS_ORDEN)[number]
 
@@ -50,6 +50,7 @@ export const ID_AGENCIA_REGEX = /^\d{3}$/
 
 /** AUT-05 · Cada fila. `rol` es null mientras el usuario no tenga uno asignado */
 export const usuarioResumenSchema = z.object({
+  roles: z.array(rolUsuarioSchema).optional(),
   idUsuario: z.number(),
   username: z.string(),
   nombres: z.string(),

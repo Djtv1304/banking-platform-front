@@ -5,8 +5,10 @@ import { ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
 import { CATALOGOS_ROLES } from '@/features/catalogos'
 import { CONTABILIDAD_ROLES } from '@/features/contabilidad'
 import { BOVEDA_ROLES } from '@/features/boveda'
+import { ROLES_MATRIZ_ORGANIZACION } from '@/features/organizacion/lib/accesoAuditoria'
 import { PESTANAS_FIJAS, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
+import { PARAMETROS_ROLES } from '@/features/parametros/api/parametros.contract'
 import { funcionesDeRuta } from '@/app/router/funciones-ruta'
 import { permiteSeccion, type MeResponse } from '@/features/auth'
 
@@ -21,6 +23,7 @@ export interface NavItem {
   roles?: readonly string[]
   /** Se muestra solo si el usuario puede esta acción (permiso de WorkOS o rol; ver shared/lib/permisos) */
   permiso?: Permiso
+  permisoAlternativo?: Permiso
   /** Módulo sin pantallas todavía: abre «Módulo en preparación» y muestra la etiqueta «Pronto» */
   enPreparacion?: boolean
 }
@@ -31,8 +34,9 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     title: 'Organización',
     items: [
       { to: '/organizacion/entidad', label: 'Datos de la cooperativa', Icon: Building2, profiles: ROUTE_ACCESS.datosCooperativa, roles: ORGANIZACION_ROLES.entidad },
-      { to: '/parametros', label: 'Parametros', Icon: SlidersHorizontal, roles: ['ADMIN', 'SUPERVISOR', 'ASESOR'] },
+      { to: '/parametros', label: 'Parámetros', Icon: SlidersHorizontal, roles: PARAMETROS_ROLES },
       { to: '/organizacion/agencias', label: 'Agencias', Icon: Building2, profiles: ROUTE_ACCESS.agencias, roles: ORGANIZACION_ROLES.agencias },
+      { to: '/organizacion/directorios', label: 'Directorios de auditoría', Icon: UserSearch, roles: ROLES_MATRIZ_ORGANIZACION, permisoAlternativo: PERMISOS.organizacionExportar },
     ],
   },
   {
@@ -166,7 +170,7 @@ export function getVisibleSections(profile: AccessProfile | null, roles: readonl
         if (autorizacion?.activa && funciones) return funciones.some((f) => autorizacion.funciones.includes(f))
         return (
         canAccess(profile, item.profiles) &&
-        rolPuedeVer(item, roles, accesos ? undefined : pestanas) &&
+        (rolPuedeVer(item, roles, accesos ? undefined : pestanas) || Boolean(item.permisoAlternativo && permisos?.includes(item.permisoAlternativo))) &&
         permiteSeccion(item.to, accesos) &&
         (!item.permiso || !permisos || permisos.includes(item.permiso))
         )

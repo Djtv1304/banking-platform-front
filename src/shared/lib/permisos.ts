@@ -8,6 +8,7 @@ type Regla = { readonly permiso: string } | { readonly roles: readonly string[] 
 
 const ESCRITURAS = {
   organizacionEditar: { roles: ['ADMIN'] },
+  organizacionExportar: { permiso: 'org-exportar' },
   agenciasEditar: { roles: ['ADMIN'] },
   usuariosEditar: { roles: ['ADMIN'] },
   productosConsultar: { permiso: 'prd-consultar' },

@@ -4,17 +4,18 @@ import { entradaSchema, listaSchema, parametroSchema, pendienteSchema, registrad
 
 export interface FiltrosParametros { buscar?: string; modulo?: string; estado?: string; idAgencia?: string; page?: number }
 const base = '/api/v1/parametros'
+export const BASE_HISTORIAL_AUDITORIA = '/api/v1/seguridad/historial-parametros'
 function validar<T extends z.ZodType>(schema: T, data: unknown): z.infer<T> {
   const r = schema.safeParse(data)
   if (!r.success) throw new ApiError('La respuesta del servicio de parametros no es valida.', null, 'respuesta_invalida')
   return r.data
 }
-export async function listarParametros(filtros: FiltrosParametros, signal?: AbortSignal) {
-  const { data } = await apiClient.get<unknown>(base, { params: filtros, signal })
+export async function listarParametros(filtros: FiltrosParametros, signal?: AbortSignal, auditoria = false) {
+  const { data } = await apiClient.get<unknown>(auditoria ? BASE_HISTORIAL_AUDITORIA : base, { params: filtros, signal })
   return validar(listaSchema, data)
 }
-export async function consultarParametro(clave: string, idAgencia: string | null, signal?: AbortSignal) {
-  const { data } = await apiClient.get<unknown>(`${base}/${encodeURIComponent(clave)}`, { params: idAgencia ? { idAgencia } : {}, signal })
+export async function consultarParametro(clave: string, idAgencia: string | null, signal?: AbortSignal, auditoria = false) {
+  const { data } = await apiClient.get<unknown>(`${auditoria ? BASE_HISTORIAL_AUDITORIA : base}/${encodeURIComponent(clave)}`, { params: idAgencia ? { idAgencia } : {}, signal })
   return validar(parametroSchema, data)
 }
 export async function programarValor(clave: string, entrada: EntradaValor) {
