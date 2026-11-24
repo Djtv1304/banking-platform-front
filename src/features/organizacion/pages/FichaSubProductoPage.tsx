@@ -6,6 +6,7 @@ import { toApiError } from '@/shared/api'
 import { hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import { Aviso, Button, Cargando } from '@/shared/ui'
 import { ETIQUETA_TIPO_TASA, type TipoTasa } from '@/features/catalogos'
+import { CuentasSubproducto } from '@/features/contabilidad'
 import { useFichaSubProducto, useImprimirFicha } from '@/features/organizacion/hooks/useProductosAdmin'
 import { dinero, ETIQUETA_TIPO, mensajeErrorProducto, porcentaje, rutaProducto } from '@/features/organizacion/lib/producto-form'
 
@@ -132,6 +133,7 @@ export function FichaSubProductoPage() {
             {restricciones.diasSinRetiros != null && <li>Sin retiros durante {restricciones.diasSinRetiros} días desde la apertura</li>}
           </Bloque>
         )}
+        <CuentasSubproducto idSubProducto={sub.idSubProducto} />
       </div>
     </div>
   )

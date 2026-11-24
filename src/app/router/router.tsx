@@ -10,6 +10,8 @@ import { CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZA
 import { HomePage } from '@/features/dashboard'
 import {
   AgenciasPage,
+  DirectoriosAuditoriaPage,
+  ROLES_MATRIZ_ORGANIZACION,
   DatosCooperativaPage,
   DetalleProductoPage,
   FichaSubProductoPage,
@@ -26,7 +28,7 @@ import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/fe
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
 import { AbrirCuentaPage } from '@/features/cuenta'
-import { AsientosPage, CONTABILIDAD_ROLES, FechaContablePage, PlanCuentasPage } from '@/features/contabilidad'
+import { AsientosPage, CONTABILIDAD_ROLES, CuentasProductoPage, FechaContablePage, NuevoAsientoPage, PlanCuentasPage } from '@/features/contabilidad'
 import { GuestOnly, RequireAuth, RequirePermiso, RequireProfile, RequireRoles } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { Aviso, ModuloEnPreparacion } from '@/shared/ui'
@@ -113,6 +115,14 @@ export const router = createBrowserRouter([
             children: [{ path: '/organizacion/agencias', element: <AgenciasPage /> }],
           },
           {
+            element: <RequireRoles allowed={ROLES_MATRIZ_ORGANIZACION} permisoAlternativo={PERMISOS.organizacionExportar} />,
+            children: [
+              { path: '/organizacion/directorios', element: <DirectoriosAuditoriaPage /> },
+              { path: '/organizacion/historial-parametros', element: <ParametrosPage auditoria /> },
+              { path: '/organizacion/historial-parametros/:clave', element: <ParametroDetallePage auditoria /> },
+            ],
+          },
+          {
             // La URL directa respeta los mismos roles que el menú; las acciones son solo de ADMIN
             element: <RequirePermiso permiso={PERMISOS.productosConsultar} />,
             children: [
@@ -136,8 +146,18 @@ export const router = createBrowserRouter([
                 children: [
                   { path: '/contabilidad', element: <PlanCuentasPage /> },
                   { path: '/contabilidad/importar-catalogo', element: <ImportarCatalogoPage /> },
+                  // E3-05: cuentas contables de los productos; asignar exige con-cuenta-editar
+                  { path: '/contabilidad/cuentas-producto', element: <CuentasProductoPage /> },
                   // CON-04: mismos roles que el plan de cuentas, solo consulta
                   { path: '/contabilidad/asientos', element: <AsientosPage /> },
+                  {
+                    // E4-04: registrar asientos manuales (CONTADOR y ADMIN, o la función contabilidad.asientos.crear)
+                    element: <RequireRoles allowed={CONTABILIDAD_ROLES.asientosManuales} />,
+                    children: [
+                      { path: '/contabilidad/asientos/nuevo', element: <NuevoAsientoPage /> },
+                      { path: '/contabilidad/asientos/:idAsiento/editar', element: <NuevoAsientoPage /> },
+                    ],
+                  },
                   // E4-05: fecha contable vigente y calendario, solo consulta
                   { path: '/contabilidad/fecha-contable', element: <FechaContablePage /> },
                 ],

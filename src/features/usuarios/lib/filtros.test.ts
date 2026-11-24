@@ -27,7 +27,7 @@ describe('armarParametros', () => {
 
   it('envía solo los filtros con valor y el orden elegido', () => {
     const params = armarParametros(
-      { q: '  tapia ', estado: 'Inactivo', rol: 'CAJERO', idAgencia: '001', vinculado: 'false' },
+      { ...FILTROS_VACIOS, q: '  tapia ', nombre: 'Ana Tapia', idUsuario: '12', estado: 'Inactivo', rol: 'CAJERO', idAgencia: '001', vinculado: 'false' },
       { campo: 'username', direccion: 'asc' },
       3,
     )
@@ -35,6 +35,8 @@ describe('armarParametros', () => {
       page: '3',
       pageSize: '20',
       q: 'tapia',
+      nombre: 'Ana Tapia',
+      idUsuario: '12',
       estado: 'Inactivo',
       rol: 'CAJERO',
       idAgencia: '001',
@@ -59,6 +61,7 @@ describe('filtrosUsuariosSchema', () => {
   it('rechaza una búsqueda de más de 100 caracteres y una agencia que no son 3 dígitos', () => {
     expect(filtrosUsuariosSchema.safeParse({ ...FILTROS_VACIOS, q: 'a'.repeat(101) }).success).toBe(false)
     expect(filtrosUsuariosSchema.safeParse({ ...FILTROS_VACIOS, idAgencia: '01' }).success).toBe(false)
+    expect(filtrosUsuariosSchema.safeParse({ ...FILTROS_VACIOS, idUsuario: '2147483648' }).success).toBe(false)
   })
 })
 

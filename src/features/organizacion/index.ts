@@ -2,6 +2,8 @@ export { ProgramacionSubProductoPage } from '@/features/organizacion/pages/Progr
 export { ResumenCambioProducto } from '@/features/organizacion/components/ResumenCambioProducto'
 
 export { AgenciasPage } from '@/features/organizacion/pages/AgenciasPage'
+export { DirectoriosAuditoriaPage } from '@/features/organizacion/pages/DirectoriosAuditoriaPage'
+export { ROLES_MATRIZ_ORGANIZACION } from '@/features/organizacion/lib/accesoAuditoria'
 export { DatosCooperativaPage } from '@/features/organizacion/pages/DatosCooperativaPage'
 export { ProductosPage } from '@/features/organizacion/pages/ProductosPage'
 export { DetalleProductoPage } from '@/features/organizacion/pages/DetalleProductoPage'

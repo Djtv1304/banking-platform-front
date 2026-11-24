@@ -11,12 +11,13 @@ import type { Orden } from '@/features/usuarios/lib/filtros'
 import { etiquetaAgencia, formatearFecha } from '@/features/usuarios/lib/formato'
 
 const COLUMNAS: { label: string; campo?: CampoOrden }[] = [
+  { label: 'ID', campo: 'idUsuario' },
   { label: 'Usuario', campo: 'username' },
   { label: 'Nombres', campo: 'nombres' },
   { label: 'Apellidos', campo: 'apellidos' },
   { label: 'Correo', campo: 'email' },
-  { label: 'Rol' },
-  { label: 'Agencia' },
+  { label: 'Roles', campo: 'roles' },
+  { label: 'Agencia', campo: 'idAgencia' },
   { label: 'Estado', campo: 'estado' },
   { label: 'Creado', campo: 'fechaCreacion' },
 ]
@@ -77,6 +78,7 @@ export function TablaUsuarios({ usuarios, orden, ocupado, onOrdenar }: TablaUsua
           {usuarios.map((usuario) => (
             // Toda la fila abre la ficha: el enlace del usuario la cubre con su ::after
             <tr key={usuario.idUsuario} className="relative border-b border-border transition-colors last:border-b-0 hover:bg-muted/60">
+              <td className="px-3 py-3 tabular-nums">{usuario.idUsuario}</td>
               <td className="px-3 py-3">
                 <Link
                   to={`/usuarios/${usuario.idUsuario}`}
@@ -91,12 +93,12 @@ export function TablaUsuarios({ usuarios, orden, ocupado, onOrdenar }: TablaUsua
                 {usuario.email}
               </td>
               <td className="px-3 py-3">
-                {usuario.roles?.length ? (
+                {usuario.roles?.length || usuario.rol ? (
                   <div className="flex flex-wrap gap-1">
-                    {usuario.roles.map((rol) => <Badge key={rol} className="h-6 bg-info/30 px-2.5 text-foreground">{formatRol(rol)}</Badge>)}
+                    {(usuario.roles?.length ? usuario.roles : usuario.rol ? [usuario.rol] : []).map(rol => (
+                      <Badge key={rol} className="h-6 bg-info/30 px-2.5 text-foreground">{formatRol(rol)}</Badge>
+                    ))}
                   </div>
-                ) : usuario.rol ? (
-                  <Badge className="h-6 bg-info/30 px-2.5 text-foreground">{formatRol(usuario.rol)}</Badge>
                 ) : (
                   <span className="text-muted-foreground">Sin rol</span>
                 )}
