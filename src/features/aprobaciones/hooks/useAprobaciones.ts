@@ -28,11 +28,14 @@ export function useDetalleAprobacion(id: number) {
 
 export function useResolverAprobacion(id: number, operacion?: string) {
   const client = useQueryClient()
-  return useMutation({ mutationFn: (datos: { accion: Accion; comentario: string }) => resolverSolicitud(id, datos.accion, datos.comentario), onSettled: async (resultado, error, { accion }) => {
+  return useMutation({ retry: false, mutationFn: (datos: { accion: Accion; comentario: string }) => resolverSolicitud(id, datos.accion, datos.comentario), onSettled: async (resultado, error, { accion }) => {
     // Tambien un 409 o una caida despues del commit exige releer el estado real.
     await client.invalidateQueries({ queryKey: ['aprobaciones'] })
     if (operacion === OPERACION_TARIFA_COMISION && accion === 'aprobar') {
       await invalidarComisiones(client)
+    }
+    if (operacion === 'SEG-USUARIO-ROLES' && resultado?.estado === 'Ejecutada') {
+      await client.invalidateQueries({ queryKey: ['usuarios'] })
     }
     if (resultado?.estado === 'Ejecutada' || (error && accion === 'aprobar')) {
       await Promise.all([

@@ -11,6 +11,7 @@ import { AccesoUsuario } from '@/features/usuarios/components/detalle/AccesoUsua
 import { DatosPersonales } from '@/features/usuarios/components/detalle/DatosPersonales'
 import { RolYAgencia } from '@/features/usuarios/components/detalle/RolYAgencia'
 import { EstadoUsuarioBadge } from '@/features/usuarios/components/EstadoUsuarioBadge'
+import { SeguimientoCambioUsuario } from '@/features/usuarios/components/detalle/SeguimientoCambioUsuario'
 import { useUsuario } from '@/features/usuarios/hooks/useUsuarios'
 import { accesoUsuarios } from '@/features/usuarios/lib/acceso'
 import { leerIdUsuario } from '@/features/usuarios/lib/filtros'
@@ -21,6 +22,7 @@ export function DetalleUsuarioPage() {
   const { idUsuario: param } = useParams()
   const idUsuario = leerIdUsuario(param)
   const roles = useAuthStore((state) => state.user?.roles)
+  const idSesion = useAuthStore((state) => state.user?.idUsuario)
   const emailSesion = useAuthStore((state) => state.user?.email)
   const anterior = accesoUsuarios(roles ?? [], usePermisos())
   const acceso = { consulta: usePuedeFuncion('usuarios.consultar', anterior.consulta), creacion: usePuedeFuncion('usuarios.administrar', anterior.creacion) }
@@ -32,7 +34,7 @@ export function DetalleUsuarioPage() {
     }
     if (idUsuario === null) return <Aviso>No existe un usuario con ese ID. Puede que el enlace esté incompleto.</Aviso>
     if (usuario.isPending) return <Cargando texto="Cargando la ficha del usuario…" />
-    if (usuario.isError) {
+    if (usuario.isError && !usuario.data) {
       return (
         <Aviso tono="error">
           {mensajeErrorDetalle(usuario.error)}
@@ -43,8 +45,9 @@ export function DetalleUsuarioPage() {
         </Aviso>
       )
     }
-    const esPropio = !!emailSesion && emailSesion.trim().toLowerCase() === usuario.data.email.trim().toLowerCase()
-    return <FichaUsuario usuario={usuario.data} esPropio={esPropio} actualizando={usuario.isFetching} />
+    if (!usuario.data) return null
+    const esPropio = idSesion === String(usuario.data.idUsuario) || (!!emailSesion && emailSesion.trim().toLowerCase() === usuario.data.email.trim().toLowerCase())
+    return <FichaUsuario key={usuario.data.idUsuario} usuario={usuario.data} esPropio={esPropio} actualizando={usuario.isFetching} />
   })()
 
   return (
@@ -93,6 +96,8 @@ function FichaUsuario({ usuario, esPropio, actualizando }: { usuario: UsuarioDet
           </div>
         </div>
       </header>
+
+      <SeguimientoCambioUsuario idUsuario={usuario.idUsuario} onConfirmado={setAviso} />
 
       {aviso && (
         <div role="status" className="flex items-start gap-3 rounded-2xl border border-primary/40 bg-primary/10 px-5 py-4 text-sm text-foreground">

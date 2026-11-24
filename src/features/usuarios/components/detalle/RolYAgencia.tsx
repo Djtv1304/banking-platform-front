@@ -10,6 +10,8 @@ import { Bloque } from '@/features/usuarios/components/detalle/Bloques'
 import { CambiarAgenciaDialog } from '@/features/usuarios/components/detalle/CambiarAgenciaDialog'
 import { CambiarRolDialog } from '@/features/usuarios/components/detalle/CambiarRolDialog'
 
+import { useRecuperacionUsuario, useSolicitudRoles } from '@/features/usuarios/hooks/useUsuarios'
+
 interface RolYAgenciaProps {
   usuario: UsuarioDetalle
   esPropio: boolean
@@ -19,6 +21,8 @@ interface RolYAgenciaProps {
 /** Qué opera (rol, AUT-09) y dónde (agencia, AUT-08): cada uno con su propio cambio */
 export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps) {
   const puedeEditar = usePuedeFuncion('usuarios.administrar', hasPermission(usePermisos(), PERMISOS.usuariosEditar))
+  const solicitud = useSolicitudRoles(usuario.idUsuario)
+  const recuperacion = useRecuperacionUsuario(usuario.idUsuario)
   const [dialogo, setDialogo] = useState<'rol' | 'agencia' | null>(null)
   const { data: agencias } = useAgencias()
   const agencia = agencias.find((item) => item.idAgencia === usuario.idAgencia)
@@ -40,7 +44,7 @@ export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps)
           sinValor={roles.length === 0}
           nota="Define los módulos que puede operar."
           accion={puedeEditar && !esPropio &&
-            <Button variant="outline" size="lg" onClick={() => setDialogo('rol')} className="rounded-lg px-3">
+            <Button variant="outline" size="lg" disabled={!!solicitud || !!recuperacion} onClick={() => setDialogo('rol')} className="rounded-lg px-3">
               {usuario.rol ? 'Cambiar' : 'Asignar'}
             </Button>
           }
@@ -56,7 +60,7 @@ export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps)
               : 'Donde registra sus operaciones.'
           }
           accion={puedeEditar && !esPropio &&
-            <Button variant="outline" size="lg" disabled={rolAgencia !== 'CAJERO'} onClick={() => setDialogo('agencia')} className="rounded-lg px-3">
+            <Button variant="outline" size="lg" disabled={!!recuperacion || rolAgencia !== 'CAJERO'} onClick={() => setDialogo('agencia')} className="rounded-lg px-3">
               {usuario.idAgencia ? 'Cambiar' : 'Asignar'}
             </Button>
           }

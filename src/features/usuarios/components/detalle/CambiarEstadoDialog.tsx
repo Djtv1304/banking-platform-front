@@ -1,3 +1,4 @@
+import { RecuperacionUsuario } from '@/features/usuarios/components/detalle/SeguimientoCambioUsuario'
 import type { FormEvent } from 'react'
 import type { z } from 'zod'
 import { useForm } from 'react-hook-form'
@@ -186,7 +187,8 @@ export function CambiarEstadoDialog({ usuario, destino, onCerrar, onGuardado }: 
               </fieldset>
             )}
 
-            {edicion.isError && <ErrorAccion>{mensajeErrorCambio(edicion.error)}</ErrorAccion>}
+            <RecuperacionUsuario idUsuario={usuario.idUsuario} />
+        {edicion.isError && !edicion.bloqueado && <ErrorAccion>{mensajeErrorCambio(edicion.error)}</ErrorAccion>}
 
             <DialogFooter className="-mx-6 -mb-6 rounded-b-3xl border-t border-border p-6 sm:-mx-8 sm:-mb-8 sm:px-8">
               <Button type="button" variant="outline" disabled={pendiente} onClick={cerrar} className="min-h-11 rounded-xl px-6">

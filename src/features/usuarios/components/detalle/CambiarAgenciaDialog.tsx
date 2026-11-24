@@ -1,3 +1,4 @@
+import { RecuperacionUsuario } from '@/features/usuarios/components/detalle/SeguimientoCambioUsuario'
 import { useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
 
@@ -87,13 +88,14 @@ export function CambiarAgenciaDialog({ usuario, open, onOpenChange, onGuardado }
           </select>
         </Campo>
 
-        {edicion.isError && <ErrorAccion>{mensajeErrorCambio(edicion.error)}</ErrorAccion>}
+        <RecuperacionUsuario idUsuario={usuario.idUsuario} />
+        {edicion.isError && !edicion.bloqueado && <ErrorAccion>{mensajeErrorCambio(edicion.error)}</ErrorAccion>}
 
         <DialogFooter className="-mx-6 -mb-6 rounded-b-3xl border-t border-border p-6 sm:-mx-8 sm:-mb-8 sm:px-8">
           <Button type="button" variant="outline" disabled={pendiente} onClick={cerrar} className="min-h-11 rounded-xl px-6">
             Cancelar
           </Button>
-          <Button type="button" disabled={pendiente || sinCambio} onClick={() => void guardar()} className="min-h-11 rounded-xl px-6 font-semibold">
+          <Button type="button" disabled={pendiente || edicion.bloqueado || sinCambio} onClick={() => void guardar()} className="min-h-11 rounded-xl px-6 font-semibold">
             {pendiente && <LoaderCircle className="animate-spin" />}
             {pendiente ? 'Guardando…' : 'Guardar agencia'}
           </Button>

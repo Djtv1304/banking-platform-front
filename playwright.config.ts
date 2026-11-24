@@ -12,7 +12,7 @@ const baseURL = usuariosSimulados ? 'http://127.0.0.1:5176' : simulado ? 'http:/
 export default defineConfig({
   testDir: './e2e',
   testMatch: usuariosSimulados ? '**/usuarios.spec.ts' : simulado ? '**/agencias.spec.ts' : '**/*.spec.ts',
-  testIgnore: simulado ? [] : '**/agencias.spec.ts',
+  testIgnore: usuariosSimulados || simulado ? [] : ['**/agencias.spec.ts', '**/usuarios.spec.ts'],
   fullyParallel: false,
   workers: 1,
   retries: 0,
