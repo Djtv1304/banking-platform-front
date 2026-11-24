@@ -5,7 +5,7 @@ import { toApiError } from '@/shared/api'
 import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
 import { Aviso, Cargando } from '@/features/cuenta/components/Aviso'
 import { useHistorialCupo } from '@/features/cuenta/hooks/useCupos'
-import { mensajeErrorCupos } from '@/features/cuenta/lib/cupos'
+import { DOCUMENTOS_CUPO, mensajeErrorCupos } from '@/features/cuenta/lib/cupos'
 import { resumenPaginacion, totalPaginas } from '@/features/cuenta/lib/filtros'
 import { formatearFechaConsulta, formatearMonto } from '@/features/cuenta/lib/formato'
 
@@ -68,7 +68,12 @@ function Historial({ idCuenta, idCanal }: { idCuenta: number; idCanal: number })
                 <Cambio anterior={cambio.cupoDiarioAnterior} nuevo={cambio.cupoDiarioNuevo} />
                 <Cambio anterior={cambio.cupoMensualAnterior} nuevo={cambio.cupoMensualNuevo} />
                 <Cambio anterior={cambio.montoMaxTxAnterior} nuevo={cambio.montoMaxTxNuevo} />
-                <td className="px-3 py-3 text-heading">ID {cambio.modificadoPor}</td>
+                <td className="px-3 py-3 text-heading">
+                  ID {cambio.modificadoPor}
+                  {cambio.solicitadoPorCliente && cambio.documentoVerificado && (
+                    <div className="text-xs text-muted-foreground">Pedido del cliente · {DOCUMENTOS_CUPO[cambio.documentoVerificado]}</div>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

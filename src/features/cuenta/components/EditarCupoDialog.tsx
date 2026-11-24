@@ -20,6 +20,7 @@ import { Aviso } from '@/features/cuenta/components/Aviso'
 import { useActualizarCupo } from '@/features/cuenta/hooks/useCupos'
 import {
   cupoFormSchema,
+  DOCUMENTOS_CUPO,
   mensajeErrorCupos,
   valoresCupo,
   type CupoFormData,
@@ -119,6 +120,21 @@ function FormularioCupo({ idCuenta, cupo, onCancelar, onGuardado }: FormularioCu
         {campo('maxTransaccionesDia', 'Transacciones por día', { inputMode: 'numeric' })}
         {campo('fechaVigencia', 'Vigente hasta', { type: 'date' }, 'Opcional. Último día en que rige; vacío no caduca.')}
       </div>
+
+      <fieldset className="grid gap-3 rounded-lg border border-border p-3">
+        <legend className="px-1 font-semibold">Pedido del cliente</legend>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" {...register('solicitadoPorCliente')} />
+          El cliente solicitó este ajuste
+        </label>
+        {errors.solicitadoPorCliente && <p role="alert" className="text-sm text-destructive">{errors.solicitadoPorCliente.message}</p>}
+        <Label htmlFor="cupo-documento">Documento verificado</Label>
+        <select id="cupo-documento" className={campoClassName} aria-invalid={!!errors.documentoVerificado} {...register('documentoVerificado')}>
+          <option value="">Selecciona un documento</option>
+          {Object.entries(DOCUMENTOS_CUPO).map(([codigo, nombre]) => <option key={codigo} value={codigo}>{nombre}</option>)}
+        </select>
+        {errors.documentoVerificado && <p role="alert" className="text-sm text-destructive">{errors.documentoVerificado.message}</p>}
+      </fieldset>
 
       {actualizar.isError && (
         <Aviso tono="error">{mensajeErrorCupos(toApiError(actualizar.error), 'editar')}</Aviso>

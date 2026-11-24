@@ -21,7 +21,7 @@ const ESCRITURAS = {
   clientesRiesgo: { roles: ['ASESOR', 'SUPERVISOR', 'ADMIN'] },
   cuentasAbrir: { roles: ['ASESOR', 'ADMIN'] },
   cuentasEstado: { roles: ['ASESOR', 'SUPERVISOR', 'ADMIN'] },
-  cuentasCupos: { roles: ['SUPERVISOR', 'ADMIN'] },
+  cuentasCupos: { roles: ['ASESOR', 'SUPERVISOR', 'ADMIN'] },
   tarjetasEmitir: { roles: ['ASESOR', 'ADMIN'] },
   tarjetasEstado: { roles: ['ASESOR', 'SUPERVISOR', 'ADMIN'] },
   contabilidadEditar: { roles: ['CONTADOR'] },
