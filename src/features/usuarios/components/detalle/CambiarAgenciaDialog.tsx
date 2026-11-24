@@ -7,7 +7,7 @@ import { mensajeErrorCambio } from '@/features/usuarios/api/usuarios.api'
 import type { UsuarioDetalle } from '@/features/usuarios/api/usuarios.contract'
 import { Campo } from '@/features/usuarios/components/Campo'
 import { dialogoClassName, ErrorAccion } from '@/features/usuarios/components/detalle/Bloques'
-import { useEditarUsuario } from '@/features/usuarios/hooks/useUsuarios'
+import { useTrasladarUsuario } from '@/features/usuarios/hooks/useUsuarios'
 import { selectClassName } from '@/features/usuarios/lib/campos'
 import { etiquetaAgencia, nombreCompleto } from '@/features/usuarios/lib/formato'
 
@@ -18,9 +18,9 @@ interface CambiarAgenciaDialogProps {
   onGuardado: (mensaje: string) => void
 }
 
-/** AUT-08 · `{ idAgencia }`. Solo se ofrecen agencias activas (la actual se muestra aunque no lo esté) */
+/** E1-04 · Traslado a una agencia activa. */
 export function CambiarAgenciaDialog({ usuario, open, onOpenChange, onGuardado }: CambiarAgenciaDialogProps) {
-  const edicion = useEditarUsuario(usuario.idUsuario)
+  const edicion = useTrasladarUsuario(usuario.idUsuario)
   const agencias = useAgencias()
   const [elegida, setElegida] = useState<string | null>(null)
   const seleccion = elegida ?? usuario.idAgencia ?? ''
@@ -38,7 +38,7 @@ export function CambiarAgenciaDialog({ usuario, open, onOpenChange, onGuardado }
   const guardar = async () => {
     if (sinCambio) return
     try {
-      const actualizado = await edicion.mutateAsync({ idAgencia: seleccion })
+      const actualizado = await edicion.mutateAsync(seleccion)
       setElegida(null)
       edicion.reset()
       const agencia = agencias.data.find((item) => item.idAgencia === actualizado.idAgencia)

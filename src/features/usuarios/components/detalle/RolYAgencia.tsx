@@ -22,6 +22,8 @@ export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps)
   const [dialogo, setDialogo] = useState<'rol' | 'agencia' | null>(null)
   const { data: agencias } = useAgencias()
   const agencia = agencias.find((item) => item.idAgencia === usuario.idAgencia)
+  const roles = usuario.roles ?? (usuario.rol ? [usuario.rol] : [])
+  const rolAgencia = roles.includes('CAJERO') ? 'CAJERO' : roles.includes('ASESOR') ? 'ASESOR' : usuario.rol
 
   const guardado = (mensaje: string) => {
     setDialogo(null)
@@ -33,11 +35,11 @@ export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps)
       <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border">
         <Fila
           Icon={KeyRound}
-          titulo="Rol"
-          valor={usuario.rol ? formatRol(usuario.rol) : 'Sin rol asignado'}
-          sinValor={!usuario.rol}
+          titulo="Roles"
+          valor={roles.length ? roles.map(formatRol).join(', ') : 'Sin roles asignados'}
+          sinValor={roles.length === 0}
           nota="Define los módulos que puede operar."
-          accion={puedeEditar &&
+          accion={puedeEditar && !esPropio &&
             <Button variant="outline" size="lg" onClick={() => setDialogo('rol')} className="rounded-lg px-3">
               {usuario.rol ? 'Cambiar' : 'Asignar'}
             </Button>
@@ -53,25 +55,24 @@ export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps)
               ? `Código ${agencia.idAgencia}${agencia.ciudad ? `, ${agencia.ciudad}` : ''}${agencia.estado !== 'A' ? '. La agencia no está activa.' : ''}`
               : 'Donde registra sus operaciones.'
           }
-          accion={puedeEditar &&
-            <Button variant="outline" size="lg" disabled={usuario.rol !== 'CAJERO'} onClick={() => setDialogo('agencia')} className="rounded-lg px-3">
+          accion={puedeEditar && !esPropio &&
+            <Button variant="outline" size="lg" disabled={rolAgencia !== 'CAJERO'} onClick={() => setDialogo('agencia')} className="rounded-lg px-3">
               {usuario.idAgencia ? 'Cambiar' : 'Asignar'}
             </Button>
           }
         />
       </ul>
 
-      <AgenciasUsuarioPanel idUsuario={usuario.idUsuario} rol={usuario.rol} onGuardado={onGuardado} />
+      <AgenciasUsuarioPanel idUsuario={usuario.idUsuario} rol={rolAgencia} esPropio={esPropio} onGuardado={onGuardado} />
       <CambiarRolDialog
         usuario={usuario}
-        esPropio={esPropio}
-        open={puedeEditar && dialogo === 'rol'}
+        open={puedeEditar && !esPropio && dialogo === 'rol'}
         onOpenChange={(abierto) => setDialogo(abierto ? 'rol' : null)}
         onGuardado={guardado}
       />
       <CambiarAgenciaDialog
         usuario={usuario}
-        open={puedeEditar && dialogo === 'agencia'}
+        open={puedeEditar && !esPropio && dialogo === 'agencia'}
         onOpenChange={(abierto) => setDialogo(abierto ? 'agencia' : null)}
         onGuardado={guardado}
       />
