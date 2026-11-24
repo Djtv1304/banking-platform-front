@@ -13,6 +13,7 @@ const ESCRITURAS = {
   usuariosEditar: { roles: ['ADMIN'] },
   productosConsultar: { permiso: 'prd-consultar' },
   productosEditar: { permiso: 'prd-editar' },
+  productosEstado: { permiso: 'prd-estado' },
   productosExportar: { permiso: 'prd-exportar' },
   catalogosEditar: { roles: ['ADMIN'] },
   clientesEditar: { roles: ['ASESOR', 'ADMIN'] },
