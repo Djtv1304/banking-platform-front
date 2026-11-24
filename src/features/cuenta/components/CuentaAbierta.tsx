@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { Link } from 'react-router'
-import { ArrowRight, CircleCheck, WalletCards } from 'lucide-react'
+import { ArrowRight, CircleCheck, Download, WalletCards } from 'lucide-react'
 
-import { Button } from '@/shared/ui'
+import { Aviso, Button } from '@/shared/ui'
+import { descargarFormularioApertura } from '@/features/cuenta/api/apertura.api'
 import type { CuentaAbierta as Cuenta } from '@/features/cuenta/api/apertura.contract'
 import { EstadoCuentaBadge } from '@/features/cuenta/components/EstadoCuentaBadge'
 import { formatearMonto } from '@/features/cuenta/lib/formato'
@@ -16,6 +18,7 @@ interface CuentaAbiertaProps {
 /** Resultado de CTA-01: los datos tal como los devolvió el servidor */
 export function CuentaAbierta({ cuenta, nombreCliente, onNueva }: CuentaAbiertaProps) {
   const titulo = useRef<HTMLHeadingElement>(null)
+  const formulario = useMutation({ mutationFn: () => descargarFormularioApertura(cuenta.idCuenta) })
   // El formulario desaparece: el foco pasa al resultado para que el lector de pantalla lo anuncie
   useEffect(() => {
     titulo.current?.focus()
@@ -55,6 +58,10 @@ export function CuentaAbierta({ cuenta, nombreCliente, onNueva }: CuentaAbiertaP
       </dl>
 
       <div className="flex flex-col gap-3 sm:flex-row">
+        <Button variant="outline" disabled={formulario.isPending} onClick={() => formulario.mutate()}>
+          <Download />
+          {formulario.isPending ? 'Descargando…' : 'Descargar formulario'}
+        </Button>
         <Button asChild variant="outline" className="h-[52px] rounded-xl px-6 text-base">
           <Link to={`/cuentas/${cuenta.idCuenta}`}>
             Ver la cuenta
@@ -66,6 +73,7 @@ export function CuentaAbierta({ cuenta, nombreCliente, onNueva }: CuentaAbiertaP
           Abrir otra
         </Button>
       </div>
+      {formulario.isError && <Aviso tono="error">No se pudo descargar el formulario. Verifica la agencia y las condiciones vigentes.</Aviso>}
     </section>
   )
 }

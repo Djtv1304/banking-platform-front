@@ -5,49 +5,17 @@ import { campoErrorApertura, mensajeErrorApertura } from '@/features/cuenta/lib/
 import {
   aCuentaCreate,
   aperturaVacia,
-  crearAperturaCuentaSchema,
-  type AperturaCuentaInput,
+  aperturaCuentaSchema,
 } from '@/features/cuenta/schemas/apertura-cuenta.schema'
 
-const valido: AperturaCuentaInput = { idSubProducto: '3', idAgencia: '001', montoInicial: '50' }
-
-const errores = (input: AperturaCuentaInput, minimo: number | null = 50) => {
-  const result = crearAperturaCuentaSchema(minimo).safeParse(input)
-  return result.success ? {} : Object.fromEntries(result.error.issues.map((issue) => [issue.path[0], issue.message]))
-}
-
-describe('crearAperturaCuentaSchema', () => {
-  it('acepta un depósito igual al mínimo y arma el body en USD', () => {
-    const result = crearAperturaCuentaSchema(50).safeParse({ ...valido, montoInicial: '50,00' })
-    expect(result.success).toBe(true)
-    expect(aCuentaCreate(result.data!, 7)).toEqual({
-      idCliente: 7,
-      idSubProducto: 3,
-      idAgencia: '001',
-      montoInicial: 50,
-      idMoneda: 840,
-    })
+describe('aperturaCuentaSchema', () => {
+  it('envia solo el cliente y subproducto al abrir con saldo cero', () => {
+    const valores = aperturaCuentaSchema.parse({ idSubProducto: '3' })
+    expect(aCuentaCreate(valores, 7)).toEqual({ idCliente: 7, idSubProducto: 3 })
   })
 
-  it('rechaza un depósito bajo el mínimo del producto', () => {
-    expect(errores({ ...valido, montoInicial: '49.99' }).montoInicial).toMatch(/mínimo de apertura .*50,00/)
-  })
-
-  it('rechaza un monto con 3 decimales o con letras', () => {
-    expect(errores({ ...valido, montoInicial: '50.123' }).montoInicial).toMatch(/2 decimales como máximo/)
-    expect(errores({ ...valido, montoInicial: '5O' }).montoInicial).toMatch(/monto válido/)
-  })
-
-  it('sin mínimo configurado admite 0', () => {
-    expect(errores({ ...valido, montoInicial: '0' }, null)).toEqual({})
-  })
-
-  it('pide los campos faltantes', () => {
-    expect(errores(aperturaVacia())).toEqual({
-      idSubProducto: 'Selecciona el producto de la cuenta.',
-      idAgencia: 'Selecciona la agencia donde se abre la cuenta.',
-      montoInicial: 'Ingresa el depósito de apertura.',
-    })
+  it('pide un subproducto', () => {
+    expect(aperturaCuentaSchema.safeParse(aperturaVacia).success).toBe(false)
   })
 })
 
@@ -73,10 +41,10 @@ describe('mensajeErrorApertura', () => {
     expect(mensajeErrorApertura(error(500, 'ERROR_INTERNO', 'Algo falló'))).toBe('Algo falló')
   })
 
-  it('ubica en su campo los errores de producto, monto y agencia', () => {
+  it('ubica en su campo los errores de producto', () => {
     expect(campoErrorApertura(error(422, 'PRODUCTO_NO_ES_CUENTA'))).toBe('idSubProducto')
-    expect(campoErrorApertura(error(422, 'MONTO_APERTURA_INSUFICIENTE'))).toBe('montoInicial')
-    expect(campoErrorApertura(error(409, 'AGENCIA_INACTIVA'))).toBe('idAgencia')
+    expect(campoErrorApertura(error(422, 'MONTO_APERTURA_INSUFICIENTE'))).toBeNull()
+    expect(campoErrorApertura(error(409, 'AGENCIA_INACTIVA'))).toBeNull()
     expect(campoErrorApertura(error(409, 'CLIENTE_NO_ACTIVO'))).toBeNull()
   })
 })

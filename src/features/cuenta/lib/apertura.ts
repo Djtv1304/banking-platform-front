@@ -5,6 +5,8 @@ import type { ApiError } from '@/shared/api'
 const SIN_PERMISO = 'No tienes permiso para abrir cuentas.'
 
 const MENSAJES: Record<string, string> = {
+  MENOR_SIN_TUTOR: 'El menor necesita un tutor vigente para abrir la cuenta.',
+  MAXIMO_POR_CLIENTE: 'El cliente ya alcanzó el máximo de cuentas para este subproducto.',
   CLIENTE_NO_ACTIVO: 'El cliente no está activo: no se le puede abrir una cuenta.',
   RIESGO_RECHAZADO: 'El cliente tiene una evaluación de riesgo vigente rechazada: no se le puede abrir una cuenta.',
   PRODUCTO_NO_ES_CUENTA: 'El producto elegido ya no está disponible para abrir cuentas. Elige otro.',
@@ -16,8 +18,6 @@ const MENSAJES: Record<string, string> = {
 /** Campo del formulario al que apunta cada error de negocio (para marcarlo y llevar el foco) */
 const CAMPOS = {
   PRODUCTO_NO_ES_CUENTA: 'idSubProducto',
-  MONTO_APERTURA_INSUFICIENTE: 'montoInicial',
-  AGENCIA_INACTIVA: 'idAgencia',
 } as const
 
 export type CampoApertura = (typeof CAMPOS)[keyof typeof CAMPOS]

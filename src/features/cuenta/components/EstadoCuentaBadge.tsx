@@ -8,6 +8,8 @@ const ESTILOS: Record<EstadoCuenta, string> = {
   INACTIVA: 'bg-muted text-muted-foreground',
   BLOQUEADA: 'bg-destructive/15 text-destructive',
   CERRADA: 'border-border bg-transparent text-muted-foreground',
+  PendienteDeposito: 'bg-brand-amber/15 text-foreground',
+  Anulada: 'border-border bg-transparent text-muted-foreground',
 }
 
 export function EstadoCuentaBadge({ estado }: { estado: EstadoCuenta }) {

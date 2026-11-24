@@ -1,19 +1,18 @@
 import { useRef, useState } from 'react'
-import { useForm, useWatch, type Resolver } from 'react-hook-form'
+import { useQuery } from '@tanstack/react-query'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CircleAlert, Landmark, WalletCards } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
-import { cn } from '@/shared/lib'
-import { Aviso, Button, Cargando, Input } from '@/shared/ui'
+import { Aviso, Button, Cargando } from '@/shared/ui'
 import { useAuthStore } from '@/features/auth'
+import { obtenerFicha } from '@/features/organizacion/api/productos.api'
 import { useAgencias, useProductos, type Agencia, type Producto } from '@/features/catalogos'
 import {
   a11y,
   BuscarCliente,
-  Field,
   FieldError,
-  fieldClassName,
   FormSection,
   nombreCliente,
   opcionClassName,
@@ -21,6 +20,7 @@ import {
   type Cliente,
 } from '@/features/tarjetas'
 import type { CuentaAbierta as Cuenta } from '@/features/cuenta/api/apertura.contract'
+import { consultarHabilitacion } from '@/features/cuenta/api/apertura.api'
 import { ConfirmarAperturaDialog } from '@/features/cuenta/components/ConfirmarAperturaDialog'
 import { CuentaAbierta } from '@/features/cuenta/components/CuentaAbierta'
 import { useAbrirCuenta } from '@/features/cuenta/hooks/useAperturaCuenta'
@@ -29,15 +29,10 @@ import { etiquetaAgencia, formatearMonto } from '@/features/cuenta/lib/formato'
 import {
   aCuentaCreate,
   aperturaVacia,
-  crearAperturaCuentaSchema,
+  aperturaCuentaSchema,
   type AperturaCuentaData,
   type AperturaCuentaInput,
 } from '@/features/cuenta/schemas/apertura-cuenta.schema'
-
-const selectClassName = cn(
-  fieldClassName,
-  'w-full border text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:scheme-dark',
-)
 
 /** A-01 · Busca al cliente y, si está activo, abre su cuenta de ahorro o corriente */
 export function AperturaCuentaForm() {
@@ -89,10 +84,27 @@ interface DatosAperturaProps {
 
 /** Espera los catálogos: la agencia del usuario se preselecciona al crear el formulario */
 function DatosApertura(props: DatosAperturaProps) {
+  const id = props.cliente.idCliente
+  const habilitacion = useQuery({
+    queryKey: ['clientes', 'habilitacion', id],
+    queryFn: () => consultarHabilitacion(id),
+  })
   const productos = useProductos('Cuenta', undefined, props.cliente.idCliente)
   const agencias = useAgencias()
   const idAgenciaUsuario = useAuthStore((state) => state.user?.idAgencia ?? null)
 
+  if (habilitacion.isPending) return <Cargando texto="Verificando la habilitación del cliente…" />
+  if (habilitacion.isError) return <Aviso tono="error">No pudimos verificar la habilitación del cliente.</Aviso>
+  if (!habilitacion.data.habilitado) {
+    return <Aviso tono="error">
+      El cliente no está habilitado para abrir una cuenta.
+      <ul className="list-disc pl-5">
+        {habilitacion.data.motivos.filter(motivo => motivo !== 'ARCHIVOS_NO_EXIGIDOS').map(motivo => (
+          <li key={motivo}>{motivoHabilitacion(motivo)}</li>
+        ))}
+      </ul>
+    </Aviso>
+  }
   if (productos.isLoading || agencias.isLoading) return <Cargando texto="Cargando productos y agencias…" />
   if (productos.isError) return <Aviso tono="error">No pudimos cargar los productos de cuenta. Inténtalo más tarde.</Aviso>
   if (agencias.isError) return <Aviso tono="error">No pudimos cargar las agencias. Inténtalo más tarde.</Aviso>
@@ -102,28 +114,30 @@ function DatosApertura(props: DatosAperturaProps) {
   if (!conVariantes.length) return <Aviso>No hay productos de cuenta disponibles para abrir.</Aviso>
   if (!activas.length) return <Aviso>No hay agencias activas donde abrir la cuenta.</Aviso>
 
-  const idAgenciaInicial =
-    idAgenciaUsuario && activas.some((agencia) => agencia.idAgencia === idAgenciaUsuario) ? idAgenciaUsuario : ''
-  return <FormularioApertura {...props} productos={conVariantes} agencias={activas} idAgenciaInicial={idAgenciaInicial} />
+  const agencia = activas.find(item => item.idAgencia === idAgenciaUsuario)
+  if (!agencia) return <Aviso>Selecciona una agencia activa para abrir la cuenta.</Aviso>
+  return <FormularioApertura {...props} productos={conVariantes} agencia={agencia} />
+}
+
+function motivoHabilitacion(codigo: string) {
+  switch (codigo) {
+    case 'CLIENTE_NO_ACTIVO': return 'El cliente debe estar activo.'
+    case 'CONSENTIMIENTO_NO_VIGENTE': return 'Falta un consentimiento vigente.'
+    case 'RIESGO_NO_APROBADO_VIGENTE': return 'Falta una evaluación de riesgo aprobada y vigente.'
+    default: return codigo.startsWith('ARCHIVO_OBLIGATORIO_FALTANTE:')
+      ? `Falta el archivo obligatorio ${codigo.split(':')[1]}.`
+      : 'Revisa los requisitos de habilitación en la ficha del cliente.'
+  }
 }
 
 interface FormularioAperturaProps extends DatosAperturaProps {
   productos: Producto[]
-  agencias: Agencia[]
-  idAgenciaInicial: string
+  agencia: Agencia
 }
 
-function FormularioApertura({ cliente, productos, agencias, idAgenciaInicial, onAbierta, onCancelar }: FormularioAperturaProps) {
+function FormularioApertura({ cliente, productos, agencia, onAbierta, onCancelar }: FormularioAperturaProps) {
   const subproductos = productos.flatMap((producto) => producto.subproductos.map((sub) => ({ ...sub, producto })))
   const buscarSubproducto = (id: string) => subproductos.find((sub) => String(sub.idSubProducto) === id)
-
-  // El mínimo sale del producto que se está validando, no de uno fijo
-  const resolver: Resolver<AperturaCuentaInput, unknown, AperturaCuentaData> = (valores, contexto, opciones) =>
-    zodResolver(crearAperturaCuentaSchema(buscarSubproducto(valores.idSubProducto)?.producto.montoAperturaMinimo ?? null))(
-      valores,
-      contexto,
-      opciones,
-    )
 
   const {
     control,
@@ -133,11 +147,17 @@ function FormularioApertura({ cliente, productos, agencias, idAgenciaInicial, on
     setFocus,
     formState: { errors },
   } = useForm<AperturaCuentaInput, unknown, AperturaCuentaData>({
-    resolver,
-    defaultValues: aperturaVacia(idAgenciaInicial),
+    resolver: zodResolver(aperturaCuentaSchema),
+    defaultValues: aperturaVacia,
   })
   const idSubProducto = useWatch({ control, name: 'idSubProducto' })
   const elegido = buscarSubproducto(idSubProducto)
+  const ficha = useQuery({
+    queryKey: ['productos', 'ficha', elegido?.idSubProducto],
+    queryFn: () => obtenerFicha(Number(idSubProducto)),
+    enabled: elegido !== undefined,
+  })
+  const condiciones = ficha.data?.condiciones
 
   const abrir = useAbrirCuenta()
   const [porConfirmar, setPorConfirmar] = useState<AperturaCuentaData | null>(null)
@@ -146,6 +166,7 @@ function FormularioApertura({ cliente, productos, agencias, idAgenciaInicial, on
   const avisoError = useRef<HTMLParagraphElement>(null)
 
   const revisar = (valor: AperturaCuentaData) => {
+    if (!condiciones) return
     abrir.reset()
     setPorConfirmar(valor)
   }
@@ -178,15 +199,11 @@ function FormularioApertura({ cliente, productos, agencias, idAgenciaInicial, on
   // Los errores de un campo se muestran junto a él; el resto, en el aviso general
   const errorGeneral = apiError && !campoErrorApertura(apiError) ? mensajeErrorApertura(apiError) : null
 
-  const agenciaDe = (id: string) => {
-    const agencia = agencias.find((item) => item.idAgencia === id)
-    return agencia ? etiquetaAgencia(agencia) : id
-  }
   const resumen = porConfirmar && elegido && [
     { label: 'Cliente', valor: `${nombreCliente(cliente)} · ${cliente.identificacion}` },
     { label: 'Producto', valor: `${elegido.producto.nombreProducto} · ${elegido.nombreSubProducto}` },
-    { label: 'Agencia', valor: agenciaDe(porConfirmar.idAgencia) },
-    { label: 'Depósito de apertura', valor: formatearMonto(porConfirmar.montoInicial) },
+    { label: 'Agencia', valor: etiquetaAgencia(agencia) },
+    { label: 'Estado inicial', valor: 'Pendiente de depósito' },
   ]
 
   return (
@@ -209,58 +226,33 @@ function FormularioApertura({ cliente, productos, agencias, idAgenciaInicial, on
                   {sub.producto.nombreProducto} · {sub.nombreSubProducto}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {sub.producto.tipoCuenta && `Cuenta ${sub.producto.tipoCuenta.toLowerCase()} · `}
-                  Depósito mínimo {formatearMonto(sub.producto.montoAperturaMinimo ?? 0)}
+                  {sub.producto.tipoCuenta && `Cuenta ${sub.producto.tipoCuenta.toLowerCase()}`}
                 </span>
               </span>
             </label>
           ))}
         </div>
         <FieldError id="idSubProducto" error={errors.idSubProducto?.message} />
+        {elegido && ficha.isPending && <Cargando texto="Cargando las condiciones vigentes…" />}
+        {elegido && ficha.isError && <Aviso tono="error">No pudimos consultar las condiciones vigentes.</Aviso>}
+        {elegido && ficha.isSuccess && !condiciones && <Aviso>El subproducto no tiene condiciones vigentes.</Aviso>}
+        {condiciones && (
+          <div className="rounded-xl border border-border p-4">
+            <h3 className="font-semibold text-heading">Condiciones vigentes</h3>
+            <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+              <div><dt>Depósito mínimo</dt><dd>{formatearMonto(condiciones.montoAperturaMinimo)}</dd></div>
+              <div><dt>Saldo mínimo</dt><dd>{formatearMonto(condiciones.saldoMinimo)}</dd></div>
+              <div><dt>Interés anual</dt><dd>{condiciones.tasaInteresAnual}%</dd></div>
+              <div><dt>Mantenimiento</dt><dd>{formatearMonto(condiciones.costoMantenimiento)}</dd></div>
+              <div><dt>Vigente desde</dt><dd>{condiciones.vigenciaDesde}</dd></div>
+              {condiciones.vigenciaHasta && <div><dt>Vigente hasta</dt><dd>{condiciones.vigenciaHasta}</dd></div>}
+            </dl>
+          </div>
+        )}
       </FormSection>
 
-      <FormSection numero={3} title="Apertura" description="Agencia donde se abre la cuenta y depósito inicial en dólares.">
-        <div className="grid gap-6 sm:grid-cols-2">
-          <Field
-            id="idAgencia"
-            label="Agencia"
-            error={errors.idAgencia?.message}
-            hint={idAgenciaInicial ? 'Por defecto, tu agencia.' : undefined}
-          >
-            <select id="idAgencia" className={selectClassName} {...register('idAgencia')} {...a11y('idAgencia', errors.idAgencia?.message)}>
-              <option value="">Selecciona la agencia</option>
-              {agencias.map((agencia) => (
-                <option key={agencia.idAgencia} value={agencia.idAgencia}>
-                  {etiquetaAgencia(agencia)}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field
-            id="montoInicial"
-            label="Depósito de apertura (USD)"
-            error={errors.montoInicial?.message}
-            hint={
-              elegido
-                ? `Mínimo para este producto: ${formatearMonto(elegido.producto.montoAperturaMinimo ?? 0)}.`
-                : 'Elige el producto para ver el mínimo.'
-            }
-          >
-            <div className="relative">
-              <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-muted-foreground">$</span>
-              <Input
-                id="montoInicial"
-                inputMode="decimal"
-                autoComplete="off"
-                placeholder="0,00"
-                className={cn(fieldClassName, 'pl-8 tabular-nums')}
-                {...register('montoInicial')}
-                {...a11y('montoInicial', errors.montoInicial?.message)}
-              />
-            </div>
-          </Field>
-        </div>
+      <FormSection numero={3} title="Apertura" description="La cuenta se abre en tu agencia activa y queda pendiente del primer depósito.">
+        <p className="font-medium text-heading">{etiquetaAgencia(agencia)}</p>
       </FormSection>
 
       {errorGeneral && (
@@ -279,7 +271,7 @@ function FormularioApertura({ cliente, productos, agencias, idAgenciaInicial, on
         <Button type="button" variant="outline" onClick={onCancelar} className="h-[52px] rounded-xl px-6 text-base">
           Cancelar
         </Button>
-        <Button type="submit" className="h-[52px] rounded-xl px-8 text-base font-semibold hover:bg-primary/90">
+        <Button type="submit" disabled={!!elegido && !condiciones} className="h-[52px] rounded-xl px-8 text-base font-semibold hover:bg-primary/90">
           <WalletCards />
           Revisar y abrir cuenta
         </Button>

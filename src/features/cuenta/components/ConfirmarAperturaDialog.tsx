@@ -48,7 +48,7 @@ export function ConfirmarAperturaDialog({
 
         <p className="flex gap-2 rounded-xl border border-brand-amber/40 bg-brand-amber/10 px-4 py-3 text-sm text-heading">
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-link" />
-          La cuenta queda abierta y activa en cuanto confirmes: no se puede deshacer desde esta pantalla.
+          La cuenta se abre con saldo cero y queda pendiente del primer depósito.
         </p>
 
         <DialogFooter className="-mx-6 -mb-6 px-6">
