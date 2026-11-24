@@ -1,15 +1,16 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowLeft, Eye, FileText, Link2, Pencil, Plus, Power, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { ArrowLeft, Eye, FileText, Link2, Pencil, Plus, SlidersHorizontal, Trash2 } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando } from '@/shared/ui'
 import { usePuedeFuncion, hasPermission, PERMISOS, usePermisos } from '@/features/auth'
 import {
-  type EstadoProducto,
   type ProductoAdmin,
   type SubProductoAdmin,
 } from '@/features/organizacion/api/productos.contract'
+import { EstadoProductoAcciones } from '@/features/organizacion/components/EstadoProductoAcciones'
+import { PRODUCTOS_ENDPOINTS } from '@/features/organizacion/api/productos.contract'
 import { EstadoProductoBadge } from '@/features/organizacion/components/EstadoProductoBadge'
 import {
   ParametrosSubProductoDialog,
@@ -18,8 +19,6 @@ import {
 import { ProductoFormDialog, type ModoProducto } from '@/features/organizacion/components/ProductoFormDialog'
 import { SubProductoFormDialog } from '@/features/organizacion/components/SubProductoFormDialog'
 import {
-  useActualizarProducto,
-  useActualizarSubProducto,
   useEliminarProducto,
   useProductoAdmin,
 } from '@/features/organizacion/hooks/useProductosAdmin'
@@ -59,11 +58,11 @@ export function DetalleProductoPage() {
 }
 
 function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactNode }) {
-  const esAdmin = hasPermission(usePermisos(), PERMISOS.productosEditar)
+  const permisos = usePermisos()
+  const esAdmin = hasPermission(permisos, PERMISOS.productosEditar)
+  const puedeSolicitarEstado = hasPermission(permisos, PERMISOS.productosEstado)
   const puedeEliminar = usePuedeFuncion('productos.eliminar', esAdmin)
   const puedeConfigurar = usePuedeFuncion('productos.configurar', esAdmin)
-  const actualizarProducto = useActualizarProducto()
-  const actualizarSub = useActualizarSubProducto()
   const [formulario, setFormulario] = useState<ModoProducto | null>(null)
   const [nuevoSub, setNuevoSub] = useState(false)
   const [parametrizar, setParametrizar] = useState<SubProductoAdmin | null>(null)
@@ -82,7 +81,6 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
     })
   const [confirmacion, setConfirmacion] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const ocupado = actualizarProducto.isPending || actualizarSub.isPending
 
   const alGuardar = (mensaje: string) => {
     setFormulario(null)
@@ -90,37 +88,6 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
     setParametrizar(null)
     setError(null)
     setConfirmacion(mensaje)
-  }
-
-  const cambiarEstadoProducto = () => {
-    const estado: EstadoProducto = producto.estado === 'A' ? 'I' : 'A'
-    setConfirmacion(null)
-    setError(null)
-    actualizarProducto.mutate(
-      { idProducto: producto.idProducto, body: { estado } },
-      {
-        onSuccess: (p) =>
-          setConfirmacion(
-            estado === 'A'
-              ? `Activamos ${p.codigoProducto}: ya se puede ofrecer.`
-              : `Desactivamos ${p.codigoProducto}: no se ofrece más; lo que ya existe sigue operando.`,
-          ),
-        onError: (e) => setError(mensajeErrorProducto(toApiError(e))),
-      },
-    )
-  }
-
-  const cambiarEstadoSub = (sub: SubProductoAdmin) => {
-    const estado: EstadoProducto = sub.estado === 'A' ? 'I' : 'A'
-    setConfirmacion(null)
-    setError(null)
-    actualizarSub.mutate(
-      { idSubProducto: sub.idSubProducto, body: { estado } },
-      {
-        onSuccess: (s) => setConfirmacion(`${estado === 'A' ? 'Activamos' : 'Desactivamos'} el subproducto ${s.codigoSubProducto}.`),
-        onError: (e) => setError(mensajeErrorProducto(toApiError(e))),
-      },
-    )
   }
 
   return (
@@ -145,16 +112,15 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
             <Link2 />
             Tasas y cargos
           </Button>
+        <EstadoProductoAcciones ruta={PRODUCTOS_ENDPOINTS.producto(producto.idProducto)}
+          estado={producto.estadoCatalogo ?? (producto.estado === 'A' ? 'Activo' : 'Suspendido')}
+          puedeSolicitar={puedeSolicitarEstado} />
         {(esAdmin || puedeEliminar) ? (
           <>
             {esAdmin && <>
             <Button variant="ghost" disabled={producto.estadoCatalogo !== 'Borrador'} onClick={() => setFormulario({ tipo: 'editar', producto })}>
               <Pencil />
               Editar
-            </Button>
-            <Button variant={producto.estado === 'A' ? 'destructive' : 'outline'} disabled={ocupado || producto.estadoCatalogo === 'Retirado'} onClick={cambiarEstadoProducto}>
-              <Power />
-              {producto.estado === 'A' ? 'Desactivar' : 'Activar'}
             </Button>
             </>}
             {puedeEliminar && producto.estadoCatalogo === 'Borrador' &&
@@ -237,18 +203,9 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
                           Parámetros
                         </Button>
                         {producto.tipoProducto === 'Cuenta' && <Button asChild variant="ghost" size="sm"><Link to={`/productos/subproductos/${sub.idSubProducto}/numeracion`} aria-label={`Numeracion de ${sub.codigoSubProducto}`}>Numeracion</Link></Button>}
-                        {esAdmin && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={ocupado || sub.estadoCatalogo === 'Retirado'}
-                            onClick={() => cambiarEstadoSub(sub)}
-                            aria-label={`${sub.estado === 'A' ? 'Desactivar' : 'Activar'} ${sub.codigoSubProducto}`}
-                          >
-                            <Power />
-                            {sub.estado === 'A' ? 'Desactivar' : 'Activar'}
-                          </Button>
-                        )}
+                        <EstadoProductoAcciones ruta={PRODUCTOS_ENDPOINTS.subproducto(sub.idSubProducto)}
+                          estado={sub.estadoCatalogo ?? (sub.estado === 'A' ? 'Activo' : 'Suspendido')}
+                          puedeSolicitar={puedeSolicitarEstado} />
                       </td>
                   </tr>
                 ))}

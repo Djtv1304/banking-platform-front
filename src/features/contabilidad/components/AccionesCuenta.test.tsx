@@ -49,10 +49,15 @@ describe('AccionesCuenta', () => {
     expect(salida).toContain('créala bajo 210140.')
   })
 
-  it('bajo una cuenta de 4 dígitos sigue bloqueado por el catálogo del regulador', () => {
-    const salida = html(nodo('2101'))
+  it('bajo una cuenta de 4 dígitos con subcuentas del regulador sigue bloqueado', () => {
+    const conHijas = { ...nodo('2101'), hijos: [nodo('210110')] }
+    const salida = html(conHijas)
     expect(salida).toContain('aria-describedby="accion-subcuenta-motivo"')
     expect(salida).toContain('Debajo de este nivel solo van cuentas del catálogo del regulador')
+  })
+
+  it('una cuenta de 4 dígitos del último nivel (2105) admite subcuentas (E3-05, CUC)', () => {
+    expect(html(nodo('2105'))).not.toContain('aria-describedby="accion-subcuenta-motivo"')
   })
 
   it('una cuenta de 6 dígitos con saldo no deja crear subcuentas ni cambiar nada', () => {

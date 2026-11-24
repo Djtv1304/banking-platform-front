@@ -88,6 +88,8 @@ describe('edicionUsuarioSchema (AUT-08) y cambiarRolSchema (AUT-09)', () => {
     expect(edicionUsuarioSchema.safeParse({ estado: 'Activo', nombres: 'X' }).success).toBe(false)
     expect(cambiarRolSchema.safeParse({ rol: 'GERENTE' }).success).toBe(false)
     expect(cambiarRolSchema.parse({ rol: 'AUDITOR' })).toEqual({ rol: 'AUDITOR' })
+    expect(cambiarRolSchema.parse({ roles: ['CONTADOR', 'AUDITOR'] })).toEqual({ roles: ['CONTADOR', 'AUDITOR'] })
+    expect(cambiarRolSchema.safeParse({ roles: ['AUDITOR', 'AUDITOR'] }).success).toBe(false)
   })
 })
 

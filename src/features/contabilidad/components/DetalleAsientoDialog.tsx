@@ -5,6 +5,7 @@ import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
 import { Aviso, Button, Cargando, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
 import { useAsiento } from '@/features/contabilidad/hooks/useAsientos'
+import { AccionesAsiento } from '@/features/contabilidad/components/AccionesAsiento'
 import { EstadoAsientoBadge } from '@/features/contabilidad/components/EstadoAsientoBadge'
 import { usePlanCuentas } from '@/features/contabilidad/hooks/usePlanCuentas'
 import {
@@ -210,6 +211,8 @@ function Detalle({ idAsiento, agencias, onAbrir }: Pick<DetalleAsientoDialogProp
           </table>
         </div>
       )}
+
+      <AccionesAsiento asiento={data} />
     </div>
   )
 }

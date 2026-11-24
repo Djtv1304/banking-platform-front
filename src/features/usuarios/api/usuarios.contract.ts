@@ -23,6 +23,7 @@ export const USUARIOS_ENDPOINTS = {
   listar: BASE,
   crear: BASE,
   detalle: (idUsuario: number) => `${BASE}/${idUsuario}`,
+  agencia: (idUsuario: number) => `${BASE}/${idUsuario}/agencia`,
   roles: (idUsuario: number) => `${BASE}/${idUsuario}/roles`,
 } as const
 
@@ -41,7 +42,7 @@ export const rolUsuarioSchema = z.enum(ROLES_USUARIO)
 // TODO(API): confirmar los valores de `estado` que acepta el filtro de AUT-05 (hoy se ven «Activo» e «Inactivo»)
 export const ESTADOS_USUARIO = ['Activo', 'Inactivo', 'Bloqueado'] as const
 
-export const CAMPOS_ORDEN = ['username', 'nombres', 'apellidos', 'email', 'estado', 'fechaCreacion'] as const
+export const CAMPOS_ORDEN = ['idUsuario', 'username', 'nombres', 'apellidos', 'email', 'roles', 'idAgencia', 'estado', 'fechaCreacion'] as const
 
 export type CampoOrden = (typeof CAMPOS_ORDEN)[number]
 
@@ -50,6 +51,7 @@ export const ID_AGENCIA_REGEX = /^\d{3}$/
 
 /** AUT-05 · Cada fila. `rol` es null mientras el usuario no tenga uno asignado */
 export const usuarioResumenSchema = z.object({
+  roles: z.array(rolUsuarioSchema).optional(),
   idUsuario: z.number(),
   username: z.string(),
   nombres: z.string(),
@@ -175,7 +177,11 @@ export const edicionUsuarioSchema = z.union([
 ])
 
 /** AUT-09 · Body */
-export const cambiarRolSchema = z.object({ rol: rolUsuarioSchema }).strict()
+export const cambiarRolSchema = z.union([
+  z.object({ rol: rolUsuarioSchema }).strict(),
+  z.object({ roles: z.array(rolUsuarioSchema).min(1).max(ROLES_USUARIO.length)
+    .refine((roles) => new Set(roles).size === roles.length, 'Los roles deben ser distintos.') }).strict(),
+])
 
 export type UsuarioResumen = z.infer<typeof usuarioResumenSchema>
 export type UsuarioDetalle = z.infer<typeof usuarioDetalleSchema>

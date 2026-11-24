@@ -60,13 +60,14 @@ export function RequireProfile({ allowed }: { allowed: readonly AccessProfile[] 
 }
 
 /** Dentro de RequireAuth: la URL directa respeta los mismos roles que el menú. */
-export function RequireRoles({ allowed, sinAcceso }: { allowed: readonly string[]; sinAcceso?: ReactNode }) {
+export function RequireRoles({ allowed, sinAcceso, permisoAlternativo }: { allowed: readonly string[]; sinAcceso?: ReactNode; permisoAlternativo?: Permiso }) {
   const roles = useAuthStore((state) => state.user?.roles)
+  const permisos = usePermisos()
   const autorizacion = useAuthStore((s) => s.user?.autorizacion)
   const { pathname } = useLocation()
   const funciones = funcionesDeRuta(pathname)
   if (autorizacion?.activa && funciones) return funciones.some((f) => autorizacion.funciones.includes(f)) ? <Outlet /> : <Navigate to="/" replace />
-  if (!hasAnyRole(roles ?? [], allowed)) return sinAcceso ?? <Navigate to="/" replace />
+  if (!hasAnyRole(roles ?? [], allowed) && (!permisoAlternativo || !hasPermission(permisos, permisoAlternativo))) return sinAcceso ?? <Navigate to="/" replace />
   return <Outlet />
 }
 

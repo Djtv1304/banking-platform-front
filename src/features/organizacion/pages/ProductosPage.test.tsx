@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ComponentProps } from 'react'
 
@@ -80,11 +81,13 @@ const CONSUMO: ProductoAdmin = {
 
 beforeEach(() => {
   estado.roles = ['ADMIN']
-  estado.permisos = ['productosEditar', 'productosExportar']
+  estado.permisos = ['productosEditar', 'productosExportar', 'productosEstado']
   estado.data = [AHORRO]
 })
 const lista = () => renderToStaticMarkup(<ProductosPage />)
-const detalle = () => renderToStaticMarkup(<DetalleProductoPage />)
+const detalle = () => renderToStaticMarkup(
+  <QueryClientProvider client={new QueryClient()}><DetalleProductoPage /></QueryClientProvider>,
+)
 
 describe('ProductosPage (listado)', () => {
   it('agrupa por tipo y los grupos empiezan cerrados', () => {
@@ -119,7 +122,8 @@ describe('DetalleProductoPage', () => {
   it('ADMIN edita, cambia estado y agrega subproductos', () => {
     const salida = detalle()
     expect(salida).toContain('Editar')
-    expect(salida).toContain('aria-label="Desactivar AHO001-PN"')
+    expect(salida).toContain('Suspender</button>')
+    expect(salida).toContain('Retirar</button>')
     expect(salida).toContain('Modelo comercial</button>')
   })
 
@@ -139,7 +143,8 @@ describe('DetalleProductoPage', () => {
     expect(salida).toContain('Solo consulta')
     expect(salida).toContain('aria-label="Parámetros de CRE001-01"')
     expect(salida).not.toContain('Editar')
-    expect(salida).not.toContain('Desactivar')
+    expect(salida).not.toContain('Suspender</button>')
+    expect(salida).toContain('Historial de estado')
     expect(salida).not.toContain('Modelo comercial</button>')
   })
 })

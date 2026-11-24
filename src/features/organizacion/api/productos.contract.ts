@@ -17,6 +17,7 @@ export const PRODUCTOS_ENDPOINTS = {
   ficha: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/ficha`,
   vinculosSubProducto: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/vinculos`,
   restricciones: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/restricciones`,
+  activacion: (idSubProducto: number) => `/api/v1/productos/subproductos/${idSubProducto}/activacion`,
 } as const
 
 /** Quién ve Productos; crear y editar dependen del permiso productos:editar */
@@ -234,3 +235,10 @@ export const fichaSubProductoSchema = z.object({
 })
 
 export type FichaSubProducto = z.infer<typeof fichaSubProductoSchema>
+
+/** E3-06 · Lista de activación: cumple null = no verificable todavía (plantillas, hasta E4-01) */
+export const listaActivacionSchema = z.object({
+  completa: z.boolean(),
+  puntos: z.object({ codigo: z.string(), descripcion: z.string(), cumple: z.boolean().nullable(), detalle: z.string().nullable() }).array(),
+})
+export type ListaActivacion = z.infer<typeof listaActivacionSchema>
