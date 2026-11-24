@@ -1,6 +1,6 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { keepPreviousData, skipToken, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 
-import { ApiError } from '@/shared/api'
+import { ApiError, toApiError } from '@/shared/api'
 import { refreshSession } from '@/features/auth'
 import {
   cambiarRolUsuario,
@@ -9,6 +9,7 @@ import {
   editarUsuario,
   listarUsuarios,
   obtenerUsuario,
+  mensajeErrorCambio,
   trasladarUsuario,
 } from '@/features/usuarios/api/usuarios.api'
 import type { EdicionUsuario, RolUsuario, UsuarioDetalle } from '@/features/usuarios/api/usuarios.contract'
@@ -63,34 +64,128 @@ async function confirmar(cache: QueryClient, usuario: UsuarioDetalle) {
   return cache.invalidateQueries({ queryKey: LISTA_KEY })
 }
 
-function useCambioUsuario<T>(idUsuario: number, enviar: (valor: T) => Promise<UsuarioDetalle>, actualizarAgencias = false) {
+type ResultadoCambio = Awaited<ReturnType<typeof cambiarRolUsuario>>
+type SolicitudRoles = Extract<ResultadoCambio, { tipo: 'solicitud' }>['solicitud']
+type Recuperacion = {
+  mensaje: string
+  recargarAgencias: boolean
+  confirmar: (usuario: UsuarioDetalle) => boolean
+}
+
+const recuperacionKey = (idUsuario: number) => [...USUARIOS_KEY, 'recuperacion', idUsuario] as const
+const solicitudKey = (idUsuario: number) => [...USUARIOS_KEY, 'solicitud-roles', idUsuario] as const
+
+export function useRecuperacionUsuario(idUsuario: number) {
+  return useQuery<Recuperacion | null>({
+    queryKey: recuperacionKey(idUsuario),
+    queryFn: skipToken,
+    initialData: null,
+    gcTime: Infinity,
+  }).data
+}
+
+export function useSolicitudRoles(idUsuario: number) {
+  return useQuery<SolicitudRoles | null>({
+    queryKey: solicitudKey(idUsuario),
+    queryFn: skipToken,
+    initialData: null,
+    gcTime: Infinity,
+  }).data
+}
+
+async function actualizarAgencias(cache: QueryClient, idUsuario: number) {
+  await Promise.all([
+    cache.invalidateQueries({ queryKey: ['usuarios', 'agencias', idUsuario] }, { throwOnError: true }),
+    cache.invalidateQueries({ queryKey: ['usuarios', 'agencias-historial', idUsuario] }),
+  ])
+}
+
+export function useConsultarCambio(idUsuario: number) {
   const cache = useQueryClient()
   return useMutation({
-    mutationFn: enviar,
     retry: false,
-    onSuccess: async (usuario) => {
+    mutationFn: async () => {
+      const pendiente = cache.getQueryData<Recuperacion>(recuperacionKey(idUsuario))
+      const usuario = await obtenerUsuario(idUsuario)
+      const confirmado = pendiente?.confirmar(usuario) ?? true
       await confirmar(cache, usuario)
-      if (actualizarAgencias) {
-        await Promise.all([
-          cache.invalidateQueries({ queryKey: ['usuarios', 'agencias', idUsuario] }),
-          cache.invalidateQueries({ queryKey: ['usuarios', 'agencias-historial', idUsuario] }),
-        ])
-      }
-      await refreshSession()
-    },
-    onError: (error) => {
-      if (cambioSinConfirmar(error)) void cache.invalidateQueries({ queryKey: detalleKey(idUsuario) })
+      if (pendiente?.recargarAgencias) await actualizarAgencias(cache, idUsuario)
+      if (confirmado) cache.setQueryData(recuperacionKey(idUsuario), null)
+      return confirmado
     },
   })
 }
 
-/** AUT-08 · Datos personales, agencia o estado */
+export function useFinalizarSolicitudRoles(idUsuario: number) {
+  const cache = useQueryClient()
+  return useMutation({
+    retry: false,
+    mutationFn: async (ejecutada: boolean) => {
+      if (ejecutada) {
+        await confirmar(cache, await obtenerUsuario(idUsuario))
+        await actualizarAgencias(cache, idUsuario).catch(() => undefined)
+      }
+      cache.setQueryData(solicitudKey(idUsuario), null)
+    },
+  })
+}
+
+function useCambioUsuario<T, R extends UsuarioDetalle | ResultadoCambio>(
+  idUsuario: number,
+  enviar: (valor: T) => Promise<R>,
+  verificar: (valor: T, usuario: UsuarioDetalle) => boolean,
+  agencias = false,
+  roles = false,
+) {
+  const cache = useQueryClient()
+  const recuperacion = useRecuperacionUsuario(idUsuario)
+  const solicitud = useSolicitudRoles(idUsuario)
+  const mutacion = useMutation({
+    scope: { id: 'usuarios-cambio-' + idUsuario },
+    mutationFn: async (valor: T) => {
+      if (cache.getQueryData(recuperacionKey(idUsuario)) || (roles && cache.getQueryData(solicitudKey(idUsuario)))) {
+        throw new ApiError('Consulta el cambio pendiente antes de guardar.', 409, 'cambio_pendiente')
+      }
+      return enviar(valor)
+    },
+    retry: false,
+    onSuccess: async (resultado) => {
+      if ('tipo' in resultado && resultado.tipo === 'solicitud') {
+        cache.setQueryData(solicitudKey(idUsuario), resultado.solicitud)
+        await cache.invalidateQueries({ queryKey: ['aprobaciones'] })
+        return
+      }
+      await confirmar(cache, 'tipo' in resultado ? resultado.usuario : resultado)
+      if (agencias) await actualizarAgencias(cache, idUsuario).catch(() => undefined)
+      await refreshSession()
+    },
+    onError: (error, valor) => {
+      if (!cambioSinConfirmar(error)) return
+      const { code } = toApiError(error)
+      cache.setQueryData<Recuperacion>(recuperacionKey(idUsuario), {
+        mensaje: mensajeErrorCambio(error),
+        recargarAgencias: code === 'ASIGNACIONES_CAJA_OCUPADAS' || agencias,
+        confirmar: (usuario) => code === 'ASIGNACIONES_CAJA_OCUPADAS' || verificar(valor, usuario),
+      })
+    },
+  })
+  return { ...mutacion, bloqueado: !!recuperacion || (roles && !!solicitud) }
+}
+
+/** AUT-08 */
 export const useEditarUsuario = (idUsuario: number) =>
-  useCambioUsuario(idUsuario, (cambios: EdicionUsuario) => editarUsuario(idUsuario, cambios))
+  useCambioUsuario(idUsuario, (cambios: EdicionUsuario) => editarUsuario(idUsuario, cambios), (cambios, usuario) => {
+    if ('email' in cambios && cambios.email !== undefined) return usuario.email.toLowerCase() === cambios.email.toLowerCase()
+    if ('estado' in cambios) return usuario.estado === cambios.estado
+    return Object.entries(cambios).every(([campo, valor]) => usuario[campo as keyof UsuarioDetalle] === valor)
+  })
 
 export const useTrasladarUsuario = (idUsuario: number) =>
-  useCambioUsuario(idUsuario, (idAgencia: string) => trasladarUsuario(idUsuario, idAgencia), true)
+  useCambioUsuario(idUsuario, (idAgencia: string) => trasladarUsuario(idUsuario, idAgencia), (idAgencia, usuario) => usuario.idAgencia === idAgencia, true)
 
-/** AUT-09 · Rol */
+/** AUT-09 */
 export const useCambiarRol = (idUsuario: number) =>
-  useCambioUsuario(idUsuario, (roles: RolUsuario[]) => cambiarRolUsuario(idUsuario, roles))
+  useCambioUsuario(idUsuario, (roles: RolUsuario[]) => cambiarRolUsuario(idUsuario, roles), (roles, usuario) => {
+    const actuales = usuario.roles ?? (usuario.rol ? [usuario.rol] : [])
+    return roles.length === actuales.length && roles.every((rol) => actuales.includes(rol))
+  }, true, true)

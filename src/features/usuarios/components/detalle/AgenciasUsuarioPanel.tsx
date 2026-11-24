@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAgencias } from '@/features/catalogos'
-import { refreshSession, hasPermission, PERMISOS, usePermisos } from '@/features/auth'
+import { refreshSession, hasPermission, PERMISOS, usePermisos, usePuedeFuncion } from '@/features/auth'
 import { Aviso, Button, Cargando, ErrorApi } from '@/shared/ui'
+import { toApiError } from '@/shared/api'
+import { cambioSinConfirmar, mensajeErrorCambio } from '@/features/usuarios/api/usuarios.api'
+import { useRecuperacionUsuario } from '@/features/usuarios/hooks/useUsuarios'
 import { obtenerAsignaciones, guardarAsignaciones, obtenerHistorialAgencias, type Asignaciones } from '@/features/usuarios/api/agencias'
 
 export function AgenciasUsuarioPanel({ idUsuario, rol, esPropio, onGuardado }: { idUsuario: number; rol: string | null; esPropio: boolean; onGuardado: (mensaje: string) => void }) {
@@ -28,21 +31,27 @@ export function AgenciasUsuarioPanel({ idUsuario, rol, esPropio, onGuardado }: {
 }
 
 function EditorAsignaciones({ asignaciones, rol, esPropio, onGuardado }: { asignaciones: Asignaciones; rol: string | null; esPropio: boolean; onGuardado: (mensaje: string) => void }) {
-  const tienePermiso = hasPermission(usePermisos(), PERMISOS.usuariosEditar)
+  const tienePermiso = usePuedeFuncion('usuarios.administrar', hasPermission(usePermisos(), PERMISOS.usuariosEditar))
+  const recuperacion = useRecuperacionUsuario(asignaciones.idUsuario)
+  const [consultar, setConsultar] = useState(false)
+  const [recargando, setRecargando] = useState(false)
+  const [errorConsulta, setErrorConsulta] = useState<unknown>(null)
   const puedeEditar = tienePermiso && !esPropio && rol !== 'CAJERO'
   const catalogo = useAgencias()
   const cache = useQueryClient()
   const [seleccion, setSeleccion] = useState(() => asignaciones.agencias.map((a) => a.idAgencia))
   const [principal, setPrincipal] = useState(asignaciones.idAgenciaPrincipal ?? '')
   const simple = rol === 'CAJERO' || rol === 'ASESOR' || !rol
-  const edicion = useMutation({ mutationFn: () => guardarAsignaciones(asignaciones.idUsuario, { idAgencias: seleccion, idAgenciaPrincipal: principal || null, version: asignaciones.version }), retry: false, onSuccess: async () => {
+  const edicion = useMutation({ mutationFn: () => guardarAsignaciones(asignaciones.idUsuario, { idAgencias: seleccion, idAgenciaPrincipal: principal || null, version: asignaciones.version }), retry: false, onError: (error) => {
+    setConsultar(cambioSinConfirmar(error))
+  }, onSuccess: async () => {
     await Promise.all([cache.invalidateQueries({ queryKey: ['usuarios'] }), cache.invalidateQueries({ queryKey: ['auth', 'agencias'] })])
     await refreshSession()
     onGuardado('Guardamos las asignaciones y la agencia principal.')
   } })
   const ids = new Set(catalogo.data.map((a) => a.idAgencia))
   const opciones = [...catalogo.data.map((a) => ({ idAgencia: a.idAgencia, codigo: a.nombre, estado: a.estado })), ...asignaciones.agencias.filter((a) => !ids.has(a.idAgencia))]
-  return <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); if (puedeEditar) edicion.mutate() }}>
+  return <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); if (puedeEditar && !recuperacion && !consultar && !recargando && !edicion.isPending) edicion.mutate() }}>
     <p className="text-sm text-muted-foreground">{simple ? 'Este rol mantiene una sola agencia.' : 'Puede operar en las agencias asignadas segun su rol y permisos.'} {rol === 'CAJERO' && 'El traslado se realiza con Cambiar agencia y exige no tener jornada abierta.'}</p>
     {catalogo.isError && <Aviso tono="error">No pudimos cargar el catalogo de agencias.</Aviso>}
     <fieldset disabled={!puedeEditar || edicion.isPending} className="space-y-2"><legend className="font-medium">Asignaciones vigentes</legend>
@@ -53,8 +62,21 @@ function EditorAsignaciones({ asignaciones, rol, esPropio, onGuardado }: { asign
       }} />{a.idAgencia} - {a.codigo}{a.estado !== 'A' ? ' (Inactiva)' : ''}</label>)}
       <label className="flex flex-col gap-2">Agencia principal<select aria-label="Agencia principal" className="rounded-lg border border-border bg-card p-2" value={principal} onChange={(e) => setPrincipal(e.target.value)}><option value="">Sin agencia principal</option>{opciones.filter((a) => seleccion.includes(a.idAgencia)).map((a) => <option key={a.idAgencia} value={a.idAgencia} disabled={a.estado !== 'A'}>{a.idAgencia} - {a.codigo}</option>)}</select></label>
     </fieldset>
-    {edicion.isError && <ErrorApi error={edicion.error} />}
-    {edicion.isError && <Button type="button" variant="outline" onClick={() => cache.invalidateQueries({ queryKey: ['usuarios', 'agencias', asignaciones.idUsuario] })}>Recargar asignaciones</Button>}
-    {puedeEditar && <Button type="submit" disabled={edicion.isPending || (seleccion.length > 0 && !principal) || catalogo.isLoading}>{edicion.isPending ? 'Guardando...' : 'Guardar asignaciones'}</Button>}
+    {edicion.isError && <Aviso tono="error">{mensajeErrorCambio(edicion.error)}</Aviso>}
+    {errorConsulta != null && <ErrorApi error={errorConsulta} />}
+    {consultar && <Button type="button" variant="outline" disabled={recargando} onClick={async () => {
+      setRecargando(true)
+      setErrorConsulta(null)
+      try {
+        const vigentes = await obtenerAsignaciones(asignaciones.idUsuario)
+        cache.setQueryData(['usuarios', 'agencias', asignaciones.idUsuario], vigentes)
+        if (toApiError(edicion.error).code !== 'USUARIO_EN_CONCILIACION') setConsultar(false)
+      } catch (error) {
+        setErrorConsulta(error)
+      } finally {
+        setRecargando(false)
+      }
+    }}>Recargar asignaciones</Button>}
+    {puedeEditar && <Button type="submit" disabled={!!recuperacion || consultar || recargando || edicion.isPending || (seleccion.length > 0 && !principal) || catalogo.isLoading}>{edicion.isPending ? 'Guardando...' : 'Guardar asignaciones'}</Button>}
   </form>
 }

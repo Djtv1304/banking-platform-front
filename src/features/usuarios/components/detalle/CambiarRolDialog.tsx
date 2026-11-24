@@ -1,3 +1,4 @@
+import { RecuperacionUsuario } from '@/features/usuarios/components/detalle/SeguimientoCambioUsuario'
 import { useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
 
@@ -35,9 +36,14 @@ export function CambiarRolDialog({ usuario, open, onOpenChange, onGuardado }: Ca
   const guardar = async () => {
     if (seleccion.length === 0 || sinCambio) return
     try {
-      const actualizado = await cambio.mutateAsync(seleccion)
+      const resultado = await cambio.mutateAsync(seleccion)
       setElegidos(null)
       cambio.reset()
+      if (resultado.tipo === 'solicitud') {
+        onOpenChange(false)
+        return
+      }
+      const actualizado = resultado.usuario
       onGuardado(`${nombreCompleto(actualizado)} ahora tiene estos roles: ${(actualizado.roles ?? seleccion).map(formatRol).join(', ')}.`)
     } catch {
       /* El error se muestra en el diálogo */
@@ -83,13 +89,14 @@ export function CambiarRolDialog({ usuario, open, onOpenChange, onGuardado }: Ca
           </div>
         </fieldset>
 
-        {cambio.isError && <ErrorAccion>{mensajeErrorCambio(cambio.error)}</ErrorAccion>}
+        <RecuperacionUsuario idUsuario={usuario.idUsuario} />
+        {cambio.isError && !cambio.bloqueado && <ErrorAccion>{mensajeErrorCambio(cambio.error)}</ErrorAccion>}
 
         <DialogFooter className="-mx-6 -mb-6 rounded-b-3xl border-t border-border p-6 sm:-mx-8 sm:-mb-8 sm:px-8">
           <Button type="button" variant="outline" disabled={pendiente} onClick={cerrar} className="min-h-11 rounded-xl px-6">
             Cancelar
           </Button>
-          <Button type="button" disabled={pendiente || sinCambio || seleccion.length === 0} onClick={() => void guardar()} className="min-h-11 rounded-xl px-6 font-semibold">
+          <Button type="button" disabled={pendiente || cambio.bloqueado || sinCambio || seleccion.length === 0} onClick={() => void guardar()} className="min-h-11 rounded-xl px-6 font-semibold">
             {pendiente && <LoaderCircle className="animate-spin" />}
             {pendiente ? 'Guardando…' : 'Guardar roles'}
           </Button>

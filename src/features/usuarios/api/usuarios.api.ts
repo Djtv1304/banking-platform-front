@@ -1,4 +1,4 @@
-import { ApiError, apiClient, toApiError } from '@/shared/api'
+import { aceptadaSchema, ApiError, apiClient, toApiError } from '@/shared/api'
 import {
   crearUsuarioSchema,
   paginaUsuariosSchema,
@@ -46,7 +46,12 @@ export async function trasladarUsuario(idUsuario: number, idAgencia: string) {
 export async function cambiarRolUsuario(idUsuario: number, roles: RolUsuario[]) {
   const body = cambiarRolSchema.parse({ roles })
   const { data, status } = await apiClient.put<unknown>(USUARIOS_ENDPOINTS.roles(idUsuario), body)
-  return leerDetalle(data, status, idUsuario)
+  if (status === 202) {
+    const solicitud = aceptadaSchema.safeParse(data)
+    if (!solicitud.success) throw new ApiError(DETALLE_INVALIDO, status, 'respuesta_invalida')
+    return { tipo: 'solicitud' as const, solicitud: solicitud.data }
+  }
+  return { tipo: 'aplicado' as const, usuario: leerDetalle(data, status, idUsuario) }
 }
 
 /** AUT-05 · `params` ya viene sin filtros vacíos (ver `armarParametros`) */
@@ -89,6 +94,7 @@ export function mensajeErrorCreacion(error: unknown) {
   const e = toApiError(error)
   if (e.status === 403) return 'No tienes permiso para crear usuarios. Se requiere el rol ADMIN.'
   if (e.status === 429) return 'Hiciste demasiados intentos seguidos. Espera un momento y vuelve a intentarlo.'
+  if (e.code === 'POLITICA_ROLES_NO_CONFIGURADA' || e.code === 'OPERACION_NO_CONFIGURADA') return mensajeErrorCambio(e)
   if (e.status === 503) {
     return 'El servicio de invitaciones (WorkOS) no está disponible. Revisa el listado antes de reintentar; tus datos siguen en el formulario.'
   }
@@ -112,23 +118,42 @@ export function mensajeErrorDetalle(error: unknown) {
  */
 export function mensajeErrorCambio(error: unknown) {
   const e = toApiError(error)
+  if (Object.hasOwn(mensajesCambio, e.code)) return mensajesCambio[e.code]
   if (e.code === 'AUTOGESTION_NO_PERMITIDA') return e.message
   if (e.status === 403) return 'No tienes permiso para cambiar este usuario. Se requiere el rol ADMIN.'
   if (e.status === 404) return 'Este usuario ya no existe. Vuelve al listado.'
   if (e.status === 429) return 'Hiciste demasiados cambios seguidos. Espera un momento y vuelve a intentarlo.'
-  if (e.status === 503) {
-    return 'El servicio de accesos (WorkOS) no está disponible. Actualizamos la ficha para que veas si el cambio se aplicó antes de reintentar.'
-  }
-  if (e.status === null || e.status >= 500) {
-    return 'No pudimos confirmar el cambio. Actualizamos la ficha para que veas su estado real antes de reintentar.'
-  }
+  if (cambioSinConfirmar(e)) return 'Consulta el estado del cambio antes de volver a guardar.'
   if (e.status === 422 && e.fields.length > 0) return 'Revisa los campos marcados.'
   // 409 (p. ej. el último ADMIN o un correo ya usado) y 400 traen un detalle legible del backend
   return e.message
 }
 
-/** Sin respuesta confirmada: conviene volver a leer la ficha antes de reintentar */
+const mensajesCambio: Record<string, string> = {
+  SIN_PERMISO: 'No tienes permiso para ejecutar este cambio.',
+  APROBADOR_ES_SOLICITANTE: 'La solicitud debe resolverla otro aprobador autorizado.',
+  USUARIO_CON_JORNADA_ABIERTA: 'El usuario tiene una jornada abierta.',
+  CAJERO_CON_JORNADA_ABIERTA: 'El cajero debe cerrar su jornada antes del cambio.',
+  ULTIMO_ADMIN: 'Debe quedar al menos un administrador.',
+  USUARIO_EN_CONCILIACION: 'Hay una conciliaci\u00f3n pendiente para este usuario.',
+  ASIGNACIONES_CAJA_OCUPADAS: 'Las asignaciones de caja cambiaron o est\u00e1n ocupadas. Consulta las asignaciones vigentes.',
+  APROBACION_REQUERIDA: 'El cambio requiere que otro usuario autorizado lo apruebe.',
+  CORTE_CAJA_PENDIENTE: 'El cambio requiere completar el corte de asignaciones de caja.',
+  USUARIO_PENDIENTE_DE_VINCULO: 'La cuenta debe completar su v\u00ednculo antes del cambio.',
+  NIVEL_INSUFICIENTE: 'Tu nivel de autorizaci\u00f3n es insuficiente para estos roles.',
+  ROLES_INCOMPATIBLES: 'La pol\u00edtica institucional impide combinar los roles seleccionados.',
+  CORREO_REQUIERE_CAMBIO_SEPARADO: 'Guarda el correo en una solicitud separada.',
+  POLITICA_ROLES_NO_CONFIGURADA: 'La pol\u00edtica institucional de roles no est\u00e1 configurada.',
+  OPERACION_NO_CONFIGURADA: 'La operaci\u00f3n a\u00fan no est\u00e1 configurada.',
+  CORREO_EN_CONCILIACION: 'El correo est\u00e1 en conciliaci\u00f3n.',
+  ROLES_PENDIENTES_CONFIRMACION: 'Los roles est\u00e1n pendientes de confirmaci\u00f3n.',
+  WORKOS_NO_DISPONIBLE: 'El servicio de accesos no est\u00e1 disponible.',
+}
+
+/** Una escritura incierta requiere consultar el estado antes de habilitar otro intento. */
 export function cambioSinConfirmar(error: unknown) {
-  const { status } = toApiError(error)
-  return status === null || status >= 500
+  const { status, code } = toApiError(error)
+  if (code === 'POLITICA_ROLES_NO_CONFIGURADA' || code === 'OPERACION_NO_CONFIGURADA') return false
+  return status === null || status >= 500 || code === 'respuesta_invalida' ||
+    code === 'USUARIO_EN_CONCILIACION' || code === 'ASIGNACIONES_CAJA_OCUPADAS'
 }

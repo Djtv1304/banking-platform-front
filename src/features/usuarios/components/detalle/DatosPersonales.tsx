@@ -107,13 +107,20 @@ function FormularioDatos({
   const error = (campo: keyof EditarDatosInput) => errors[campo]?.message
 
   const enviar = handleSubmit(async (datos) => {
+    if (edicion.bloqueado) return
     const patch = cambios(usuario, datos)
     if (Object.keys(patch).length === 0) {
       onCancelar()
       return
     }
     try {
-      await edicion.mutateAsync(patch)
+      const { email, ...perfil } = patch
+      if (!usuario.vinculado || email === undefined) {
+        await edicion.mutateAsync(patch)
+      } else {
+        if (Object.keys(perfil).length) await edicion.mutateAsync(perfil)
+        await edicion.mutateAsync({ email })
+      }
       onGuardado('Guardamos los datos personales.')
     } catch (e) {
       for (const { field, message } of toApiError(e).fields) {
@@ -171,13 +178,13 @@ function FormularioDatos({
         El usuario ({usuario.username}) y la cédula identifican a la persona y no se pueden cambiar.
       </p>
 
-      {edicion.isError && <ErrorAccion>{mensajeErrorCambio(edicion.error)}</ErrorAccion>}
+        {edicion.isError && !edicion.bloqueado && <ErrorAccion>{mensajeErrorCambio(edicion.error)}</ErrorAccion>}
 
       <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
         <Button type="button" variant="outline" disabled={pendiente} onClick={onCancelar} className="min-h-11 rounded-xl px-6">
           Cancelar
         </Button>
-        <Button type="submit" disabled={pendiente || !isDirty} className="min-h-11 rounded-xl px-6 font-semibold">
+        <Button type="submit" disabled={pendiente || edicion.bloqueado || !isDirty} className="min-h-11 rounded-xl px-6 font-semibold">
           {pendiente && <LoaderCircle className="animate-spin" />}
           {pendiente ? 'Guardando…' : 'Guardar cambios'}
         </Button>
