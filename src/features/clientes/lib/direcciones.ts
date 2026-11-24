@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { hasPermission, PERMISOS } from '@/shared/lib'
 import {
-  TIPOS_DIRECCION_GESTION, type DireccionGestion, type DireccionNueva, type DireccionCambio,
+  tipoDireccionSchema, type DireccionGestion, type DireccionNueva, type DireccionCambio,
 } from '@/features/clientes/api/direcciones.contract'
 
 /** Agregar, editar o quitar direcciones exige clientes:editar */
@@ -10,7 +10,7 @@ export function puedeGestionarDirecciones(permisos: readonly string[]) {
 }
 
 export const direccionFormSchema = z.object({
-  tipoDireccion: z.enum(TIPOS_DIRECCION_GESTION),
+  tipoDireccion: tipoDireccionSchema,
   codigoPais: z.string().regex(/^[A-Z]{3}$/, 'Selecciona un país'),
   idCiudad: z.string().regex(/^[1-9]\d*$/, 'Selecciona una ciudad'),
   sector: z.string().trim().max(50, 'Máximo 50 caracteres'),

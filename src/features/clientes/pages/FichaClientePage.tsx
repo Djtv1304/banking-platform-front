@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
-import { ArrowLeft, CircleAlert, LoaderCircle, MapPin, UserRoundX } from 'lucide-react'
+import { ArrowLeft, CircleAlert, LoaderCircle, UserRoundX } from 'lucide-react'
 
 import { ApiError } from '@/shared/api'
 import { GestionDirecciones } from '@/features/clientes/components/GestionDirecciones'
@@ -101,8 +101,6 @@ function ClienteNoEncontrado() {
 function Ficha({ cliente }: { cliente: Cliente }) {
   const gestion = usePuedeFuncion('clientes.direcciones.gestionar', puedeGestionarDirecciones(usePermisos()))
   const verDirecciones = usePuedeFuncion('clientes.direcciones.consultar', gestion)
-  // La principal primero; el resto en el orden en que llegan
-  const direcciones = [...cliente.direcciones].sort((a, b) => Number(b.esPrincipal) - Number(a.esPrincipal))
 
   return (
     <div className="flex flex-col gap-6">
@@ -138,31 +136,14 @@ function Ficha({ cliente }: { cliente: Cliente }) {
         </dl>
       </Seccion>
 
-      <Seccion titulo="Direcciones">
-        {verDirecciones ? <GestionDirecciones idCliente={cliente.idCliente} soloLectura={!gestion || cliente.estado === 'Eliminado'} /> : direcciones.length === 0 ? (
-          <p className="text-sm text-muted-foreground">El cliente no tiene direcciones activas.</p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {direcciones.map((direccion) => (
-              <li
-                key={direccion.idDireccion}
-                className="flex gap-4 rounded-xl border border-border bg-field px-4 py-3"
-              >
-                <MapPin aria-hidden className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-                <div className="flex min-w-0 flex-col gap-1">
-                  <p className="flex flex-wrap items-center gap-2 font-semibold text-heading">
-                    {direccion.tipoDireccion}
-                    {direccion.esPrincipal && <Badge>Principal</Badge>}
-                  </p>
-                  <p className="text-sm text-foreground">{direccion.calleDireccion}</p>
-                  {direccion.sector && <p className="text-sm text-muted-foreground">Sector: {direccion.sector}</p>}
-                  <p className="text-sm text-muted-foreground">Referencia: {direccion.referenciaUbicacion}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Seccion>
+      {verDirecciones && (
+        <Seccion titulo="Direcciones">
+          <GestionDirecciones
+            idCliente={cliente.idCliente}
+            soloLectura={!gestion || cliente.estado === 'Eliminado'}
+          />
+        </Seccion>
+      )}
     </div>
   )
 }

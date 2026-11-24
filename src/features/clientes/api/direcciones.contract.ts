@@ -1,10 +1,10 @@
 import { z } from 'zod'
 
-export const TIPOS_DIRECCION_GESTION = ['Domicilio', 'Trabajo', 'Correspondencia', 'Otra'] as const
+export const tipoDireccionSchema = z.string().min(1).max(20)
 
 export const direccionGestionSchema = z.object({
   idDireccion: z.number().int().positive(),
-  tipoDireccion: z.enum(TIPOS_DIRECCION_GESTION),
+  tipoDireccion: tipoDireccionSchema,
   codigoPais: z.string().length(3),
   idCiudad: z.number().int().positive(),
   sector: z.string().nullable(),
@@ -16,7 +16,7 @@ export const direccionGestionSchema = z.object({
 })
 
 export const direccionNuevaSchema = z.object({
-  tipoDireccion: z.enum(TIPOS_DIRECCION_GESTION),
+  tipoDireccion: tipoDireccionSchema,
   codigoPais: z.string().regex(/^[A-Z]{3}$/, 'Selecciona un país válido'),
   idCiudad: z.number().int().positive(),
   sector: z.string().max(50).nullable(),

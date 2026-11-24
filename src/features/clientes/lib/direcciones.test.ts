@@ -30,7 +30,10 @@ describe('C-07 contrato y decisiones de gestión', () => {
     expect(direccionCambioSchema.safeParse({}).success).toBe(false)
     expect(direccionCambioSchema.safeParse({ estado: 'Activo' }).success).toBe(false)
   })
-  it.each(['DOMICILIO', 'Negocio', 'NEGOCIO'])('no copia el valor incompatible %s del wizard', (tipoDireccion) => {
+  it.each(['Temporal', 'Negocio'])('admite el código %s sin un catálogo fijo en el cliente', (tipoDireccion) => {
+    expect(direccionNuevaSchema.safeParse({ ...payloadDireccion(valoresDireccion(direccion)), tipoDireccion }).success).toBe(true)
+  })
+  it.each(['', 'x'.repeat(21)])('rechaza un código fuera del contrato: %s', (tipoDireccion) => {
     expect(direccionNuevaSchema.safeParse({ ...payloadDireccion(valoresDireccion(direccion)), tipoDireccion }).success).toBe(false)
   })
   it.each(['', '123456'])('acepta código postal opcional según contrato: %s', (codigoPostal) => {

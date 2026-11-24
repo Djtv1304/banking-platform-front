@@ -40,5 +40,6 @@ export {
   useTiposMovimientoCaja,
 } from '@/features/catalogos/hooks/useCatalogos'
 export { CATALOGOS_ROLES } from '@/features/catalogos/api/catalogos.contract'
+export { useTiposDireccion } from '@/features/catalogos/hooks/useTiposDireccion'
 export { CatalogosPage } from '@/features/catalogos/pages/CatalogosPage'
 export { ETIQUETA_TIPO_TASA } from '@/features/catalogos/api/catalogos.contract'
