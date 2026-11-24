@@ -1,10 +1,13 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
 import { ArrowLeft, Gauge, ListOrdered, RefreshCw } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
 import { Button, ErrorApi } from '@/shared/ui'
+import { useAuthStore, usePuedeFuncion } from '@/features/auth'
+import { agregarAutorizado, anularApertura, consultarAutorizados, consultarEventosCuenta, finalizarAutorizado, type RolAutorizado } from '@/features/cuenta/api/apertura.api'
 import type { Cuenta } from '@/features/cuenta/api/cuentas.contract'
 import { Aviso, Cargando } from '@/features/cuenta/components/Aviso'
 import { EstadoCuentaBadge } from '@/features/cuenta/components/EstadoCuentaBadge'
@@ -73,6 +76,8 @@ function SinDetalle({ children }: { children: ReactNode }) {
 function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
   const nombres = useNombresCuenta()
   const cupos = usePermisosCupos()
+  const usuario = useAuthStore(state => state.user)
+  const puedeAbrir = usePuedeFuncion('cuentas.abrir', !!usuario?.roles?.some(rol => rol === 'ASESOR' || rol === 'ADMIN'))
 
   return (
     <>
@@ -102,6 +107,9 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
           )}
         </div>
       </header>
+      {cuenta.estado === 'PendienteDeposito' && puedeAbrir && usuario?.idAgencia === cuenta.idAgencia && (
+        <AnulacionPendiente idCuenta={cuenta.idCuenta} />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <section aria-labelledby="datos-cuenta" className={cardClassName}>
@@ -122,7 +130,146 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
 
         <SaldoCuenta idCuenta={cuenta.idCuenta} cerrada={cuenta.estado === 'CERRADA'} />
       </div>
+      {usuario?.idAgencia === cuenta.idAgencia && (
+        <AutorizadosCuenta idCuenta={cuenta.idCuenta} editable={puedeAbrir && !['Anulada', 'CERRADA'].includes(cuenta.estado)} />
+      )}
+      {usuario?.idAgencia === cuenta.idAgencia && <HistorialCuenta idCuenta={cuenta.idCuenta} />}
     </>
+  )
+}
+
+function AutorizadosCuenta({ idCuenta, editable }: { idCuenta: number; editable: boolean }) {
+  const [abierto, setAbierto] = useState(false)
+  const [cliente, setCliente] = useState('')
+  const [rol, setRol] = useState<RolAutorizado>('Firmante')
+  const [porFinalizar, setPorFinalizar] = useState<number | null>(null)
+  const cache = useQueryClient()
+  const clave = ['cuentas', 'autorizados', idCuenta]
+  const autorizados = useQuery({
+    queryKey: clave,
+    queryFn: () => consultarAutorizados(idCuenta),
+    enabled: abierto,
+  })
+  const alta = useMutation({
+    mutationFn: () => agregarAutorizado(idCuenta, Number(cliente), rol),
+    onSuccess: async () => {
+      setCliente('')
+      await cache.invalidateQueries({ queryKey: clave })
+    },
+  })
+  const fin = useMutation({
+    mutationFn: (id: number) => finalizarAutorizado(idCuenta, id),
+    onSuccess: async () => {
+      setPorFinalizar(null)
+      await cache.invalidateQueries({ queryKey: clave })
+    },
+  })
+  return (
+    <section className={cardClassName} aria-label="Autorizados de la cuenta">
+      <Button variant="ghost" className="w-fit" aria-expanded={abierto} onClick={() => setAbierto(!abierto)}>
+        Autorizados de la cuenta
+      </Button>
+      {abierto && (autorizados.isPending ? <Cargando texto="Cargando autorizados…" />
+        : autorizados.isError ? <ErrorApi error={autorizados.error} />
+          : autorizados.data.length ? <ul className="space-y-2">
+            {autorizados.data.map(item => (
+              <li key={item.idCuentaAutorizado}>
+                {item.rol === 'RepresentanteLegal' ? 'Representante legal' : item.rol} · Cliente {item.idClienteAutorizado} · Desde {item.fechaInicio}{item.fechaFin && ` hasta ${item.fechaFin}`}
+                <span> · {item.vigente ? 'Vigente' : 'Finalizado'}</span>
+                {editable && item.vigente && porFinalizar !== item.idCuentaAutorizado && (
+                  <Button variant="ghost" onClick={() => setPorFinalizar(item.idCuentaAutorizado)}>Finalizar autorización</Button>
+                )}
+                {editable && item.vigente && porFinalizar === item.idCuentaAutorizado && (
+                  <>
+                    <Button variant="destructive" disabled={fin.isPending} onClick={() => fin.mutate(item.idCuentaAutorizado)}>Confirmar finalización</Button>
+                    <Button variant="ghost" disabled={fin.isPending} onClick={() => { setPorFinalizar(null); fin.reset() }}>Cancelar</Button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul> : <p>No hay autorizados registrados.</p>)}
+      {abierto && editable && autorizados.isSuccess && (
+        <form className="flex flex-wrap items-end gap-3" onSubmit={event => { event.preventDefault(); alta.mutate() }}>
+          <label className="grid gap-1">
+            ID del cliente autorizado
+            <input className="rounded border border-border bg-field p-2" type="number" required min={1} max={2147483647} step={1} value={cliente} onChange={event => setCliente(event.target.value)} />
+          </label>
+          <label className="grid gap-1">
+            Rol del autorizado
+            <select className="rounded border border-border bg-field p-2" value={rol} onChange={event => setRol(event.target.value as RolAutorizado)}>
+              <option value="Firmante">Firmante</option>
+              <option value="Tutor">Tutor</option>
+              <option value="RepresentanteLegal">Representante legal</option>
+            </select>
+          </label>
+          <Button type="submit" disabled={!cliente || alta.isPending}>Agregar autorizado</Button>
+        </form>
+      )}
+      {abierto && alta.isError && <ErrorApi error={alta.error} />}
+      {abierto && fin.isError && <ErrorApi error={fin.error} />}
+    </section>
+  )
+}
+
+function HistorialCuenta({ idCuenta }: { idCuenta: number }) {
+  const [abierto, setAbierto] = useState(false)
+  const eventos = useQuery({
+    queryKey: ['cuentas', 'eventos', idCuenta],
+    queryFn: () => consultarEventosCuenta(idCuenta),
+    enabled: abierto,
+  })
+  return (
+    <section className={cardClassName} aria-label="Historial de la cuenta">
+      <Button variant="ghost" className="w-fit" aria-expanded={abierto} onClick={() => setAbierto(!abierto)}>
+        Historial de la cuenta
+      </Button>
+      {abierto && eventos.isPending && <Cargando texto="Cargando historial…" />}
+      {abierto && eventos.isError && <ErrorApi error={eventos.error} />}
+      {abierto && eventos.isSuccess && (
+        eventos.data.length ? (
+          <ul className="space-y-4">
+            {eventos.data.map(evento => (
+              <li key={evento.idCuentaEvento}>
+                <p className="font-medium">{evento.tipoEvento} · {evento.estadoActual}</p>
+                <time dateTime={evento.fechaEvento}>{formatearFechaConsulta(evento.fechaEvento)}</time>
+                <p>{evento.detalle}</p>
+              </li>
+            ))}
+          </ul>
+        ) : <p>No hay eventos registrados.</p>
+      )}
+    </section>
+  )
+}
+
+function AnulacionPendiente({ idCuenta }: { idCuenta: number }) {
+  const cache = useQueryClient()
+  const [editar, setEditar] = useState(false)
+  const [motivo, setMotivo] = useState('')
+  const anulacion = useMutation({
+    mutationFn: () => anularApertura(idCuenta, motivo.trim()),
+    onSuccess: (cuenta) => {
+      cache.setQueryData(['cuentas', 'detalle', idCuenta], cuenta)
+      void cache.invalidateQueries({ queryKey: ['cuentas', 'buscar'] })
+      void cache.invalidateQueries({ queryKey: ['cuentas', 'eventos', idCuenta] })
+    },
+  })
+  if (!editar) return <Button type="button" variant="outline" className="w-fit" onClick={() => setEditar(true)}>Anular apertura</Button>
+  return (
+    <form className={cardClassName} onSubmit={event => {
+      event.preventDefault()
+      if (motivo.trim()) anulacion.mutate()
+    }}>
+      <label className="grid gap-2 font-medium">
+        Motivo de anulación
+        <textarea className="rounded-lg border border-border bg-field p-3" rows={2} maxLength={300} required value={motivo} onChange={event => setMotivo(event.target.value)} />
+      </label>
+      {anulacion.isError && <ErrorApi error={anulacion.error} />}
+      <div className="flex gap-2">
+        <Button type="submit" variant="destructive" disabled={!motivo.trim() || anulacion.isPending}>Confirmar anulación</Button>
+        <Button type="button" variant="ghost" disabled={anulacion.isPending} onClick={() => setEditar(false)}>Cancelar</Button>
+      </div>
+    </form>
   )
 }
 

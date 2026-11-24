@@ -21,6 +21,8 @@ const ETIQUETAS_ESTADO: Record<EstadoCuenta, string> = {
   INACTIVA: 'Inactiva',
   BLOQUEADA: 'Bloqueada',
   CERRADA: 'Cerrada',
+  PendienteDeposito: 'Pendiente de depósito',
+  Anulada: 'Anulada',
 }
 
 export const etiquetaEstado = (estado: EstadoCuenta) => ETIQUETAS_ESTADO[estado]

@@ -22,7 +22,7 @@ export const CUENTAS_ENDPOINTS = {
   clientes: `${BASE}/clientes`,
 } as const
 
-export const ESTADOS_CUENTA = ['ACTIVA', 'INACTIVA', 'BLOQUEADA', 'CERRADA'] as const
+export const ESTADOS_CUENTA = ['ACTIVA', 'INACTIVA', 'BLOQUEADA', 'CERRADA', 'PendienteDeposito', 'Anulada'] as const
 
 export const estadoCuentaSchema = z.enum(ESTADOS_CUENTA)
 
