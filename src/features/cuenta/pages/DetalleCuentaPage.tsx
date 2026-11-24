@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
-import { ArrowLeft, Gauge, ListOrdered, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Gauge, RefreshCw } from 'lucide-react'
+import { Tabs } from 'radix-ui'
 
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
@@ -15,8 +16,10 @@ import { useCuenta, useNombresCuenta, useSaldoCuenta } from '@/features/cuenta/h
 import { usePermisosCupos } from '@/features/cuenta/hooks/useCupos'
 import { leerIdCuenta } from '@/features/cuenta/lib/filtros'
 import { formatearFechaConsulta, formatearMonto } from '@/features/cuenta/lib/formato'
+import { MovimientosCuenta } from '@/features/cuenta/pages/MovimientosCuentaPage'
 
 const cardClassName = 'flex flex-col gap-6 rounded-3xl border border-border bg-card p-6 sm:p-8'
+const tabClassName = 'rounded-lg border border-border px-4 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground'
 
 /** CTA-03 (datos) y CTA-04 (saldos) de una cuenta en cualquier estado */
 export function DetalleCuentaPage() {
@@ -78,6 +81,7 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
   const cupos = usePermisosCupos()
   const usuario = useAuthStore(state => state.user)
   const puedeAbrir = usePuedeFuncion('cuentas.abrir', !!usuario?.roles?.some(rol => rol === 'ASESOR' || rol === 'ADMIN'))
+  const mismaAgencia = usuario?.idAgencia === cuenta.idAgencia
 
   return (
     <>
@@ -90,13 +94,6 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
           <EstadoCuentaBadge estado={cuenta.estado} />
         </div>
         <div className="flex flex-wrap gap-3">
-          {/* CTA-06 tiene los mismos roles que esta pantalla: siempre se muestra */}
-          <Button asChild variant="outline" size="lg" className="rounded-lg px-3">
-            <Link to={`/cuentas/${cuenta.idCuenta}/movimientos`}>
-              <ListOrdered />
-              Movimientos
-            </Link>
-          </Button>
           {cupos.ver && (
             <Button asChild variant="outline" size="lg" className="rounded-lg px-3">
               <Link to={`/cuentas/${cuenta.idCuenta}/cupos`}>
@@ -124,22 +121,34 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
             <Dato label="Estado">
               <EstadoCuentaBadge estado={cuenta.estado} />
             </Dato>
-            <Dato label="ID del cliente">{cuenta.idCliente}</Dato>
+            <Dato label="Titular">{cuenta.nombreTitular ?? `Cliente ${cuenta.idCliente}`}</Dato>
+            {cuenta.motivoEstado && <Dato label="Motivo del estado">{cuenta.motivoEstado}</Dato>}
           </dl>
         </section>
 
-        <SaldoCuenta idCuenta={cuenta.idCuenta} cerrada={cuenta.estado === 'CERRADA'} />
+        <ResumenSaldos idCuenta={cuenta.idCuenta} cerrada={cuenta.estado === 'CERRADA'} />
       </div>
-      {usuario?.idAgencia === cuenta.idAgencia && (
-        <AutorizadosCuenta idCuenta={cuenta.idCuenta} editable={puedeAbrir && !['Anulada', 'CERRADA'].includes(cuenta.estado)} />
-      )}
-      {usuario?.idAgencia === cuenta.idAgencia && <HistorialCuenta idCuenta={cuenta.idCuenta} />}
+      <Tabs.Root key={cuenta.idCuenta} defaultValue="movimientos" className="flex flex-col gap-4">
+        <Tabs.List aria-label="Detalle de cuenta" className="flex flex-wrap gap-2">
+          <Tabs.Trigger value="movimientos" className={tabClassName}>Movimientos</Tabs.Trigger>
+          {mismaAgencia && <Tabs.Trigger value="autorizados" className={tabClassName}>Autorizados</Tabs.Trigger>}
+          {mismaAgencia && <Tabs.Trigger value="historial" className={tabClassName}>Historial</Tabs.Trigger>}
+        </Tabs.List>
+        <Tabs.Content value="movimientos"><MovimientosCuenta idCuenta={cuenta.idCuenta} /></Tabs.Content>
+        {mismaAgencia && (
+          <>
+            <Tabs.Content value="autorizados">
+              <AutorizadosCuenta idCuenta={cuenta.idCuenta} editable={puedeAbrir && !['Anulada', 'CERRADA'].includes(cuenta.estado)} />
+            </Tabs.Content>
+            <Tabs.Content value="historial"><HistorialCuenta idCuenta={cuenta.idCuenta} /></Tabs.Content>
+          </>
+        )}
+      </Tabs.Root>
     </>
   )
 }
 
 function AutorizadosCuenta({ idCuenta, editable }: { idCuenta: number; editable: boolean }) {
-  const [abierto, setAbierto] = useState(false)
   const [cliente, setCliente] = useState('')
   const [rol, setRol] = useState<RolAutorizado>('Firmante')
   const [porFinalizar, setPorFinalizar] = useState<number | null>(null)
@@ -148,7 +157,6 @@ function AutorizadosCuenta({ idCuenta, editable }: { idCuenta: number; editable:
   const autorizados = useQuery({
     queryKey: clave,
     queryFn: () => consultarAutorizados(idCuenta),
-    enabled: abierto,
   })
   const alta = useMutation({
     mutationFn: () => agregarAutorizado(idCuenta, Number(cliente), rol),
@@ -166,15 +174,12 @@ function AutorizadosCuenta({ idCuenta, editable }: { idCuenta: number; editable:
   })
   return (
     <section className={cardClassName} aria-label="Autorizados de la cuenta">
-      <Button variant="ghost" className="w-fit" aria-expanded={abierto} onClick={() => setAbierto(!abierto)}>
-        Autorizados de la cuenta
-      </Button>
-      {abierto && (autorizados.isPending ? <Cargando texto="Cargando autorizados…" />
+      {autorizados.isPending ? <Cargando texto="Cargando autorizados…" />
         : autorizados.isError ? <ErrorApi error={autorizados.error} />
           : autorizados.data.length ? <ul className="space-y-2">
             {autorizados.data.map(item => (
               <li key={item.idCuentaAutorizado}>
-                {item.rol === 'RepresentanteLegal' ? 'Representante legal' : item.rol} · Cliente {item.idClienteAutorizado} · Desde {item.fechaInicio}{item.fechaFin && ` hasta ${item.fechaFin}`}
+                {item.rol === 'RepresentanteLegal' ? 'Representante legal' : item.rol} · {item.nombreAutorizado ?? `Cliente ${item.idClienteAutorizado}`} · Desde {item.fechaInicio}{item.fechaFin && ` hasta ${item.fechaFin}`}
                 <span> · {item.vigente ? 'Vigente' : 'Finalizado'}</span>
                 {editable && item.vigente && porFinalizar !== item.idCuentaAutorizado && (
                   <Button variant="ghost" onClick={() => setPorFinalizar(item.idCuentaAutorizado)}>Finalizar autorización</Button>
@@ -187,8 +192,8 @@ function AutorizadosCuenta({ idCuenta, editable }: { idCuenta: number; editable:
                 )}
               </li>
             ))}
-          </ul> : <p>No hay autorizados registrados.</p>)}
-      {abierto && editable && autorizados.isSuccess && (
+          </ul> : <p>No hay autorizados registrados.</p>}
+      {editable && autorizados.isSuccess && (
         <form className="flex flex-wrap items-end gap-3" onSubmit={event => { event.preventDefault(); alta.mutate() }}>
           <label className="grid gap-1">
             ID del cliente autorizado
@@ -205,27 +210,22 @@ function AutorizadosCuenta({ idCuenta, editable }: { idCuenta: number; editable:
           <Button type="submit" disabled={!cliente || alta.isPending}>Agregar autorizado</Button>
         </form>
       )}
-      {abierto && alta.isError && <ErrorApi error={alta.error} />}
-      {abierto && fin.isError && <ErrorApi error={fin.error} />}
+      {alta.isError && <ErrorApi error={alta.error} />}
+      {fin.isError && <ErrorApi error={fin.error} />}
     </section>
   )
 }
 
 function HistorialCuenta({ idCuenta }: { idCuenta: number }) {
-  const [abierto, setAbierto] = useState(false)
   const eventos = useQuery({
     queryKey: ['cuentas', 'eventos', idCuenta],
     queryFn: () => consultarEventosCuenta(idCuenta),
-    enabled: abierto,
   })
   return (
     <section className={cardClassName} aria-label="Historial de la cuenta">
-      <Button variant="ghost" className="w-fit" aria-expanded={abierto} onClick={() => setAbierto(!abierto)}>
-        Historial de la cuenta
-      </Button>
-      {abierto && eventos.isPending && <Cargando texto="Cargando historial…" />}
-      {abierto && eventos.isError && <ErrorApi error={eventos.error} />}
-      {abierto && eventos.isSuccess && (
+      {eventos.isPending && <Cargando texto="Cargando historial…" />}
+      {eventos.isError && <ErrorApi error={eventos.error} />}
+      {eventos.isSuccess && (
         eventos.data.length ? (
           <ul className="space-y-4">
             {eventos.data.map(evento => (
@@ -283,7 +283,7 @@ function Dato({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /** Los saldos salen solo de CTA-04; el disponible se muestra tal como lo calcula el backend */
-function SaldoCuenta({ idCuenta, cerrada }: { idCuenta: number; cerrada: boolean }) {
+function ResumenSaldos({ idCuenta, cerrada }: { idCuenta: number; cerrada: boolean }) {
   const saldo = useSaldoCuenta(idCuenta)
   const consultado = saldo.data ? formatearFechaConsulta(saldo.data.fechaConsulta) : null
 
@@ -315,7 +315,7 @@ function SaldoCuenta({ idCuenta, cerrada }: { idCuenta: number; cerrada: boolean
         <>
           <dl className="flex flex-col gap-4">
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-sm text-muted-foreground">Saldo</dt>
+              <dt className="text-sm text-muted-foreground">Saldo contable</dt>
               <dd className="font-medium text-heading tabular-nums">{formatearMonto(saldo.data.saldo)}</dd>
             </div>
             <div className="flex items-baseline justify-between gap-4">

@@ -25,13 +25,34 @@ export function MovimientosCuentaPage() {
   const { idCuenta: param } = useParams()
   // Un id no numérico o ≤ 0 no llega a la API: se trata igual que una cuenta inexistente
   const idCuenta = leerIdCuenta(param)
+  const cuenta = useCuenta(idCuenta)
+
+  return (
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+      <Button asChild variant="ghost" size="lg" className="-ml-2.5 w-fit rounded-lg text-muted-foreground">
+        <Link to={idCuenta === null ? '/cuentas' : `/cuentas/${idCuenta}`}>
+          <ArrowLeft />
+          {idCuenta === null ? 'Volver a la búsqueda' : 'Volver a la cuenta'}
+        </Link>
+      </Button>
+      <header>
+        <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">Movimientos</h1>
+        <p className="mt-2 text-base text-muted-foreground">
+          {cuenta.data && <span className="font-medium text-heading">Cuenta {cuenta.data.numeroCuenta} · </span>}
+          Débitos y créditos de la cuenta por fecha contable. Un reverso aparece como un movimiento más.
+        </p>
+      </header>
+      <MovimientosCuenta key={idCuenta} idCuenta={idCuenta} />
+    </div>
+  )
+}
+
+export function MovimientosCuenta({ idCuenta }: { idCuenta: number | null }) {
   // «Hoy» se fija al abrir la pantalla; los filtros quedan en memoria, no en la URL
   const [inicial] = useState(() => filtrosMovimientosIniciales())
   const [filtros, setFiltros] = useState<Filtros>(inicial)
   const [page, setPage] = useState(1)
   const movimientos = useMovimientos(idCuenta, armarParametrosMovimientos(filtros, page))
-  // Solo para mostrar el número de la cuenta; si falla, la página sigue sin él
-  const cuenta = useCuenta(idCuenta)
 
   const consultar = (nuevos: Filtros) => {
     setFiltros(nuevos)
@@ -84,22 +105,7 @@ export function MovimientosCuentaPage() {
   })()
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <Button asChild variant="ghost" size="lg" className="-ml-2.5 w-fit rounded-lg text-muted-foreground">
-        <Link to={idCuenta === null ? '/cuentas' : `/cuentas/${idCuenta}`}>
-          <ArrowLeft />
-          {idCuenta === null ? 'Volver a la búsqueda' : 'Volver a la cuenta'}
-        </Link>
-      </Button>
-
-      <header>
-        <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">Movimientos</h1>
-        <p className="mt-2 text-base text-muted-foreground">
-          {cuenta.data && <span className="font-medium text-heading">Cuenta {cuenta.data.numeroCuenta} · </span>}
-          Débitos y créditos de la cuenta por fecha contable. Un reverso aparece como un movimiento más.
-        </p>
-      </header>
-
+    <div className="flex flex-col gap-6">
       <section className="rounded-3xl border border-border bg-card p-6 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-8">
         <FiltrosMovimientos inicial={inicial} consultando={movimientos.isFetching} onConsultar={consultar} />
       </section>

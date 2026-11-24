@@ -7,6 +7,7 @@ const habilitacionSchema = z.object({ habilitado: z.boolean(), motivos: z.array(
 const autorizadoSchema = z.object({
   idCuentaAutorizado: z.number(),
   idClienteAutorizado: z.number(),
+  nombreAutorizado: z.string().nullish(),
   rol: z.enum(['Tutor', 'RepresentanteLegal', 'Firmante']),
   fechaInicio: z.string(),
   fechaFin: z.string().nullable(),
