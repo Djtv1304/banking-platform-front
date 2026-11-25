@@ -17,22 +17,30 @@ const MENSAJES: Record<string, string> = {
   CUENTA_CON_SALDO: 'La cuenta tiene saldo distinto de cero: no se puede desactivar ni eliminar.',
   CUENTA_EN_USO: 'La cuenta tiene movimientos o se usa en la configuración contable: no se puede eliminar. Desactívala si ya no debe usarse.',
   CUENTA_CONTABLE_NO_ENCONTRADA: 'La cuenta ya no existe. Recarga el plan de cuentas.',
+  CUENTA_NO_ENCONTRADA: 'La cuenta ya no existe. Recarga el plan de cuentas.',
+  CUENTA_DEL_REGULADOR: 'Esta cuenta es del catálogo del regulador: su nombre solo cambia con una importación del catálogo.',
 }
+
+/** Códigos con los que el backend dice que la función existe pero aún no tiene lógica */
+const CODIGOS_NO_DISPONIBLE = new Set(['FUNCION_NO_DISPONIBLE', 'OPERACION_NO_HABILITADA'])
 
 /**
  * Mientras el backend no tenga el endpoint, responde 501, o 404/405 genéricos (code HTTP_404,
- * HTTP_405 o http_404 si no llega ProblemDetails). Un 404 con un code propio (la cuenta no
- * existe) sí es un error de verdad.
+ * HTTP_405 o http_404 si no llega ProblemDetails). También avisa con 404 FUNCION_NO_DISPONIBLE
+ * (p. ej. la baja de cuentas) o 501 OPERACION_NO_HABILITADA. Un 404 con otro code propio (la
+ * cuenta no existe) sí es un error de verdad.
  */
 export const esNoDisponible = (error: ApiError) =>
-  error.status === 501 || ((error.status === 404 || error.status === 405) && /^http_\d+$/i.test(error.code))
+  error.status === 501 ||
+  CODIGOS_NO_DISPONIBLE.has(error.code) ||
+  ((error.status === 404 || error.status === 405) && /^http_\d+$/i.test(error.code))
 
 export function mensajeErrorPlanCuentas(error: ApiError, operacion: 'consulta' | 'mantenimiento') {
   if (esNoDisponible(error)) return MENSAJE_NO_DISPONIBLE
   if (error.status === 403) {
     return operacion === 'consulta'
       ? 'Tu rol no tiene acceso al plan de cuentas.'
-      : 'Solo un contador o un administrador puede cambiar el plan de cuentas.'
+      : 'Solo un contador puede cambiar el plan de cuentas.'
   }
   return MENSAJES[error.code] ?? error.message
 }
