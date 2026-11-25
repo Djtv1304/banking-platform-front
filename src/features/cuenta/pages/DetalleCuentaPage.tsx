@@ -17,6 +17,7 @@ import { usePermisosCupos } from '@/features/cuenta/hooks/useCupos'
 import { leerIdCuenta } from '@/features/cuenta/lib/filtros'
 import { formatearFechaConsulta, formatearMonto } from '@/features/cuenta/lib/formato'
 import { MovimientosCuenta } from '@/features/cuenta/pages/MovimientosCuentaPage'
+import { RetencionesCuenta } from '@/features/cuenta/components/RetencionesCuenta'
 
 const cardClassName = 'flex flex-col gap-6 rounded-3xl border border-border bg-card p-6 sm:p-8'
 const tabClassName = 'rounded-lg border border-border px-4 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground'
@@ -82,6 +83,7 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
   const usuario = useAuthStore(state => state.user)
   const puedeAbrir = usePuedeFuncion('cuentas.abrir', !!usuario?.roles?.some(rol => rol === 'ASESOR' || rol === 'ADMIN'))
   const mismaAgencia = usuario?.idAgencia === cuenta.idAgencia
+  const puedeRetener = mismaAgencia && usuario?.permisos.includes('cta-retencion')
 
   return (
     <>
@@ -133,8 +135,10 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
           <Tabs.Trigger value="movimientos" className={tabClassName}>Movimientos</Tabs.Trigger>
           {mismaAgencia && <Tabs.Trigger value="autorizados" className={tabClassName}>Autorizados</Tabs.Trigger>}
           {mismaAgencia && <Tabs.Trigger value="historial" className={tabClassName}>Historial</Tabs.Trigger>}
+          {puedeRetener && <Tabs.Trigger value="retenciones" className={tabClassName}>Retenciones</Tabs.Trigger>}
         </Tabs.List>
         <Tabs.Content value="movimientos"><MovimientosCuenta idCuenta={cuenta.idCuenta} /></Tabs.Content>
+        {puedeRetener && <Tabs.Content value="retenciones"><RetencionesCuenta idCuenta={cuenta.idCuenta} activa={cuenta.estado === 'ACTIVA'} /></Tabs.Content>}
         {mismaAgencia && (
           <>
             <Tabs.Content value="autorizados">
