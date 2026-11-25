@@ -1,5 +1,5 @@
 import { ESLint } from 'eslint'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 // E0-07 · la regla de lint que impide la palabra «socio» en los textos de la app
 const eslint = new ESLint({ cwd: process.cwd() })
@@ -10,6 +10,11 @@ async function errores(codigo: string, archivo = 'src/features/demo/mensajes.tsx
 }
 
 describe('regla «socio» (E0-07)', () => {
+  beforeAll(async () => {
+    // Carga la configuración y los plugins fuera del presupuesto de cada caso.
+    await eslint.calculateConfigForFile('src/features/demo/mensajes.tsx')
+  }, 30_000)
+
   it.each([
     ['una cadena', `export const m = 'Busca al socio'`],
     ['una cadena con mayúscula', `export const m = 'Socios activos'`],
