@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { leerDetalleHistorial } from '@/features/clientes/lib/historial'
 
@@ -40,9 +41,14 @@ export function HistorialCliente({ id }: { id: number }) {
                         <td className="p-2">{cambio.tipoOperacion}</td>
                         <td className="p-2">{cambio.campoModificado}</td>
                         <td className="p-2 wrap-break-word">{cambio.valorAnterior ?? (detalle.tieneDetalle ? '—' : 'No disponible')}</td>
-                        <td className="p-2 wrap-break-word">{!detalle.tieneDetalle ? 'No disponible' : detalle.nuevo === null ? '—' : String(detalle.nuevo)}</td>
+                        <td className="p-2 wrap-break-word">{valorNuevo(cambio.valorNuevo, detalle)}</td>
                         <td className="p-2">ID {cambio.modificadoPor}<br />{cambio.direccionIP}</td>
-                        <td className="p-2 wrap-break-word">{detalle.motivo}</td>
+                        <td className="p-2 wrap-break-word">
+                          {detalle.motivo}
+                          {cambio.idSolicitud != null && (
+                            <><br /><Link className="font-medium text-link underline" to={`/aprobaciones/${cambio.idSolicitud}`}>Aprobado en la solicitud #{cambio.idSolicitud}</Link></>
+                          )}
+                        </td>
                       </tr>
                     )
                   })}
@@ -55,4 +61,11 @@ export function HistorialCliente({ id }: { id: number }) {
       )}
     </section>
   )
+}
+
+/** E5-04 · la columna propia manda; el legado solo trae el valor dentro del JSON */
+function valorNuevo(columna: string | null | undefined, detalle: ReturnType<typeof leerDetalleHistorial>) {
+  if (columna != null) return columna
+  if (!detalle.tieneDetalle) return 'No disponible'
+  return detalle.nuevo === null ? '—' : String(detalle.nuevo)
 }

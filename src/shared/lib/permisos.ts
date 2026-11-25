@@ -49,7 +49,7 @@ const FUNCIONES_ACCION: Partial<Record<Permiso, string>> = {
   cuentasCupos: 'cuentas.cupos.modificar', tarjetasEmitir: 'tarjetas.emitir', tarjetasEstado: 'tarjetas.cambiarEstado',
   contabilidadEditar: 'contabilidad.cuentas.editar',
   plantillasEditar: 'contabilidad.plantillas.editar',
-  cuentasProductoEditar: 'contabilidad.cuentas_producto.editar',
+  cuentasProductoEditar: 'contabilidad.cuentasProducto.editar',
 }
 
 export function accionesPermitidas(roles: readonly string[], permisos: readonly string[], funciones?: readonly string[]): Permiso[] {
