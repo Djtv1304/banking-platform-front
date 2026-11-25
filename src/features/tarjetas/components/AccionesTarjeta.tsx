@@ -12,7 +12,7 @@ import {
 
 interface AccionesTarjetaProps {
   tarjeta: Tarjeta
-  permisos: Record<AccionTarjeta, boolean>
+  permisos: Record<AccionTarjeta, boolean> & { resolverSolicitud?: boolean; desbloquear?: boolean }
 }
 
 /** TAR-04 · Cambios de estado que admite la tarjeta, según su estado y los permisos del usuario */
@@ -22,7 +22,17 @@ export function AccionesTarjeta({ tarjeta, permisos }: AccionesTarjetaProps) {
 
   if (!permisos.estado) return null
 
-  const acciones = accionesEstado(tarjeta.estadoActual)
+  const generada = tarjeta.estadoActual === 'Generada'
+  const bloqueada = tarjeta.estadoActual === 'Bloqueada'
+  const requiereReposicion = ['ROBO', 'PERDIDA'].includes(tarjeta.motivoEstado ?? '')
+  const acciones = accionesEstado(tarjeta.estadoActual).filter(({ destino }) => {
+    if (destino === 'Aprobada' || destino === 'Anulada') return permisos.resolverSolicitud
+    if (destino === 'Activa' && generada) {
+      return tarjeta.tipoTarjeta === 'Debito' && Boolean(tarjeta.sobreDescargadoEn)
+        && (!tarjeta.envio || tarjeta.envio.estadoEnvio === 'Despachado')
+    }
+    return destino !== 'Activa' || !bloqueada || (permisos.desbloquear && !requiereReposicion)
+  })
 
   const abrir = (siguiente: AccionEstado) => {
     setConfirmacion(null)
@@ -62,12 +72,12 @@ export function AccionesTarjeta({ tarjeta, permisos }: AccionesTarjetaProps) {
           En estado {tarjeta.estadoActual} la tarjeta ya no admite cambios de estado.
         </p>
       )}
-      {tarjeta.estadoActual === 'Generada' && (
+      {generada && tarjeta.tipoTarjeta === 'Debito' && !tarjeta.sobreDescargadoEn && (
         <p className="text-sm text-muted-foreground">
-          La activación es automática: con el primer cambio de PIN (débito) o a los 3 días laborables de la emisión
-          (crédito).
+          Descarga el sobre de PIN para confirmar la entrega.
         </p>
       )}
+      {bloqueada && requiereReposicion && <Aviso>La tarjeta debe reponerse por pérdida o robo.</Aviso>}
 
       <CambiarEstadoTarjetaDialog
         tarjeta={tarjeta}

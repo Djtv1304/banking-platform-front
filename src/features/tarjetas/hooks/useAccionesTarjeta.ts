@@ -6,6 +6,7 @@ import {
   cambiarEstadoTarjeta,
   descargarSobrePin,
   getHistorialTarjeta,
+  registrarEnvioTarjeta,
   regenerarPin,
 } from '@/features/tarjetas/api/tarjetas.api'
 import type { TarjetaEstadoUpdate } from '@/features/tarjetas/api/tarjetas.contract'
@@ -42,6 +43,15 @@ export function useCambiarEstadoTarjeta(idTarjeta: number) {
   })
 }
 
+export function useRegistrarEnvio(idTarjeta: number) {
+  const refrescar = useRefrescarTarjeta(idTarjeta)
+  return useMutation({
+    mutationFn: (codigo: string) => registrarEnvioTarjeta(idTarjeta, codigo),
+    retry: false,
+    onSettled: refrescar,
+  })
+}
+
 /** TAR-05 */
 export function useRegenerarPin(idTarjeta: number) {
   const refrescar = useRefrescarTarjeta(idTarjeta)
@@ -52,11 +62,14 @@ export function useRegenerarPin(idTarjeta: number) {
  * TAR-07 · Se entrega una sola vez: nunca se reintenta. El PDF se guarda como archivo dentro de la
  * mutación para que no quede en su `data` ni en ninguna caché.
  */
-export const useDescargarSobrePin = (idTarjeta: number) =>
-  useMutation({
+export function useDescargarSobrePin(idTarjeta: number) {
+  const refrescar = useRefrescarTarjeta(idTarjeta)
+  return useMutation({
     mutationFn: async () => guardarArchivo(await descargarSobrePin(idTarjeta), nombreSobrePin(idTarjeta)),
     retry: false,
+    onSuccess: refrescar,
   })
+}
 
 /** TAR-06 */
 export const useHistorialTarjeta = (idTarjeta: number, filtro: FiltroHistorial, page: number) =>
@@ -71,6 +84,14 @@ export const useHistorialTarjeta = (idTarjeta: number, filtro: FiltroHistorial, 
 export function usePermisosTarjeta() {
   // Se elige el arreglo (referencia estable) y no un objeto nuevo en cada render
   const roles = useAuthStore((state) => state.user?.roles)
-  const anterior = permisosTarjeta(roles ?? [], usePermisos())
-  return { estado: usePuedeFuncion('tarjetas.cambiarEstado', anterior.estado), pin: usePuedeFuncion('tarjetas.asignarPin', anterior.pin), sobrePin: usePuedeFuncion('tarjetas.verSobrePin', anterior.sobrePin), historial: usePuedeFuncion('tarjetas.verHistorial', anterior.historial) }
+  const permisos = useAuthStore((state) => state.user?.permisos)
+  const anterior = permisosTarjeta(roles ?? [], [...usePermisos(), ...(permisos ?? [])])
+  return {
+    estado: usePuedeFuncion('tarjetas.cambiarEstado', anterior.estado),
+    pin: usePuedeFuncion('tarjetas.asignarPin', anterior.pin),
+    sobrePin: usePuedeFuncion('tarjetas.verSobrePin', anterior.sobrePin),
+    historial: usePuedeFuncion('tarjetas.verHistorial', anterior.historial),
+    resolverSolicitud: permisos?.includes('tar-solicitar:aprobar') ?? false,
+    desbloquear: permisos?.includes('tar-estado:aprobar') ?? false,
+  }
 }

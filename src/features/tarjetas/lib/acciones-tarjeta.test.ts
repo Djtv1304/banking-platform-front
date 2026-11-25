@@ -29,8 +29,8 @@ describe('accionesEstado', () => {
     expect(destinos('Vencida')).toEqual(['Cerrada'])
   })
 
-  it('nunca ofrece Generada → Activa: la activación es automática', () => {
-    expect(destinos('Generada')).toEqual(['Anulada'])
+  it('permite confirmar la entrega de una Generada y anularla', () => {
+    expect(destinos('Generada')).toEqual(['Activa', 'Anulada'])
   })
 
   it('un estado terminal o desconocido no ofrece nada', () => {
@@ -110,7 +110,10 @@ describe('motivo de bloqueo', () => {
     expect(bloqueoFormSchema.safeParse({ causa: '', detalle: '' }).error?.issues[0].message).toBe(
       'Elige la causa del bloqueo.',
     )
-    expect(bloqueoFormSchema.parse({ causa: 'Sospecha de fraude', detalle: '' })).toEqual({ motivo: 'Sospecha de fraude' })
+    expect(bloqueoFormSchema.parse({ causa: 'Sospecha de fraude', detalle: '' })).toEqual({
+      motivo: 'Sospecha de fraude',
+      codigoMotivo: 'SOSPECHA_FRAUDE',
+    })
   })
 
   it('con la causa «Otra» el detalle es obligatorio', () => {
@@ -121,6 +124,7 @@ describe('motivo de bloqueo', () => {
     })
     expect(bloqueoFormSchema.parse({ causa: 'Otra', detalle: 'Tarjeta retenida en el ATM' })).toEqual({
       motivo: 'Otra: Tarjeta retenida en el ATM',
+      codigoMotivo: 'OTRA',
     })
   })
 

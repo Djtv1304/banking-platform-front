@@ -35,7 +35,7 @@ export function PinTarjeta({ tarjeta, permisos }: PinTarjetaProps) {
   const [confirmacion, setConfirmacion] = useState<string | null>(null)
 
   const regenerar = permisos.pin && admiteRegenerarPin(tarjeta)
-  const sobre = permisos.sobrePin && admiteSobrePin(tarjeta)
+  const sobre = permisos.sobrePin && admiteSobrePin(tarjeta) && !tarjeta.sobreDescargadoEn
   if (!regenerar && !sobre) return null
 
   const abrir = (siguiente: Dialogo) => {

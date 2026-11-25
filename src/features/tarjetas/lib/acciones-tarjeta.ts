@@ -16,10 +16,7 @@ export interface AccionEstado {
   etiqueta: string
 }
 
-/**
- * Tarjeta.TransicionEstado del backend. Generada → Activa no se ofrece nunca: es automática
- * (primer cambio de PIN en débito, 3 días laborables en crédito) y el backend responde 409.
- */
+/** Acciones de Tarjeta.TransicionEstado que puede presentar el formulario. */
 const TRANSICIONES: Record<string, readonly AccionEstado[]> = {
   Solicitada: [
     { destino: 'Aprobada', etiqueta: 'Aprobar' },
@@ -29,7 +26,10 @@ const TRANSICIONES: Record<string, readonly AccionEstado[]> = {
     { destino: 'Generada', etiqueta: 'Registrar emisión' },
     { destino: 'Anulada', etiqueta: 'Anular' },
   ],
-  Generada: [{ destino: 'Anulada', etiqueta: 'Anular' }],
+  Generada: [
+    { destino: 'Activa', etiqueta: 'Confirmar entrega' },
+    { destino: 'Anulada', etiqueta: 'Anular' },
+  ],
   Activa: [
     { destino: 'Bloqueada', etiqueta: 'Bloquear' },
     { destino: 'Inactiva', etiqueta: 'Inactivar' },
@@ -84,10 +84,10 @@ export function permisosTarjeta(roles: readonly string[], permisos: readonly str
   const propios = new Set(roles.map((rol) => rol.trim().toUpperCase()))
   const alguno = (permitidos: readonly string[]) => permitidos.some((rol) => propios.has(rol))
   return {
-    estado: hasPermission(permisos, PERMISOS.tarjetasEstado),
-    pin: hasPermission(permisos, PERMISOS.tarjetasEmitir),
-    sobrePin: alguno(ROLES_TARJETA.sobrePin),
-    historial: alguno(ROLES_TARJETA.historial),
+    estado: permisos.includes('tar-estado') || hasPermission(permisos, PERMISOS.tarjetasEstado),
+    pin: permisos.includes('tar-pin') || hasPermission(permisos, PERMISOS.tarjetasEmitir),
+    sobrePin: permisos.includes('tar-pin:entregar') || alguno(ROLES_TARJETA.sobrePin),
+    historial: permisos.includes('tar-consultar:historial') || alguno(ROLES_TARJETA.historial),
   }
 }
 
@@ -117,6 +117,13 @@ export const motivoFormSchema = z.object({
 /** Causas de bloqueo (JPRFM-2026-048-T: bloqueo inmediato con motivo y trazabilidad) */
 export const CAUSAS_BLOQUEO = ['Pérdida', 'Robo', 'Sospecha de fraude', 'Pedido del cliente', 'Otra'] as const
 export type CausaBloqueo = (typeof CAUSAS_BLOQUEO)[number]
+const CODIGOS_MOTIVO: Record<CausaBloqueo, string> = {
+  'Pérdida': 'PERDIDA',
+  Robo: 'ROBO',
+  'Sospecha de fraude': 'SOSPECHA_FRAUDE',
+  'Pedido del cliente': 'PEDIDO_CLIENTE',
+  Otra: 'OTRA',
+}
 
 /** Lo que cabe tras la causa más larga y «: » sin pasar de 500 */
 export const MAX_DETALLE_BLOQUEO = MAX_MOTIVO - Math.max(...CAUSAS_BLOQUEO.map((causa) => causa.length)) - 2
@@ -146,12 +153,15 @@ export const bloqueoFormSchema = z
     path: ['detalle'],
     message: 'Con la causa «Otra», describe el motivo del bloqueo.',
   })
-  .transform(({ causa, detalle }) => ({ motivo: armarMotivoBloqueo(causa as CausaBloqueo, detalle) }))
+  .transform(({ causa, detalle }) => ({
+    motivo: armarMotivoBloqueo(causa as CausaBloqueo, detalle),
+    codigoMotivo: CODIGOS_MOTIVO[causa as CausaBloqueo],
+  }))
 
 export type MotivoFormInput = z.input<typeof motivoFormSchema>
 export type BloqueoFormInput = z.input<typeof bloqueoFormSchema>
 /** Ambos formularios terminan en el mismo `motivo` del body de TAR-04 */
-export type MotivoFormData = z.output<typeof motivoFormSchema>
+export type MotivoFormData = z.output<typeof motivoFormSchema> & { codigoMotivo?: string }
 
 const FECHA_HORA = new Intl.DateTimeFormat('es-EC', {
   dateStyle: 'long',
@@ -167,7 +177,8 @@ export function formatearFechaHora(valor: Date | string) {
 
 /** Confirmación tras TAR-04; al aprobar una de débito ya existe su sobre de PIN */
 export function mensajeCambioEstado(destino: EstadoTarjeta, tarjeta: Pick<Tarjeta, 'tipoTarjeta'>, fecha: Date) {
-  const base = `La tarjeta pasó a ${destino} el ${formatearFechaHora(fecha)}.`
+  const estado = destino === 'Aprobada' && tarjeta.tipoTarjeta === 'Debito' ? 'Generada' : destino
+  const base = `La tarjeta pasó a ${estado} el ${formatearFechaHora(fecha)}.`
   return destino === 'Aprobada' && tarjeta.tipoTarjeta === 'Debito'
     ? `${base} El sobre de PIN ya se puede descargar.`
     : base
