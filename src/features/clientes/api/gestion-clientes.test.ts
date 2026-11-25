@@ -16,20 +16,39 @@ describe('contrato de edición parcial', () => {
     expect(clienteUpdateSchema.safeParse({ telefonoCelular: null }).success).toBe(false)
     expect(clienteUpdateSchema.safeParse({ email: null }).success).toBe(false)
   })
-  it.each(['identificacion', 'tipoCliente', 'tipoDocumento', 'fechaNacimiento', 'genero', 'estado', 'creadoPor'])('rechaza el campo protegido %s', (campo) => {
-    expect(clienteUpdateSchema.safeParse({ email: 'nuevo@example.test', [campo]: 'alterado' }).success).toBe(false)
+  it.each(['tipoCliente', 'genero', 'estado', 'creadoPor', 'idArchivoRespaldo'])('rechaza el campo protegido %s', (campo) => {
+    expect(clienteUpdateSchema.safeParse({ telefonoCelular: '0987654321', [campo]: 'alterado' }).success).toBe(false)
   })
   it('rechaza cambios vacíos, nombres en blanco y correo inválido', () => {
     for (const datos of [{}, { nombres: '   ' }, { email: 'sin-arroba' }]) expect(clienteUpdateSchema.safeParse(datos).success).toBe(false)
   })
   it('envía solamente el patch solicitado y valida la ficha devuelta', async () => {
-    const llamada = vi.spyOn(apiClient, 'patch').mockResolvedValue(respuesta({ ...cliente, email: 'nuevo@example.test' }))
-    await expect(editarCliente(1042, { email: 'nuevo@example.test' })).resolves.toMatchObject({ email: 'nuevo@example.test' })
-    expect(llamada).toHaveBeenCalledWith('/api/v1/clientes/1042', { email: 'nuevo@example.test' })
+    const llamada = vi.spyOn(apiClient, 'patch').mockResolvedValue(respuesta({ ...cliente, telefonoCelular: '0987654321' }))
+    await expect(editarCliente(1042, { telefonoCelular: '0987654321' })).resolves.toMatchObject({ tipo: 'cliente', cliente: { telefonoCelular: '0987654321', emailVerificado: false } })
+    expect(llamada).toHaveBeenCalledWith('/api/v1/clientes/1042', { telefonoCelular: '0987654321' })
   })
   it('rechaza un HTML 200 en lugar de dar por guardado el cambio', async () => {
     vi.spyOn(apiClient, 'patch').mockResolvedValue(respuesta('<html></html>'))
-    await expect(editarCliente(1042, { email: 'nuevo@example.test' })).rejects.toMatchObject({ code: 'respuesta_invalida' })
+    await expect(editarCliente(1042, { telefonoCelular: '0987654321' })).rejects.toMatchObject({ code: 'respuesta_invalida' })
+  })
+  it('E5-04: un cambio sensible responde 202 con la solicitud y el cliente no cambia', async () => {
+    const llamada = vi.spyOn(apiClient, 'patch').mockResolvedValue({ ...respuesta({ idSolicitud: 77, estado: 'Pendiente', requiereAprobacion: true }), status: 202 })
+    await expect(editarCliente(1042, { apellidos: 'Andrade', email: 'Nuevo@Example.TEST' })).resolves.toEqual({ tipo: 'solicitud', idSolicitud: 77 })
+    expect(llamada).toHaveBeenCalledWith('/api/v1/clientes/1042', { apellidos: 'Andrade', email: 'nuevo@example.test' })
+  })
+  it('E5-04: un 202 sin la forma de la cola no se da por aceptado', async () => {
+    vi.spyOn(apiClient, 'patch').mockResolvedValue({ ...respuesta({ idSolicitud: 0 }), status: 202 })
+    await expect(editarCliente(1042, { apellidos: 'Andrade' })).rejects.toMatchObject({ code: 'respuesta_invalida' })
+  })
+  it('E5-04: no mezcla datos ordinarios y sensibles en una petición', () => {
+    expect(clienteUpdateSchema.safeParse({ apellidos: 'Andrade', telefonoCelular: '0987654321' }).success).toBe(false)
+    expect(clienteUpdateSchema.safeParse({ identificacion: '1710034065', tipoDocumento: 'C', fechaNacimiento: '1990-01-02' }).success).toBe(true)
+    expect(clienteUpdateSchema.safeParse({ fechaNacimiento: '02/01/1990' }).success).toBe(false)
+  })
+  it('E5-04: el conflicto por cambio pendiente llega tal cual para explicarlo', async () => {
+    const error = new ApiError('El cliente ya tiene un cambio sensible pendiente de aprobación.', 409, 'CAMBIO_PENDIENTE')
+    vi.spyOn(apiClient, 'patch').mockRejectedValue(error)
+    await expect(editarCliente(1042, { apellidos: 'Otro' })).rejects.toBe(error)
   })
 })
 
