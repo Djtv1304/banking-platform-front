@@ -66,6 +66,26 @@ describe('contratos de consulta por rol', () => {
     expect(opciones(rol)).not.toContain('Consultar tarjetas')
   })
 
+  it.each(['ASESOR', 'ADMIN'])('%s ve Solicitar tarjeta cuando tiene el permiso de emisión', (rol) => {
+    const rutasTarjetas = (permisos: Parameters<typeof getVisibleSections>[2]) =>
+      getVisibleSections(getAccessProfile([rol]), [rol], permisos)
+        .find((seccion) => seccion.title === 'Tarjetas')?.items.map((item) => item.to)
+
+    expect(rutasTarjetas([])).toEqual(['/tarjetas'])
+    expect(rutasTarjetas([PERMISOS.tarjetasEmitir])).toEqual(['/tarjetas', '/solicitar-tarjeta'])
+  })
+
+  it('con la autorización por función separa solicitar de consultar tarjetas', () => {
+    const roles = ['ASESOR']
+    const rutasTarjetas = (funciones: string[]) =>
+      getVisibleSections(getAccessProfile(roles), roles, [], undefined, undefined, {}, {
+        activa: true, version: '1', funciones, rutas: [],
+      }).find((seccion) => seccion.title === 'Tarjetas')?.items.map((item) => item.to)
+
+    expect(rutasTarjetas(['tarjetas.consultar'])).toEqual(['/tarjetas'])
+    expect(rutasTarjetas(['tarjetas.emitir'])).toEqual(['/solicitar-tarjeta'])
+  })
+
   it('no presenta creditos en preparacion al aprobador sin un flujo implementado para su rol', () => {
     expect(opciones('APROBADOR_CREDITO')).toEqual(['Inicio'])
   })
@@ -163,6 +183,8 @@ describe('pestañas por rol (SEG07)', () => {
     expect(catalogos?.rolesPorDefecto).toContain('ADMIN')
     expect(catalogos?.rolesPorDefecto).not.toContain('CAJERO')
     expect(getPestanasConfigurables().find((p) => p.to === '/cuentas/abrir')?.requiereAccion).toBe(true)
-    expect(getPestanasConfigurables().find((p) => p.to === '/solicitar-tarjeta')?.rolesPorDefecto).toEqual(['ADMIN', 'ASESOR'])
+    expect(getPestanasConfigurables().filter((p) => p.to === '/solicitar-tarjeta')).toEqual([{
+      to: '/solicitar-tarjeta', label: 'Solicitar tarjeta', seccion: 'Tarjetas', rolesPorDefecto: ['ADMIN', 'ASESOR'], requiereAccion: true,
+    }])
   })
 })

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('E6-10 aprueba, registra el despacho y activa tras verificar la entrega', async ({ page }, info) => {
+test('E6-10 abre la solicitud desde el menú, aprueba, registra el despacho y verifica la entrega', async ({ page }, info) => {
   const fecha = '2026-11-25T20:00:00Z'
   const tarjeta = {
     idTarjeta: 301,
@@ -68,6 +68,13 @@ test('E6-10 aprueba, registra el despacho y activa tras verificar la entrega', a
     }
     return route.fulfill({ status: 404, json: { code: 'FUERA_DEL_ESCENARIO' } })
   })
+
+  await page.goto('/')
+  const solicitud = page.getByRole('navigation', { name: 'Secciones' }).getByRole('link', { name: 'Solicitar tarjeta' })
+  await expect(solicitud.locator('svg')).toBeVisible()
+  await solicitud.click()
+  await expect(page.getByRole('heading', { name: 'Solicitar tarjeta' })).toBeVisible()
+  await solicitud.locator('..').screenshot({ path: info.outputPath('menu-tarjetas.png') })
 
   await page.goto('/tarjetas/301')
   await page.getByRole('button', { name: 'Aprobar', exact: true }).click()
