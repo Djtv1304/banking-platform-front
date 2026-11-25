@@ -35,6 +35,7 @@ export const ROLES_USUARIO = [
   'APROBADOR_CREDITO',
   'CONTADOR',
   'AUDITOR',
+  'CUMPLIMIENTO',
 ] as const
 
 export const rolUsuarioSchema = z.enum(ROLES_USUARIO)
