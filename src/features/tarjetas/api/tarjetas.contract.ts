@@ -29,6 +29,7 @@ export const TARJETAS_ENDPOINTS = {
   tarjetas: `${BASE}/tarjetas`,
   tarjeta: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}`,
   estado: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}/estado`,
+  envio: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}/envio`,
   pin: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}/pin`,
   historial: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}/historial`,
   sobrePin: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}/sobre-pin`,
@@ -103,6 +104,13 @@ export const ESTADOS_TARJETA = [
   'Cerrada',
 ] as const
 
+export const envioTarjetaSchema = z.object({
+  idTarjeta: z.number(),
+  estadoEnvio: z.enum(['Pendiente', 'Despachado', 'Entregado', 'Cancelado']),
+  codigoSeguimiento: z.string().nullable(),
+  despachadoEn: z.string().nullable(),
+})
+
 /** TAR-01 y TAR-03 · Respuesta completa, sin `tokenTarjeta` */
 export const tarjetaSchema = tarjetaResumenSchema.extend({
   idCliente: z.number(),
@@ -111,6 +119,10 @@ export const tarjetaSchema = tarjetaResumenSchema.extend({
   fechaSolicitud: z.string().nullable(),
   fechaResolucion: z.string().nullable(),
   fechaExpiracion: z.string(),
+  motivoEstado: z.string().nullish(),
+  entregaVerificadaEn: z.string().nullish(),
+  sobreDescargadoEn: z.string().nullish(),
+  envio: envioTarjetaSchema.nullish(),
 })
 
 /** TAR-01 · Body `TarjetaCreate` */
@@ -142,6 +154,8 @@ export const ESTADOS_TERMINALES = ['Cancelada', 'Anulada', 'Vencida', 'Cerrada']
 export interface TarjetaEstadoUpdate {
   estado: EstadoTarjeta
   motivo: string
+  codigoMotivo?: string
+  documentoVerificado?: boolean
 }
 
 /** TAR-06 · Quién fijó el PIN en un evento CambioPin */

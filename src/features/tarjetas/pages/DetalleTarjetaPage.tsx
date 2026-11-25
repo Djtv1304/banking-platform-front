@@ -7,6 +7,7 @@ import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando } from '@/shared/ui'
 import type { Tarjeta } from '@/features/tarjetas/api/tarjetas.contract'
 import { AccionesTarjeta } from '@/features/tarjetas/components/AccionesTarjeta'
+import { EnvioTarjeta } from '@/features/tarjetas/components/EnvioTarjeta'
 import { EstadoTarjetaBadge } from '@/features/tarjetas/components/EstadoTarjetaBadge'
 import { HistorialTarjeta } from '@/features/tarjetas/components/HistorialTarjeta'
 import { PinTarjeta } from '@/features/tarjetas/components/PinTarjeta'
@@ -131,6 +132,7 @@ function DetalleTarjeta({ tarjeta }: { tarjeta: Tarjeta }) {
         </section>
       </div>
 
+      {tarjeta.envio && <EnvioTarjeta tarjeta={tarjeta} editar={permisos.estado} />}
       <AccionesTarjeta tarjeta={tarjeta} permisos={permisos} />
       <PinTarjeta tarjeta={tarjeta} permisos={permisos} />
       {permisos.historial && <HistorialTarjeta idTarjeta={tarjeta.idTarjeta} />}

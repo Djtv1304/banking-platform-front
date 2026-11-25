@@ -34,7 +34,6 @@ import {
 
 const TIPOS_TARJETA = [
   { value: 'Debito', label: 'Débito', descripcion: 'Retira y paga con el saldo de la cuenta' },
-  { value: 'Credito', label: 'Crédito', descripcion: 'Cupo aprobado; se activa a los 3 días laborables' },
 ] as const
 
 /** Las tarjetas de envío se entregan en Ecuador */

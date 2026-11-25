@@ -30,7 +30,7 @@ const tarjeta = (cambios: Partial<Tarjeta> = {}): Tarjeta => ({
   ...cambios,
 })
 
-const TODOS = { estado: true, pin: true, sobrePin: true, historial: true }
+const TODOS = { estado: true, pin: true, sobrePin: true, historial: true, resolverSolicitud: true, desbloquear: true }
 const html = (t: Tarjeta, permisos = TODOS) => renderToStaticMarkup(<AccionesTarjeta tarjeta={t} permisos={permisos} />)
 
 describe('AccionesTarjeta', () => {
@@ -41,11 +41,28 @@ describe('AccionesTarjeta', () => {
     }
   })
 
-  it('una Generada solo se anula y explica que se activa sola', () => {
+  it('una Generada espera el sobre para confirmar la entrega', () => {
     const salida = html(tarjeta({ estadoActual: 'Generada' }))
     expect(salida.match(/<button/g)).toHaveLength(1)
     expect(salida).toContain('>Anular</button>')
-    expect(salida).toContain('La activación es automática')
+    expect(salida).toContain('Descarga el sobre de PIN')
+  })
+
+  it('permite confirmar la entrega después de descargar el sobre', () => {
+    const salida = html(tarjeta({ estadoActual: 'Generada', sobreDescargadoEn: '2026-11-25T15:00:00Z' }))
+    expect(salida).toContain('>Confirmar entrega</button>')
+  })
+
+  it('requiere acceso de aprobación para resolver una solicitud', () => {
+    const salida = html(tarjeta({ estadoActual: 'Solicitada' }), { ...TODOS, resolverSolicitud: false })
+    expect(salida).not.toContain('>Aprobar</button>')
+    expect(salida).not.toContain('>Anular solicitud</button>')
+  })
+
+  it('una tarjeta bloqueada por robo requiere reposición', () => {
+    const salida = html(tarjeta({ estadoActual: 'Bloqueada', motivoEstado: 'ROBO' }))
+    expect(salida).not.toContain('>Desbloquear</button>')
+    expect(salida).toContain('debe reponerse')
   })
 
   it('una terminal no ofrece cambios', () => {

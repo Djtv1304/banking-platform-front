@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { LoaderCircle, TriangleAlert } from 'lucide-react'
@@ -53,7 +53,7 @@ export function CambiarEstadoTarjetaDialog({ tarjeta, accion, onCerrar, onCambia
                 {accion.etiqueta} · {tarjeta.numeroEnmascarado}
               </DialogTitle>
               <DialogDescription>
-                La tarjeta pasará de {tarjeta.estadoActual} a {accion.destino}. El motivo queda registrado en su historial.
+                La tarjeta pasará de {tarjeta.estadoActual} a {accion.destino === 'Aprobada' ? 'Generada' : accion.destino}. El motivo queda registrado en su historial.
               </DialogDescription>
             </DialogHeader>
             {esIrreversible(accion.destino) && (
@@ -79,15 +79,23 @@ interface FormularioEstadoProps {
 
 function FormularioEstado({ tarjeta, accion, onCancelar, onCambiado }: FormularioEstadoProps) {
   const cambiar = useCambiarEstadoTarjeta(tarjeta.idTarjeta)
+  const entrega = tarjeta.estadoActual === 'Generada' && accion.destino === 'Activa'
+  const [documentoVerificado, setDocumentoVerificado] = useState(false)
 
-  const enviar = ({ motivo }: MotivoFormData) =>
+  const enviar = ({ motivo, codigoMotivo }: MotivoFormData) =>
     cambiar.mutate(
-      { estado: accion.destino, motivo },
+      { estado: accion.destino, motivo, codigoMotivo, ...(entrega && { documentoVerificado }) },
       { onSuccess: (actual) => onCambiado(mensajeCambioEstado(accion.destino, actual, new Date())) },
     )
 
   const pie = (
     <>
+      {entrega && (
+        <label className="flex items-center gap-2 text-sm text-heading">
+          <input type="checkbox" checked={documentoVerificado} onChange={(evento) => setDocumentoVerificado(evento.target.checked)} />
+          Verifiqué el documento de identidad del titular
+        </label>
+      )}
       {cambiar.isError && <Aviso tono="error">{mensajeErrorAccionTarjeta(toApiError(cambiar.error), 'estado')}</Aviso>}
       <DialogFooter className="-mx-6 -mb-6 px-6">
         <Button type="button" variant="outline" size="lg" onClick={onCancelar} className="rounded-lg px-4">
@@ -97,7 +105,7 @@ function FormularioEstado({ tarjeta, accion, onCancelar, onCambiado }: Formulari
           type="submit"
           size="lg"
           variant={esIrreversible(accion.destino) || accion.destino === 'Bloqueada' ? 'destructive' : 'default'}
-          disabled={cambiar.isPending}
+          disabled={cambiar.isPending || (entrega && !documentoVerificado)}
           className="rounded-lg px-4 font-semibold"
         >
           {cambiar.isPending && <LoaderCircle className="animate-spin" />}
@@ -169,7 +177,7 @@ function FormularioBloqueo({ onEnviar, children }: FormularioProps) {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<BloqueoFormInput, unknown, MotivoFormData>({
+  } = useForm<BloqueoFormInput, unknown, { motivo: string; codigoMotivo: string }>({
     resolver: zodResolver(bloqueoFormSchema),
     defaultValues: { causa: '', detalle: '' },
   })

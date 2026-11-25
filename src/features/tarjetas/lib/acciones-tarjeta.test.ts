@@ -30,8 +30,8 @@ describe('accionesEstado', () => {
     expect(destinos('Vencida')).toEqual(['Cerrada'])
   })
 
-  it('nunca ofrece Generada → Activa: la activación es automática', () => {
-    expect(destinos('Generada')).toEqual(['Anulada'])
+  it('permite confirmar la entrega de una Generada y anularla', () => {
+    expect(destinos('Generada')).toEqual(['Activa', 'Anulada'])
   })
 
   it('un estado terminal o desconocido no ofrece nada', () => {
@@ -111,7 +111,10 @@ describe('motivo de bloqueo', () => {
     expect(bloqueoFormSchema.safeParse({ causa: '', detalle: '' }).error?.issues[0].message).toBe(
       'Elige la causa del bloqueo.',
     )
-    expect(bloqueoFormSchema.parse({ causa: 'Sospecha de fraude', detalle: '' })).toEqual({ motivo: 'Sospecha de fraude' })
+    expect(bloqueoFormSchema.parse({ causa: 'Sospecha de fraude', detalle: '' })).toEqual({
+      motivo: 'Sospecha de fraude',
+      codigoMotivo: 'SOSPECHA_FRAUDE',
+    })
   })
 
   it('con la causa «Otra» el detalle es obligatorio', () => {
@@ -122,6 +125,7 @@ describe('motivo de bloqueo', () => {
     })
     expect(bloqueoFormSchema.parse({ causa: 'Otra', detalle: 'Tarjeta retenida en el ATM' })).toEqual({
       motivo: 'Otra: Tarjeta retenida en el ATM',
+      codigoMotivo: 'OTRA',
     })
   })
 
@@ -142,7 +146,9 @@ describe('mensajes', () => {
   })
 
   it('al aprobar una de débito avisa del sobre de PIN sin darlo por hecho', () => {
-    expect(mensajeCambioEstado('Aprobada', { tipoTarjeta: 'Debito' }, fecha)).toContain(AVISO_SOBRE_PIN)
+    const mensaje = mensajeCambioEstado('Aprobada', { tipoTarjeta: 'Debito', estadoActual: 'Generada' }, fecha)
+    expect(mensaje).toContain('pasó a Generada')
+    expect(mensaje).toContain(AVISO_SOBRE_PIN)
     expect(AVISO_SOBRE_PIN).not.toMatch(/ya se puede descargar/)
     expect(mensajeCambioEstado('Aprobada', { tipoTarjeta: 'Credito' }, fecha)).not.toContain('sobre de PIN')
     expect(mensajeCambioEstado('Bloqueada', { tipoTarjeta: 'Debito' }, fecha)).toContain('Bloqueada')

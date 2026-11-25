@@ -6,6 +6,7 @@ import {
   clienteSchema,
   cuentaSchema,
   direccionSchema,
+  envioTarjetaSchema,
   pageHistorialSchema,
   pageSchema,
   TARJETAS_ENDPOINTS,
@@ -79,6 +80,11 @@ export async function solicitarTarjeta(body: TarjetaCreate) {
 export async function cambiarEstadoTarjeta(idTarjeta: number, body: TarjetaEstadoUpdate) {
   const { data, status } = await apiClient.post<unknown>(TARJETAS_ENDPOINTS.estado(idTarjeta), body)
   return validar(tarjetaSchema, data, status)
+}
+
+export async function registrarEnvioTarjeta(idTarjeta: number, codigoSeguimiento: string) {
+  const { data, status } = await apiClient.patch<unknown>(TARJETAS_ENDPOINTS.envio(idTarjeta), { codigoSeguimiento })
+  return validar(envioTarjetaSchema, data, status)
 }
 
 /** TAR-05 · Sin body (el backend rechaza uno): el HSM genera el PIN y nadie lo ve. Responde 204 */
