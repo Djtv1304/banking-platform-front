@@ -11,6 +11,7 @@ export function EnvioTarjeta({ tarjeta, editar }: { tarjeta: Tarjeta; editar: bo
   const [codigo, setCodigo] = useState(tarjeta.envio?.codigoSeguimiento ?? '')
   const envio = tarjeta.envio
   if (!envio) return null
+  const puedeEditar = editar && tarjeta.estadoActual === 'Generada'
 
   const enviar = (evento: FormEvent<HTMLFormElement>) => {
     evento.preventDefault()
@@ -24,14 +25,16 @@ export function EnvioTarjeta({ tarjeta, editar }: { tarjeta: Tarjeta; editar: bo
         {envio.estadoEnvio}
         {envio.despachadoEn && ` · ${formatearFechaHora(envio.despachadoEn)}`}
       </p>
-      {envio.codigoSeguimiento && <p className="text-sm text-heading">{envio.codigoSeguimiento}</p>}
-      {editar && tarjeta.estadoActual === 'Generada' && (
+      {!puedeEditar && envio.codigoSeguimiento && <p className="text-sm text-heading">{envio.codigoSeguimiento}</p>}
+      {puedeEditar && (
         <form onSubmit={enviar} className="flex flex-col items-start gap-3 sm:flex-row sm:items-end">
           <label className="flex w-full max-w-sm flex-col gap-1 text-sm font-medium">
             Código de seguimiento
             <input required maxLength={64} pattern="[A-Za-z0-9_\\-]+" value={codigo} onChange={(evento) => setCodigo(evento.target.value)} className="rounded-lg border border-border bg-background px-3 py-2" />
           </label>
-          <Button type="submit" disabled={despacho.isPending || !codigo.trim()}>Registrar despacho</Button>
+          <Button type="submit" disabled={despacho.isPending || !codigo.trim() || codigo.trim() === envio.codigoSeguimiento}>
+            {envio.despachadoEn ? 'Actualizar seguimiento' : 'Registrar despacho'}
+          </Button>
         </form>
       )}
       {despacho.isError && <Aviso tono="error">{toApiError(despacho.error).message}</Aviso>}
