@@ -6,7 +6,7 @@ const ROL_LABELS: Record<string, string> = {
   APROBADOR_CREDITO: 'Aprobador de crédito',
   CONTADOR: 'Contador',
   AUDITOR: 'Auditor',
-  CUMPLIMIENTO: 'Cumplimiento',
+  CUMPLIMIENTO: 'Oficial de Cumplimiento',
 }
 
 export const SIN_ROL_LABEL = 'Sin rol asignado'
