@@ -11,10 +11,13 @@ import { GestionCliente } from '@/features/clientes/components/GestionCliente'
 import { HistorialCliente } from '@/features/clientes/components/HistorialCliente'
 import { GestionRiesgo } from '@/features/clientes/components/GestionRiesgo'
 import { accesoGestionClientes } from '@/features/clientes/lib/gestion-clientes'
+import { accesoRiesgo } from '@/features/clientes/api/riesgo'
+import { CampoEnmascarado } from '@/features/clientes/components/CampoEnmascarado'
+import { IndicadorHabilitacion } from '@/features/clientes/components/IndicadorHabilitacion'
+import { useAgencias } from '@/features/catalogos'
 import type { Cliente } from '@/features/clientes/api/clientes.contract'
 import { useCliente } from '@/features/clientes/hooks/useConsultaClientes'
 import {
-  celularVisible,
   formatearFecha,
   nombreVisible,
   parsearIdCliente,
@@ -23,7 +26,12 @@ import {
   varianteEstado,
 } from '@/features/clientes/lib/consulta'
 
-/* Compone la ficha de C-03, las acciones de C-04 y la gestión de direcciones C-07. */
+/*
+ * Compone la ficha de C-03, las acciones de C-04 y la gestión de direcciones C-07.
+ * E5-05: documento, correo y teléfonos llegan enmascarados; el valor completo se ve con CampoEnmascarado
+ * (MFA y auditoría). Cada sección se muestra según la función del usuario: el cajero ve la ficha
+ * reducida (sin direcciones ni riesgo).
+ */
 
 export function FichaClientePage() {
   const { idCliente } = useParams()
@@ -101,6 +109,18 @@ function ClienteNoEncontrado() {
 function Ficha({ cliente }: { cliente: Cliente }) {
   const gestion = usePuedeFuncion('clientes.direcciones.gestionar', puedeGestionarDirecciones(usePermisos()))
   const verDirecciones = usePuedeFuncion('clientes.direcciones.consultar', gestion)
+  const roles = useAuthStore((estado) => estado.user?.roles)
+  const verRiesgo = usePuedeFuncion('clientes.riesgo.consultar', accesoRiesgo(roles ?? [], usePermisos()).historial)
+  const agencias = useAgencias()
+  const agencia = agencias.data.find((item) => item.idAgencia === cliente.idAgenciaRegistro)
+  const id = cliente.idCliente
+  const secciones = [
+    { id: 'ficha-identidad', titulo: 'Identidad' },
+    { id: 'ficha-contacto', titulo: 'Contacto' },
+    ...(verDirecciones ? [{ id: 'ficha-direcciones', titulo: 'Direcciones' }] : []),
+    ...(verRiesgo ? [{ id: 'riesgo-titulo', titulo: 'Riesgo' }] : []),
+    { id: 'ficha-productos', titulo: 'Productos' },
+  ]
 
   return (
     <div className="flex flex-col gap-6">
@@ -109,49 +129,71 @@ function Ficha({ cliente }: { cliente: Cliente }) {
         <Badge variant={varianteEstado(cliente.estado)}>{cliente.estado}</Badge>
       </header>
 
-      <GestionCliente key={cliente.idCliente} cliente={cliente} />
+      <nav aria-label="Secciones de la ficha" className="flex flex-wrap gap-2">
+        {secciones.map((seccion) => (
+          <a key={seccion.id} href={`#${seccion.id}`}
+            className="rounded-full border border-border px-3 py-1 text-sm font-medium text-heading hover:bg-muted">
+            {seccion.titulo}
+          </a>
+        ))}
+      </nav>
 
-      <GestionRiesgo key={`riesgo-${cliente.idCliente}`} id={cliente.idCliente} nombre={nombreVisible(cliente)} estado={cliente.estado} />
+      <GestionCliente key={id} cliente={cliente} />
 
-      <Seccion titulo="Datos del cliente">
+      <Seccion id="ficha-identidad" titulo="Identidad">
         <dl className="grid gap-5 sm:grid-cols-2">
-          <Dato etiqueta="Identificación">
-            {TIPO_DOCUMENTO_LABEL[cliente.tipoDocumento]} {cliente.identificacion}
+          <Dato etiqueta={`Documento (${TIPO_DOCUMENTO_LABEL[cliente.tipoDocumento]})`}>
+            <CampoEnmascarado idCliente={id} campo="identificacion" valor={cliente.identificacion} etiqueta="el documento" />
           </Dato>
           <Dato etiqueta="Tipo de cliente">{TIPO_CLIENTE_LABEL[cliente.tipoCliente]}</Dato>
           {cliente.tipoCliente === 'Natural' && (
             <Dato etiqueta="Fecha de nacimiento">{formatearFecha(cliente.fechaNacimiento)}</Dato>
           )}
           <Dato etiqueta="Fecha de registro">{formatearFecha(cliente.fechaRegistro)}</Dato>
+          <Dato etiqueta="Agencia de registro">
+            {cliente.idAgenciaRegistro ? `${cliente.idAgenciaRegistro}${agencia ? ` · ${agencia.nombre}` : ''}` : 'Sin agencia registrada'}
+          </Dato>
         </dl>
       </Seccion>
 
-      <Seccion titulo="Contacto">
+      <Seccion id="ficha-contacto" titulo="Contacto">
         <dl className="grid gap-5 sm:grid-cols-2">
           <Dato etiqueta="Correo electrónico">
-            <span className="break-all">{cliente.email}</span>
+            <CampoEnmascarado idCliente={id} campo="email" valor={cliente.email} etiqueta="el correo" />
           </Dato>
-          <Dato etiqueta="Celular">{celularVisible(cliente.telefonoCelular)}</Dato>
-          {cliente.telefonoConvencional && <Dato etiqueta="Teléfono convencional">{cliente.telefonoConvencional}</Dato>}
+          <Dato etiqueta="Celular">
+            <CampoEnmascarado idCliente={id} campo="telefonoCelular" valor={cliente.telefonoCelular} etiqueta="el celular" />
+          </Dato>
+          {cliente.telefonoConvencional && (
+            <Dato etiqueta="Teléfono convencional">
+              <CampoEnmascarado idCliente={id} campo="telefonoConvencional" valor={cliente.telefonoConvencional} etiqueta="el teléfono convencional" />
+            </Dato>
+          )}
         </dl>
       </Seccion>
 
       {verDirecciones && (
-        <Seccion titulo="Direcciones">
+        <Seccion id="ficha-direcciones" titulo="Direcciones">
           <GestionDirecciones
-            idCliente={cliente.idCliente}
+            idCliente={id}
             soloLectura={!gestion || cliente.estado === 'Eliminado'}
           />
         </Seccion>
       )}
+
+      {verRiesgo && <GestionRiesgo key={`riesgo-${id}`} id={id} nombre={nombreVisible(cliente)} estado={cliente.estado} />}
+
+      <Seccion id="ficha-productos" titulo="Productos">
+        <IndicadorHabilitacion idCliente={id} />
+      </Seccion>
     </div>
   )
 }
 
-function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
+function Seccion({ id, titulo, children }: { id: string; titulo: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 sm:p-6">
-      <h2 className="border-b border-border pb-3 text-lg font-semibold text-heading">{titulo}</h2>
+    <section aria-labelledby={id} className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <h2 id={id} className="scroll-mt-6 border-b border-border pb-3 text-lg font-semibold text-heading">{titulo}</h2>
       {children}
     </section>
   )

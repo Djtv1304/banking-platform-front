@@ -6,6 +6,8 @@ import {
   verificarCorreoPrincipal, verificarCorreoSecundario, type ClienteEmail, type ClienteEmailNuevo,
 } from '@/features/clientes/api/correos'
 import { ErrorClientes } from '@/features/clientes/components/consulta-clientes'
+import { AvisoOcultamiento, CampoEnmascarado, PanelRevelacion } from '@/features/clientes/components/CampoEnmascarado'
+import { usePuedeVerSensible, useRevelacion } from '@/features/clientes/hooks/useRevelacion'
 
 interface Props {
   cliente: { idCliente: number; email: string; emailVerificado: boolean; estado: string }
@@ -15,6 +17,8 @@ type Confirmacion = { tipo: 'principal' } | { tipo: 'verificar' | 'quitar'; corr
 
 const AVISO_VERIFICAR = 'El sistema no envía correos. Confirma solo si el personal comprobó que el cliente usa este correo.'
 const ESTADOS_SIN_ESCRITURA = ['Bloqueado', 'Eliminado']
+/** E5-05 · Los correos llegan enmascarados; los secundarios completos se piden juntos con MFA */
+const CAMPOS_SECUNDARIOS = ['correosSecundarios'] as const
 
 export function CorreosCliente({ cliente, puedeGestionar }: Props) {
   const id = cliente.idCliente
@@ -24,6 +28,9 @@ export function CorreosCliente({ cliente, puedeGestionar }: Props) {
   const [email, setEmail] = useState('')
   const [etiqueta, setEtiqueta] = useState('')
   const [errorFormulario, setErrorFormulario] = useState<string | null>(null)
+  const puedeVerSensible = usePuedeVerSensible()
+  const revelacion = useRevelacion(id, CAMPOS_SECUNDARIOS)
+  const secundariosCompletos = revelacion.estado.fase === 'visible' ? revelacion.estado.datos?.correosSecundarios ?? [] : null
 
   const consulta = useQuery({ queryKey: correosClienteKey(id), queryFn: ({ signal }) => listarCorreos(id, signal), retry: false })
   const actualizar = () => Promise.all([
@@ -84,9 +91,10 @@ export function CorreosCliente({ cliente, puedeGestionar }: Props) {
       <div className="rounded-xl border border-border bg-field px-4 py-3">
         <p className="text-sm text-muted-foreground">Correo principal</p>
         {cliente.email ? <>
-          <p className="flex flex-wrap items-center gap-2 break-all font-medium text-heading">{cliente.email}
+          <div className="flex flex-wrap items-center gap-2 font-medium text-heading">
+            <CampoEnmascarado idCliente={id} campo="email" valor={cliente.email} etiqueta="el correo principal" />
             <Badge variant={cliente.emailVerificado ? 'default' : 'outline'}>{cliente.emailVerificado ? 'Verificado por el personal' : 'Sin verificar'}</Badge>
-          </p>
+          </div>
           {acciones && !cliente.emailVerificado && confirmacion?.tipo !== 'principal' &&
             <Button type="button" size="sm" variant="outline" className="mt-2" disabled={pendiente} onClick={() => pedir({ tipo: 'principal' })}
               aria-label={`Marcar como verificado el correo principal ${cliente.email}`}>Marcar como verificado</Button>}
@@ -99,6 +107,18 @@ export function CorreosCliente({ cliente, puedeGestionar }: Props) {
         {consulta.isPending && <p role="status" className="text-sm text-muted-foreground">Cargando correos…</p>}
         {consulta.isError && <ErrorClientes error={consulta.error} reintentar={() => void consulta.refetch()} />}
         {consulta.isSuccess && correos.length === 0 && <p className="text-sm text-muted-foreground">El cliente no tiene correos secundarios.</p>}
+        {consulta.isSuccess && correos.length > 0 && puedeVerSensible && revelacion.estado.fase === 'cerrado' &&
+          <Button type="button" size="sm" variant="outline" className="self-start" onClick={revelacion.abrir}
+            aria-label="Mostrar completos los correos secundarios">Mostrar valor completo</Button>}
+        <PanelRevelacion id={`revelar-secundarios-${id}`} etiqueta="los correos secundarios" control={revelacion} />
+        {secundariosCompletos && <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted p-3 text-sm">
+          <p className="font-semibold text-heading">Correos secundarios completos</p>
+          {secundariosCompletos.length ? <ul className="break-all">{secundariosCompletos.map((correo) => <li key={correo}>{correo}</li>)}</ul>
+            : <p className="text-muted-foreground">El cliente no tiene correos secundarios.</p>}
+          <AvisoOcultamiento />
+          <Button type="button" size="sm" variant="outline" className="self-start" onClick={revelacion.ocultar}
+            aria-label="Ocultar los correos secundarios">Ocultar</Button>
+        </div>}
         <ul className="flex flex-col gap-2">
           {correos.map((correo) => {
             const propia = confirmacion && confirmacion.tipo !== 'principal' && confirmacion.correo.idClienteEmail === correo.idClienteEmail ? confirmacion.tipo : null

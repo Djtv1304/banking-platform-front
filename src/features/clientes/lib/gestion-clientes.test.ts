@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { accesoGestionClientes, estadosPermitidos } from '@/features/clientes/lib/gestion-clientes'
+import { accesoDatosSensibles, accesoGestionClientes, estadosPermitidos } from '@/features/clientes/lib/gestion-clientes'
 import { leerDetalleHistorial } from '@/features/clientes/lib/historial'
+
+describe('E5-05: respaldo por rol de datos sensibles', () => {
+  it.each([
+    ['ASESOR', true, false], ['SUPERVISOR', true, true], ['ADMIN', true, true], ['CAJERO', false, false], ['AUDITOR', false, false],
+  ])('%s: verSensible=%s, exportar con org-exportar=%s', (rol, verSensible, exportar) => {
+    expect(accesoDatosSensibles([String(rol)], ['organizacionExportar'])).toEqual({ verSensible, exportar })
+  })
+  it('exportar exige además el permiso org-exportar', () => {
+    expect(accesoDatosSensibles(['SUPERVISOR'], []).exportar).toBe(false)
+  })
+})
 
 describe('C-04: consultar por rol, cambiar por permiso', () => {
   it.each([

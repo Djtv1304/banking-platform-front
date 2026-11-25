@@ -10,13 +10,20 @@ type Campo = keyof ClienteUpdate
 type Seccion = 'ordinarios' | 'sensibles'
 interface CampoTexto { campo: Campo; label: string; type?: string; min?: number; max?: number; requerido: boolean }
 
+/**
+ * E5-05 · Llegan enmascarados (`******4065`): empiezan vacíos con la máscara de placeholder y solo se
+ * envían si se escribe un valor nuevo (vacío = sin cambio).
+ */
+const ENMASCARADOS: Campo[] = ['identificacion', 'email', 'telefonoCelular', 'telefonoConvencional']
+const AYUDA_ENMASCARADO = 'Escribe el nuevo valor para cambiarlo'
+
 const estadosCiviles = ['Soltero', 'Casado', 'Divorciado', 'Viudo', 'Union Libre'] as const
 const tiposDocumento = [{ valor: 'C', label: 'Cédula' }, { valor: 'R', label: 'RUC' }, { valor: 'P', label: 'Pasaporte' }] as const
 /** Campos anulables: vacío se envía como null */
 const anulables: Campo[] = ['telefonoConvencional', 'nombreComercial']
 
 const contacto: CampoTexto[] = [
-  { campo: 'telefonoCelular', label: 'Celular', type: 'tel', min: 7, max: 15, requerido: true },
+  { campo: 'telefonoCelular', label: 'Celular', type: 'tel', min: 7, max: 15, requerido: false },
   { campo: 'telefonoConvencional', label: 'Teléfono convencional', type: 'tel', max: 15, requerido: false },
 ]
 const nombreComercial: CampoTexto = { campo: 'nombreComercial', label: 'Nombre comercial', max: 250, requerido: false }
@@ -27,9 +34,9 @@ const identidadJuridico: CampoTexto[] = [
   { campo: 'razonSocial', label: 'Razón social', max: 250, requerido: true },
 ]
 const identidadComun: CampoTexto[] = [
-  { campo: 'identificacion', label: 'Número de documento', min: 1, max: 13, requerido: true },
+  { campo: 'identificacion', label: 'Número de documento', min: 1, max: 13, requerido: false },
   { campo: 'fechaNacimiento', label: 'Fecha de nacimiento o constitución', type: 'date', requerido: true },
-  { campo: 'email', label: 'Correo electrónico principal', type: 'email', min: 5, max: 150, requerido: true },
+  { campo: 'email', label: 'Correo electrónico principal', type: 'email', min: 5, max: 150, requerido: false },
 ]
 const selector = `${fieldClassName} w-full border text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:scheme-dark`
 
@@ -47,7 +54,7 @@ export function EditarClienteForm({ cliente, guardar, ocupado, error }: {
   const [enviada, setEnviada] = useState<Seccion | null>(null)
   const natural = cliente.tipoCliente === 'Natural'
   const actividades = useActividadesEconomicas()
-  const original = (campo: Campo) => String(cliente[campo as keyof Cliente] ?? '')
+  const original = (campo: Campo) => ENMASCARADOS.includes(campo) ? '' : String(cliente[campo as keyof Cliente] ?? '')
   const valor = (campo: Campo) => borrador[campo] ?? original(campo)
   const cambiar = (campo: Campo, texto: string) => setBorrador((previo) => ({ ...previo, [campo]: texto }))
   const valorActividad = valor('idActividadEconomica')
@@ -87,9 +94,10 @@ export function EditarClienteForm({ cliente, guardar, ocupado, error }: {
   }
 
   const textos = (lista: CampoTexto[]) => lista.map((campo) => (
-    <Field key={campo.campo} id={`editar-${campo.campo}`} label={campo.label} optional={!campo.requerido}>
+    <Field key={campo.campo} id={`editar-${campo.campo}`} label={campo.label} optional={!campo.requerido && !ENMASCARADOS.includes(campo.campo)}>
       <Input id={`editar-${campo.campo}`} className={fieldClassName} type={campo.type ?? 'text'}
         minLength={campo.min} maxLength={campo.max} required={campo.requerido} value={valor(campo.campo)}
+        placeholder={ENMASCARADOS.includes(campo.campo) ? placeholderEnmascarado(cliente[campo.campo as keyof Cliente]) : undefined}
         pattern={campo.requerido && !campo.type ? '.*\\S.*' : undefined}
         onChange={(event) => cambiar(campo.campo, event.target.value)} />
     </Field>
@@ -142,6 +150,10 @@ export function EditarClienteForm({ cliente, guardar, ocupado, error }: {
       </SeccionEdicion>
     </div>
   )
+}
+
+function placeholderEnmascarado(actual: unknown) {
+  return typeof actual === 'string' && actual ? `${actual} · ${AYUDA_ENMASCARADO}` : AYUDA_ENMASCARADO
 }
 
 function SeccionEdicion({ titulo, etiqueta, descripcion, ocupado, hayCambios, error, boton, onSubmit, children }: {

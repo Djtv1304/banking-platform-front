@@ -9,13 +9,13 @@ describe('búsqueda automática de clientes', () => {
   it('espera una pausa y aplica solamente el último texto escrito', () => {
     const aplicar = vi.fn()
     const busqueda = crearBusquedaProgramada(aplicar)
-    for (const q of ['M', 'Ma', 'María']) {
-      busqueda.programar({ ...FILTROS_INICIALES, q })
+    for (const nombre of ['M', 'Ma', 'María']) {
+      busqueda.programar({ ...FILTROS_INICIALES, nombre })
       vi.advanceTimersByTime(100)
     }
     expect(aplicar).not.toHaveBeenCalled()
     vi.advanceTimersByTime(ESPERA_BUSQUEDA_MS)
-    expect(aplicar).toHaveBeenCalledExactlyOnceWith({ ...FILTROS_INICIALES, q: 'María' })
+    expect(aplicar).toHaveBeenCalledExactlyOnceWith({ ...FILTROS_INICIALES, nombre: 'María' })
   })
 
   it('Buscar o Enter ejecuta sin esperar y no repite la consulta después', () => {
@@ -32,16 +32,16 @@ describe('búsqueda automática de clientes', () => {
   it('aplica un filtro inmediatamente junto al texto pendiente sin restaurar valores antiguos', () => {
     const aplicar = vi.fn()
     const busqueda = crearBusquedaProgramada(aplicar)
-    busqueda.programar({ ...FILTROS_INICIALES, q: 'Carlos' })
-    busqueda.aplicarAhora({ ...FILTROS_INICIALES, q: 'Carlos', estado: 'Activo' })
+    busqueda.programar({ ...FILTROS_INICIALES, nombre: 'Carlos' })
+    busqueda.aplicarAhora({ ...FILTROS_INICIALES, nombre: 'Carlos', estado: 'Activo' })
     vi.runAllTimers()
-    expect(aplicar).toHaveBeenCalledExactlyOnceWith({ ...FILTROS_INICIALES, q: 'Carlos', estado: 'Activo' })
+    expect(aplicar).toHaveBeenCalledExactlyOnceWith({ ...FILTROS_INICIALES, nombre: 'Carlos', estado: 'Activo' })
   })
 
   it('Limpiar cancela el texto pendiente y mantiene los filtros vacíos', () => {
     const aplicar = vi.fn()
     const busqueda = crearBusquedaProgramada(aplicar)
-    busqueda.programar({ ...FILTROS_INICIALES, q: 'Anterior' })
+    busqueda.programar({ ...FILTROS_INICIALES, nombre: 'Anterior' })
     busqueda.aplicarAhora(FILTROS_INICIALES)
     vi.runAllTimers()
     expect(aplicar).toHaveBeenCalledExactlyOnceWith(FILTROS_INICIALES)
@@ -50,7 +50,7 @@ describe('búsqueda automática de clientes', () => {
   it('salir de la pantalla o iniciar composición cancela la consulta pendiente', () => {
     const aplicar = vi.fn()
     const busqueda = crearBusquedaProgramada(aplicar)
-    busqueda.programar({ ...FILTROS_INICIALES, q: 'Texto' })
+    busqueda.programar({ ...FILTROS_INICIALES, nombre: 'Texto' })
     busqueda.cancelar()
     vi.runAllTimers()
     expect(aplicar).not.toHaveBeenCalled()
