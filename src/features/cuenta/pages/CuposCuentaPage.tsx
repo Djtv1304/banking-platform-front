@@ -4,6 +4,7 @@ import { ArrowLeft, History, Pencil } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { Button } from '@/shared/ui'
+import { useAuthStore } from '@/features/auth'
 import { useCanales } from '@/features/catalogos'
 import type { CupoEfectivo } from '@/features/cuenta/api/cupos.contract'
 import { Aviso, Cargando } from '@/features/cuenta/components/Aviso'
@@ -21,9 +22,14 @@ export function CuposCuentaPage() {
   // Un id no numérico o ≤ 0 no llega a la API: se trata igual que una cuenta inexistente
   const idCuenta = leerIdCuenta(param)
   const permisos = usePermisosCupos()
+  const usuario = useAuthStore(state => state.user)
   const cupos = useCupos(permisos.ver ? idCuenta : null)
   // Solo para mostrar el número de la cuenta; si falla, la página sigue sin él
   const cuenta = useCuenta(permisos.ver ? idCuenta : null)
+  const alcanceDirecto = usuario?.roles.some(rol => rol === 'ADMIN' || rol === 'SUPERVISOR')
+  const puedeEditar = permisos.editar && (
+    alcanceDirecto || (!!usuario?.idAgencia && usuario.idAgencia === cuenta.data?.idAgencia)
+  )
   const { data: canales } = useCanales()
   // CAT-08 lista solo los canales activos; uno inactivo con cupo se muestra por su id
   const nombreCanal = (idCanal: number) =>
@@ -69,9 +75,9 @@ export function CuposCuentaPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {cupos.data.map((cupo) => (
           <TarjetaCupo key={cupo.idCanal} cupo={cupo} nombreCanal={nombreCanal(cupo.idCanal)}>
-            {(permisos.editar || permisos.historial) && (
+            {(puedeEditar || permisos.historial) && (
               <>
-                {permisos.editar && (
+                {puedeEditar && (
                   <Button variant="outline" size="lg" onClick={() => editar(cupo)} className="rounded-lg px-3">
                     <Pencil />
                     Editar cupo
@@ -120,7 +126,7 @@ export function CuposCuentaPage() {
         <>
           <EditarCupoDialog
             idCuenta={idCuenta}
-            cupo={editando}
+            cupo={puedeEditar ? editando : null}
             nombreCanal={editando ? nombreCanal(editando.idCanal) : ''}
             onCerrar={() => setEditando(null)}
             onGuardado={alGuardar}

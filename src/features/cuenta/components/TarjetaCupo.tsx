@@ -51,6 +51,18 @@ export function TarjetaCupo({ cupo, nombreCanal, children }: TarjetaCupoProps) {
         <Dato label="Vigencia">{textoVigencia(cupo.fechaVigencia)}</Dato>
       </dl>
 
+      {cupo.topeDiarioProducto != null && cupo.topeMensualProducto != null && cupo.topeTransaccionProducto != null && (
+        <section aria-label="Techo vigente del producto" className="rounded-xl bg-field p-3">
+          <h3 className="text-sm font-semibold text-heading">Techo vigente del producto</h3>
+          <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+            <Dato label="Diario">{formatearMonto(cupo.topeDiarioProducto)}</Dato>
+            <Dato label="Mensual">{formatearMonto(cupo.topeMensualProducto)}</Dato>
+            <Dato label="Por transacción">{formatearMonto(cupo.topeTransaccionProducto)}</Dato>
+            <Dato label="Transacciones por día">{cupo.topeFrecuenciaProducto}</Dato>
+          </dl>
+        </section>
+      )}
+
       {children && <div className="flex flex-wrap gap-2 border-t border-border pt-4">{children}</div>}
     </article>
   )

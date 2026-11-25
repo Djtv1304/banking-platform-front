@@ -78,11 +78,11 @@ describe('mensajeErrorCupos', () => {
     expect(mensajeErrorCupos(error, 'historial')).toBe('No tienes permiso para ver el historial de cupos.')
   })
 
-  it('traduce los códigos de negocio de CTA-07/08/09', () => {
+  it.each(['CUPO_SOBRE_TOPE', 'CUPO_SUPERA_MAXIMO_PRODUCTO'])('traduce los errores de cupo con %s', (codigo) => {
     expect(mensajeErrorCupos(new ApiError('x', 404, 'CUENTA_NO_ENCONTRADA'), 'ver')).toBe(
       'No existe una cuenta con ese ID.',
     )
-    expect(mensajeErrorCupos(new ApiError('x', 422, 'CUPO_SUPERA_MAXIMO_PRODUCTO'), 'editar')).toBe(
+    expect(mensajeErrorCupos(new ApiError('x', 422, codigo), 'editar')).toBe(
       'Un monto o el máximo de transacciones supera el cupo del producto en este canal.',
     )
   })
@@ -100,6 +100,8 @@ describe('cupoFormSchema', () => {
     montoMaxTransaccion: '200,25',
     maxTransaccionesDia: '10',
     fechaVigencia: '',
+    solicitadoPorCliente: true,
+    documentoVerificado: 'C',
   }
 
   const errores = (cambios: Partial<CupoFormInput>) => {
@@ -114,6 +116,8 @@ describe('cupoFormSchema', () => {
       montoMaxTransaccion: 200.25,
       maxTransaccionesDia: 10,
       fechaVigencia: null,
+      solicitadoPorCliente: true,
+      documentoVerificado: 'C',
     })
     expect(cupoFormSchema.parse({ ...valido, fechaVigencia: '2026-12-31' }).fechaVigencia).toBe('2026-12-31')
   })
@@ -161,6 +165,8 @@ describe('cupoFormSchema', () => {
       montoMaxTransaccion: '500.5',
       maxTransaccionesDia: '20',
       fechaVigencia: '',
+      solicitadoPorCliente: false,
+      documentoVerificado: '',
     })
   })
 })

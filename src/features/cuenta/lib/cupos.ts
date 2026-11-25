@@ -58,6 +58,7 @@ const MENSAJES: Record<string, string> = {
   CANAL_NO_ENCONTRADO: 'El canal ya no existe.',
   CUPO_PRODUCTO_NO_CONFIGURADO: 'El producto de la cuenta no tiene cupo en este canal: no se puede personalizar.',
   CUPO_SUPERA_MAXIMO_PRODUCTO: 'Un monto o el máximo de transacciones supera el cupo del producto en este canal.',
+  CUPO_SOBRE_TOPE: 'Un monto o el máximo de transacciones supera el cupo del producto en este canal.',
   CUPOS_INCONSISTENTES: 'El máximo por transacción debe ser menor o igual al cupo diario, y este al mensual.',
   DATOS_INVALIDOS: 'Revisa los datos del cupo: hay valores que no son válidos.',
 }
@@ -77,6 +78,12 @@ export function mensajeErrorCupos(error: ApiError, accion: AccionCupos) {
 const MONTO_REGEX = /^\d{1,16}([.,]\d{1,2})?$/
 const FECHA_REGEX = /^\d{4}-\d{2}-\d{2}$/
 export const MAX_TRANSACCIONES_DIA = 32_767
+
+export const DOCUMENTOS_CUPO = {
+  C: 'Cédula',
+  R: 'RUC',
+  P: 'Pasaporte',
+} as const
 
 /**
  * `abort`: el primer error del campo detiene sus demás reglas y también la coherencia entre
@@ -111,6 +118,11 @@ export const cupoFormSchema = z
       .string()
       .refine((valor) => valor === '' || FECHA_REGEX.test(valor), corta('Ingresa una fecha válida.'))
       .transform((valor) => valor || null),
+    solicitadoPorCliente: z.boolean()
+      .refine((valor) => valor, 'Confirma el pedido del cliente.')
+      .transform(() => true as const),
+    documentoVerificado: z.enum(['', 'C', 'R', 'P'])
+      .pipe(z.enum(['C', 'R', 'P'], { error: 'Selecciona el documento verificado.' })),
   })
   // Misma coherencia que exige el backend (422 CUPOS_INCONSISTENTES): máx. por transacción ≤ diario ≤ mensual
   .superRefine((valor, ctx) => {
@@ -133,4 +145,6 @@ export const valoresCupo = (cupo: CupoEfectivo): CupoFormInput => ({
   montoMaxTransaccion: String(cupo.montoMaxTransaccion),
   maxTransaccionesDia: String(cupo.maxTransaccionesDia),
   fechaVigencia: cupo.fechaVigencia ?? '',
+  solicitadoPorCliente: false,
+  documentoVerificado: '',
 })

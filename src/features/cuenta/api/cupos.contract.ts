@@ -32,6 +32,10 @@ export const cupoEfectivoSchema = z.object({
   fechaVigencia: z.string().nullable(),
   consumidoHoy: z.number(),
   consumidoMes: z.number(),
+  topeDiarioProducto: z.number().nullish(),
+  topeMensualProducto: z.number().nullish(),
+  topeTransaccionProducto: z.number().nullish(),
+  topeFrecuenciaProducto: z.number().nullish(),
 })
 
 /** CTA-09 · Los importes son null cuando no había valor (p. ej. «anterior» al crear el personalizado) */
@@ -47,6 +51,8 @@ export const cupoHistorialSchema = z.object({
   modificadoPor: z.number(),
   /** ISO con zona (-05:00) */
   fechaModificacion: z.string(),
+  solicitadoPorCliente: z.boolean().nullish(),
+  documentoVerificado: z.enum(['C', 'R', 'P']).nullish(),
 })
 
 /** Body de CTA-08 (`extra="forbid"`: ni un campo más). `maxTransaccionesDia` es entero estricto */
@@ -56,6 +62,8 @@ export interface CupoUpdate {
   montoMaxTransaccion: number
   maxTransaccionesDia: number
   fechaVigencia: string | null
+  solicitadoPorCliente: true
+  documentoVerificado: 'C' | 'R' | 'P'
 }
 
 export type CupoEfectivo = z.infer<typeof cupoEfectivoSchema>

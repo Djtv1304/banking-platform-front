@@ -13,7 +13,7 @@ describe('accionesPermitidas', () => {
   it('las demás escrituras dependen del rol, igual que require_roles en el backend', () => {
     const asesor = accionesPermitidas([' asesor '], [])
     expect(hasPermission(asesor, PERMISOS.clientesEditar)).toBe(true)
-    expect(hasPermission(asesor, PERMISOS.cuentasCupos)).toBe(false)
+    expect(hasPermission(asesor, PERMISOS.cuentasCupos)).toBe(true)
     expect(hasPermission(accionesPermitidas(['CONTADOR'], []), PERMISOS.contabilidadEditar)).toBe(true)
   })
 
