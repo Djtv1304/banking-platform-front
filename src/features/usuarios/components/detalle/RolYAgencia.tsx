@@ -27,7 +27,7 @@ export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps)
   const { data: agencias } = useAgencias()
   const agencia = agencias.find((item) => item.idAgencia === usuario.idAgencia)
   const roles = usuario.roles ?? (usuario.rol ? [usuario.rol] : [])
-  const rolAgencia = roles.includes('CAJERO') ? 'CAJERO' : roles.includes('ASESOR') ? 'ASESOR' : usuario.rol
+  const esCajero = roles.includes('CAJERO')
 
   const guardado = (mensaje: string) => {
     setDialogo(null)
@@ -60,14 +60,14 @@ export function RolYAgencia({ usuario, esPropio, onGuardado }: RolYAgenciaProps)
               : 'Donde registra sus operaciones.'
           }
           accion={puedeEditar && !esPropio &&
-            <Button variant="outline" size="lg" disabled={!!recuperacion || rolAgencia !== 'CAJERO'} onClick={() => setDialogo('agencia')} className="rounded-lg px-3">
+            <Button variant="outline" size="lg" disabled={!!recuperacion || !esCajero} onClick={() => setDialogo('agencia')} className="rounded-lg px-3">
               {usuario.idAgencia ? 'Cambiar' : 'Asignar'}
             </Button>
           }
         />
       </ul>
 
-      <AgenciasUsuarioPanel idUsuario={usuario.idUsuario} rol={rolAgencia} esPropio={esPropio} onGuardado={onGuardado} />
+      <AgenciasUsuarioPanel idUsuario={usuario.idUsuario} roles={roles} esPropio={esPropio} onGuardado={onGuardado} />
       <CambiarRolDialog
         usuario={usuario}
         open={puedeEditar && !esPropio && dialogo === 'rol'}

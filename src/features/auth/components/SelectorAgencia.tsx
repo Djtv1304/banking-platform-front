@@ -39,12 +39,18 @@ export function SelectorAgencia() {
   const data = contexto.data
   if (!data) return null
   const actual = data.agenciasPermitidas.find((a) => a.idAgencia === data.idAgencia)
-  if (data.alcanceGlobal || (data.accesoTodasAgencias && data.agenciasPermitidas.length > 1)) return <span className="text-xs">Acceso a todas las agencias</span>
-  if (data.agenciasPermitidas.length <= 1 && actual) return <span className="text-xs">Agencia operativa: {actual.codigo}</span>
+  const accesoTotal = data.alcanceGlobal || (data.accesoTodasAgencias && data.agenciasPermitidas.length > 1)
+  const mostrarSelector = data.agenciasPermitidas.length > 1 || (!actual && data.agenciasPermitidas.length === 1)
   return <div className="flex flex-wrap items-center gap-2 text-xs">
-    <span>Agencia operativa: {data.alcanceGlobal ? 'Global' : actual?.codigo ?? 'Seleccion requerida'}</span>
-    <select aria-label="Seleccionar agencia operativa" className="max-w-48 rounded-lg border border-border bg-card p-2" value={elegida ?? data.idAgencia ?? ''} disabled={cambio.isPending} onChange={(e) => setElegida(e.target.value)}><option value="" disabled>Elige una agencia</option>{data.agenciasPermitidas.map((a) => <option key={a.idAgencia} value={a.idAgencia}>{a.idAgencia} - {a.codigo}</option>)}</select>
-    <Button size="sm" disabled={!elegida || elegida === data.idAgencia || cambio.isPending} onClick={() => { if (elegida) cambio.mutate(elegida) }}>{cambio.isPending ? 'Cambiando...' : 'Cambiar'}</Button>
+    {accesoTotal && <span>Acceso a todas las agencias</span>}
+    <span>Agencia operativa: {actual?.codigo ?? 'Selección requerida'}</span>
+    {mostrarSelector && <>
+      <select aria-label="Seleccionar agencia operativa" className="max-w-48 rounded-lg border border-border bg-card p-2" value={elegida ?? data.idAgencia ?? ''} disabled={cambio.isPending} onChange={(e) => setElegida(e.target.value)}>
+        <option value="" disabled>Elige una agencia</option>
+        {data.agenciasPermitidas.map((a) => <option key={a.idAgencia} value={a.idAgencia}>{a.idAgencia} - {a.codigo}</option>)}
+      </select>
+      <Button size="sm" disabled={!elegida || elegida === data.idAgencia || cambio.isPending} onClick={() => { if (elegida) cambio.mutate(elegida) }}>{cambio.isPending ? 'Cambiando...' : 'Cambiar'}</Button>
+    </>}
     {data.agenciasPermitidas.length === 0 && <span role="alert">No hay agencias operativas autorizadas.</span>}
     {cambio.isError && <span role="alert" className="text-destructive">{toApiError(cambio.error).message}</span>}
   </div>
