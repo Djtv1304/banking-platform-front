@@ -12,6 +12,7 @@ import { agregarAutorizado, anularApertura, consultarAutorizados, consultarEvent
 import type { Cuenta } from '@/features/cuenta/api/cuentas.contract'
 import { Aviso, Cargando } from '@/features/cuenta/components/Aviso'
 import { CambiarEstadoCuenta } from '@/features/cuenta/components/CambiarEstadoCuenta'
+import { CambioSubproductoDialog } from '@/features/cuenta/components/CambioSubproductoDialog'
 import { EstadoCuentaBadge } from '@/features/cuenta/components/EstadoCuentaBadge'
 import { useCuenta, useNombresCuenta, useSaldoCuenta } from '@/features/cuenta/hooks/useCuentas'
 import { usePermisosCupos } from '@/features/cuenta/hooks/useCupos'
@@ -90,6 +91,7 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
   const accionEstado = (supervisor || cumplimiento) && cuenta.estado === 'ACTIVA' ? 'bloquear'
     : supervisor && cuenta.estado === 'BLOQUEADA' ? 'desbloquear'
     : asesor && cuenta.estado === 'INACTIVA' ? 'reactivar' : null
+  const puedeCambiar = usePuedeFuncion('cuentas.subproducto', !!usuario?.roles?.includes('ASESOR'))
 
   return (
     <>
@@ -103,6 +105,9 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
         </div>
         <div className="flex flex-wrap gap-3">
           {mismaAgencia && puedeCambiarEstado && accionEstado && <CambiarEstadoCuenta key={`${cuenta.idCuenta}-${accionEstado}`} cuenta={cuenta.idCuenta} accion={accionEstado} />}
+          {puedeCambiar && mismaAgencia && !['PendienteDeposito', 'Anulada', 'CERRADA'].includes(cuenta.estado) && (
+            <CambioSubproductoDialog key={cuenta.idCuenta} idCuenta={cuenta.idCuenta} />
+          )}
           {cupos.ver && (
             <Button asChild variant="outline" size="lg" className="rounded-lg px-3">
               <Link to={`/cuentas/${cuenta.idCuenta}/cupos`}>
@@ -239,7 +244,9 @@ function HistorialCuenta({ idCuenta }: { idCuenta: number }) {
           <ul className="space-y-4">
             {eventos.data.map(evento => (
               <li key={evento.idCuentaEvento}>
-                <p className="font-medium">{evento.tipoEvento} · {evento.estadoActual}</p>
+                <p className="font-medium">
+                  {evento.tipoEvento === 'CambioSubproducto' ? 'Cambio de subproducto' : evento.tipoEvento} · {evento.estadoActual}
+                </p>
                 <time dateTime={evento.fechaEvento}>{formatearFechaConsulta(evento.fechaEvento)}</time>
                 <p>{evento.detalle}</p>
               </li>
