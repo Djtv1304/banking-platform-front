@@ -7,11 +7,12 @@ const python = process.env.BANKING_BACKEND_PYTHON ?? path.join(backendRoot, proc
 
 const simulado = process.env.E010_SIMULADO === '1'
 const usuariosSimulados = process.env.E104_SIMULADO === '1'
-const baseURL = usuariosSimulados ? 'http://127.0.0.1:5176' : simulado ? 'http://127.0.0.1:5175' : 'http://127.0.0.1:5174'
+const reglasSimuladas = process.env.E403_SIMULADO === '1'
+const baseURL = reglasSimuladas ? 'http://127.0.0.1:5177' : usuariosSimulados ? 'http://127.0.0.1:5176' : simulado ? 'http://127.0.0.1:5175' : 'http://127.0.0.1:5174'
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: usuariosSimulados ? '**/usuarios.spec.ts' : simulado ? '**/agencias.spec.ts' : '**/*.spec.ts',
+  testMatch: reglasSimuladas ? '**/plantillas-contables.spec.ts' : usuariosSimulados ? '**/usuarios.spec.ts' : simulado ? '**/agencias.spec.ts' : '**/*.spec.ts',
   testIgnore: usuariosSimulados || simulado ? [] : ['**/agencias.spec.ts', '**/usuarios.spec.ts'],
   fullyParallel: false,
   workers: 1,
@@ -21,7 +22,12 @@ export default defineConfig({
     baseURL, channel: 'chrome', headless: true, trace: 'retain-on-failure',
     launchOptions: process.env.E104_VISUAL === '1' ? { slowMo: 1_000 } : undefined,
   },
-  webServer: usuariosSimulados ? {
+  webServer: reglasSimuladas ? {
+    command: 'npm run dev -- --host 127.0.0.1 --port 5177 --strictPort',
+    url: baseURL,
+    reuseExistingServer: false,
+    timeout: 30000,
+  } : usuariosSimulados ? {
     command: 'npm run dev -- --host 127.0.0.1 --port 5176 --strictPort',
     url: baseURL,
     reuseExistingServer: false,

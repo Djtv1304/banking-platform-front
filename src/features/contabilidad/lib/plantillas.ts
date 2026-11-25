@@ -1,7 +1,5 @@
 import { ApiError, toApiError } from '@/shared/api'
-import type { LineaPlantilla, ResumenPlantilla } from '@/features/contabilidad/api/plantillas.api'
-
-export const origenesPlantilla = ['CAJA', 'ATM', 'BOVEDA', 'CUENTAS', 'CREDITO', 'TARJETA', 'TRANSACCIONES', 'NOMINA', 'MANUAL', 'CIERRE', 'AJUSTE']
+import type { LineaPlantilla } from '@/features/contabilidad/api/plantillas.api'
 
 const etiquetas: Record<string, string> = {
   DEBITO: 'Débito', CREDITO: 'Crédito', INTERES: 'Interés', COMISION: 'Comisión',
@@ -12,14 +10,6 @@ export const etiquetaPlantilla = (valor: string) =>
   Object.hasOwn(etiquetas, valor) ? etiquetas[valor] : valor.charAt(0) + valor.slice(1).toLowerCase()
 
 export const claseSelectorPlantilla = 'block min-h-9 w-full rounded-lg border border-input bg-field px-3 text-sm focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50'
-
-export function estadoPlantilla(plantilla: ResumenPlantilla, fecha?: string) {
-  if (!plantilla.Estado) return 'Inactiva'
-  if (!fecha) return 'Activa'
-  if (plantilla.VigenciaDesde > fecha) return 'Programada'
-  if (plantilla.VigenciaHasta && plantilla.VigenciaHasta < fecha) return 'Histórica'
-  return 'Vigente'
-}
 
 const campos: Record<string, string> = {
   q: 'Búsqueda', codigo: 'Código', codigoPlantilla: 'Código', idTipoAsiento: 'Tipo de asiento',

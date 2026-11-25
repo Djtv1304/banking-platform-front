@@ -79,13 +79,16 @@ describe('versiones de plantillas contables', () => {
     await expect(consultarSolicitudPlantilla(1)).resolves.toBeNull()
   })
 
-  it('solo ofrece auxiliares activos e imputables de ocho dígitos', async () => {
+  it('ofrece cuentas hoja activas e imputables, incluidas las de seis dígitos', async () => {
     const cuenta = { idCuentaContable: 42, codigoCuenta: '11010101', nombreCuenta: 'Caja auxiliar',
       estado: 'Activo', esImputable: true, idCuentaSuperior: 11, saldo: 0, naturaleza: 'DEUDORA' }
     vi.mocked(apiClient.get).mockResolvedValueOnce({ data: [
-      cuenta, { ...cuenta, estado: 'Inactivo' }, { ...cuenta, codigoCuenta: '110101' }, { ...cuenta, esImputable: false },
+      cuenta, { ...cuenta, idCuentaContable: 11, codigoCuenta: '110101' },
+      { ...cuenta, idCuentaContable: 43, estado: 'Inactivo' },
+      { ...cuenta, idCuentaContable: 44, esImputable: false },
+      { ...cuenta, idCuentaContable: 45, codigoCuenta: '299005' },
     ] })
-    await expect(consultarAuxiliares()).resolves.toEqual([cuenta])
-    expect(apiClient.get).toHaveBeenLastCalledWith('/api/v1/contabilidad/cuentas-contables', { params: { imputable: true }, signal: undefined })
+    await expect(consultarAuxiliares()).resolves.toEqual([cuenta, { ...cuenta, idCuentaContable: 45, codigoCuenta: '299005' }])
+    expect(apiClient.get).toHaveBeenLastCalledWith('/api/v1/contabilidad/cuentas-contables', { signal: undefined })
   })
 })

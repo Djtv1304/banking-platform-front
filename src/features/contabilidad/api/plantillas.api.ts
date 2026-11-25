@@ -47,8 +47,8 @@ export type ResumenPlantilla = z.infer<typeof plantilla>
 export type PlantillaDetallada = z.infer<typeof detalle>
 
 const catalogos = z.object({
-  tiposAsiento: z.array(z.object({ IdTipoAsiento: id, Nombre: z.string() })),
-  conceptosContables: z.array(z.object({ IdConceptoContable: id, ConceptoDetalle: z.string().nullable() })),
+  tiposAsiento: z.array(z.object({ IdTipoAsiento: id, Nombre: z.string(), Codigo: z.string().optional() })),
+  conceptosContables: z.array(z.object({ IdConceptoContable: id, ConceptoDetalle: z.string().nullable(), CodigoConcepto: z.string().optional() })),
 })
 const resumenSolicitud = solicitudSchema.pick({
   idSolicitud: true, estado: true, puedeAprobar: true, puedeRechazar: true, puedeCancelar: true,
@@ -64,9 +64,10 @@ export async function consultarCatalogosPlantillas(signal?: AbortSignal) {
 }
 
 export async function consultarAuxiliares(signal?: AbortSignal) {
-  const { data } = await apiClient.get(CONTABILIDAD_ENDPOINTS.cuentas, { params: { imputable: true }, signal })
-  return cuentaContableSchema.array().parse(data)
-    .filter((cuenta) => cuenta.estado === 'Activo' && cuenta.esImputable && /^\d{8}$/.test(cuenta.codigoCuenta))
+  const { data } = await apiClient.get(CONTABILIDAD_ENDPOINTS.cuentas, { signal })
+  const cuentas = cuentaContableSchema.array().parse(data)
+  const superiores = new Set(cuentas.map(cuenta => cuenta.idCuentaSuperior))
+  return cuentas.filter(cuenta => cuenta.estado === 'Activo' && cuenta.esImputable && !superiores.has(cuenta.idCuentaContable))
 }
 
 export async function consultarSolicitudPlantilla(idPlantilla: number, signal?: AbortSignal) {
