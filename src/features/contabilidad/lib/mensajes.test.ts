@@ -9,6 +9,8 @@ describe('mensajeErrorPlanCuentas', () => {
       new ApiError('Not Implemented', 501, 'HTTP_501'),
       new ApiError('Not Found', 404, 'HTTP_404'),
       new ApiError('Method Not Allowed', 405, 'http_405'),
+      new ApiError('La funcion no esta disponible.', 404, 'FUNCION_NO_DISPONIBLE'),
+      new ApiError('Operación no habilitada', 501, 'OPERACION_NO_HABILITADA'),
     ]) {
       expect(esNoDisponible(error)).toBe(true)
       expect(mensajeErrorPlanCuentas(error, 'mantenimiento')).toBe(MENSAJE_NO_DISPONIBLE)
@@ -25,7 +27,16 @@ describe('mensajeErrorPlanCuentas', () => {
     expect(mensajeErrorPlanCuentas(new ApiError('x', 409, 'CUENTA_EN_USO'), 'mantenimiento')).toMatch(/movimientos/)
     expect(mensajeErrorPlanCuentas(new ApiError('x', 409, 'CUENTA_CON_SALDO'), 'mantenimiento')).toMatch(/saldo/)
     expect(mensajeErrorPlanCuentas(new ApiError('x', 403, 'PERMISO_DENEGADO'), 'consulta')).toMatch(/no tiene acceso/)
-    expect(mensajeErrorPlanCuentas(new ApiError('x', 403, 'PERMISO_DENEGADO'), 'mantenimiento')).toMatch(/contador/)
+    expect(mensajeErrorPlanCuentas(new ApiError('x', 403, 'PERMISO_DENEGADO'), 'mantenimiento')).toBe(
+      'Solo un contador puede cambiar el plan de cuentas.',
+    )
+  })
+
+  it('usa los códigos reales del backend para la cuenta inexistente y la del regulador', () => {
+    expect(mensajeErrorPlanCuentas(new ApiError('La cuenta no existe.', 404, 'CUENTA_NO_ENCONTRADA'), 'mantenimiento')).toBe(
+      'La cuenta ya no existe. Recarga el plan de cuentas.',
+    )
+    expect(mensajeErrorPlanCuentas(new ApiError('x', 409, 'CUENTA_DEL_REGULADOR'), 'mantenimiento')).toMatch(/regulador/)
   })
 
   it('explica las reglas del alta de subcuentas por code', () => {

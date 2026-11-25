@@ -6,8 +6,8 @@ import { z } from 'zod'
  * - CON-04 GET /contabilidad/asientos?fecha&origen&idAgencia&estado&page&pageSize&sort
  * - CON-05 GET /contabilidad/asientos/{idAsiento}
  *
- * Roles: CONTADOR, AUDITOR y ADMIN. Todavía no están desplegados (PR #392 del backend): mientras
- * no lo estén, el servidor responde 404/405/501 y la SPA lo muestra como «todavía no disponible».
+ * Roles: CONTADOR, AUDITOR y ADMIN. Están en develop del backend; si un entorno aún no los tiene,
+ * el servidor responde 404/405/501 y la SPA lo muestra como «todavía no disponible».
  * El dinero es `Money`: llega como número JSON. En CON-04 `detalle` va vacío; las líneas salen de
  * CON-05. `origen` y `estado` son texto libre en el backend (pueden aparecer valores nuevos), por
  * eso el esquema acepta cualquier texto y las listas de abajo solo alimentan los filtros.
