@@ -44,6 +44,8 @@ export const cuentaSchema = z.object({
   idAgencia: z.string(),
   tipoCuenta: z.enum(['Ahorro', 'Corriente']),
   estado: estadoCuentaSchema,
+  nombreTitular: z.string().nullish(),
+  motivoEstado: z.string().nullish(),
 })
 
 /** CTA-04 · El disponible lo calcula el backend (saldo − retenido); `fechaConsulta` es ISO en UTC */
