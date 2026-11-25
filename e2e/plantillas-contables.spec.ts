@@ -19,7 +19,7 @@ const inventario = [resumen, anterior].map(p => ({
 }))
 const boveda = {
   idRegla: 'boveda-001-i', fuente: 'PLANTILLA_BOVEDA', versionada: false, configurada: true,
-  Origen: 'BOVEDA', CodigoTipoAsiento: null, desde: 'CAJA', hacia: 'BOVEDA', consumidor: null, integracion: 'PENDIENTE',
+  Origen: 'BOVEDA', CodigoTipoAsiento: 'T10', desde: 'CAJA', hacia: 'BOVEDA', consumidor: null, integracion: 'PENDIENTE',
   IdAgencia: '001', TipoMovimiento: 'Traslado', Naturaleza: 'I', EstadoTipo: 'I', EsManual: null,
   Debe: '11010101', Haber: null, Habilitada: false, Version: null, vigente: null,
 }
@@ -82,7 +82,7 @@ async function simular(page: Page, opciones: { editar?: boolean; aprobador?: boo
           ...(agencia !== '002' ? [{
             ...inventario[0], idRegla: 'plantilla:4', IdPlantillaAsiento: 4, IdAgencia: '001',
             CodigoPlantilla: 'BOV_001_TRASLADO_I', Nombre: 'Recepción versionada', Version: 1,
-            Origen: 'BOVEDA', desde: 'EFECTIVO_EN_TRANSITO', hacia: 'BOVEDA',
+            Origen: 'BOVEDA', CodigoTipoAsiento: 'T2', desde: 'EFECTIVO_EN_TRANSITO', hacia: 'BOVEDA',
             vigente: fechaContable === null ? null : fechaContable >= '2026-11-01',
             Prioridad: fechaContable !== null && fechaContable >= '2026-11-01' ? 1 : null,
           }] : []),
@@ -176,6 +176,33 @@ test('avisa si el catálogo aún no está desplegado y permite reintentar', asyn
   expect(estado.rutasPlantillas).toEqual([])
   await page.getByRole('button', { name: 'Reintentar' }).click()
   await expect(page.getByRole('region', { name: 'Resultados de plantillas' })).toBeVisible()
+})
+
+test('ordena los filtros y permite recorrer el listado horizontal con el teclado', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await simular(page)
+  await expect(page.getByLabel('Módulo contable').getByRole('option')).toHaveText(['Todos', 'Bóveda', 'Caja'])
+  await expect(page.getByLabel('Tipo de asiento').getByRole('option')).toHaveText(['Todos', 'Depósito', 'T2', 'T10'])
+
+  const listado = page.getByRole('region', { name: 'Resultados de plantillas' })
+  const posicion = () => listado.evaluate(elemento => elemento.scrollLeft)
+  await page.getByRole('button', { name: 'Buscar', exact: true }).focus()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: 'Desplazar tabla a la izquierda' })).toBeFocused()
+  await page.keyboard.press('Tab')
+  const derecha = page.getByRole('button', { name: 'Desplazar tabla a la derecha' })
+  await expect(derecha).toBeFocused()
+  await expect(derecha).toBeInViewport()
+  await page.keyboard.press('Enter')
+  await expect.poll(posicion).toBeGreaterThan(0)
+  await page.keyboard.press('Shift+Tab')
+  await page.keyboard.press('Space')
+  await expect.poll(posicion).toBe(0)
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: 'Ver Depósito de caja, versión 2' })).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { name: 'Depósito de caja' })).toBeFocused()
 })
 
 test('muestra Bóveda junto a las versiones y consulta sus cuentas sin acciones E4-03', async ({ page }) => {

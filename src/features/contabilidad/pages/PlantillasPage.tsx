@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
 
@@ -17,6 +17,7 @@ import { Aviso, Badge, Button, Cargando, Input } from '@/shared/ui'
 const clave = ['contabilidad', 'plantillas'] as const
 const claseTabla = 'w-full text-left text-sm [&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3 [&_th]:py-2.5'
 const claseFila = 'border-t border-border'
+const compararEtiquetas = new Intl.Collator('es', { numeric: true }).compare
 type Catalogos = Awaited<ReturnType<typeof consultarCatalogosPlantillas>>
 type Filtros = { q?: string; codigo?: string; estado?: string; origen?: string; tipo?: string; fecha?: string; agencia?: string }
 type Seleccion = { fuente: 'PLANTILLA_ASIENTO'; id: number } | { fuente: 'PLANTILLA_BOVEDA'; id: string }
@@ -60,6 +61,30 @@ function DatosRegla({ regla }: { regla: ReglaContable }) {
   </dl>
 }
 
+function TablaDesplazable({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
+  const region = useRef<HTMLDivElement>(null)
+  const id = useId()
+
+  function desplazar(direccion: number) {
+    const tabla = region.current
+    tabla?.scrollBy({ left: tabla.clientWidth * direccion })
+  }
+
+  return <div className="relative min-w-0">
+    <Button type="button" variant="outline" size="sm" aria-controls={id}
+      className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10" onClick={() => desplazar(-1)}>
+      Desplazar tabla a la izquierda
+    </Button>
+    <Button type="button" variant="outline" size="sm" aria-controls={id}
+      className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10" onClick={() => desplazar(1)}>
+      Desplazar tabla a la derecha
+    </Button>
+    <div ref={region} id={id} className="overflow-x-auto rounded-xl border border-border" role="region" aria-label={etiqueta}>
+      {children}
+    </div>
+  </div>
+}
+
 export function PlantillasPage() {
   const permisos = usePermisos()
   const esContador = useAuthStore(s => s.user?.roles.some(rol => rol.trim().toUpperCase() === 'CONTADOR') ?? false)
@@ -82,9 +107,12 @@ export function PlantillasPage() {
     ? reglas.find(regla => regla.fuente === 'PLANTILLA_BOVEDA' && regla.idRegla === seleccion.id)
     : undefined
   const resultados = lista.data?.reglas.filter(regla => aplicarFiltros(regla, filtros))
-  const modulos = [...new Set(reglas.map(regla => regla.Origen))].sort()
-  const tipos = [...new Set(reglas.flatMap(regla => regla.CodigoTipoAsiento ?? []))].sort()
   const tiposPorCodigo = new Map(catalogos.data?.tiposAsiento.map(tipo => [tipo.Codigo, tipo.Nombre]))
+  const nombreTipo = (codigo: string) => tiposPorCodigo.get(codigo) ?? codigo
+  const modulos = [...new Set([...reglas.map(regla => regla.Origen), ...(filtros.origen ? [filtros.origen] : [])])]
+    .sort((a, b) => compararEtiquetas(etiquetaPlantilla(a), etiquetaPlantilla(b)))
+  const tipos = [...new Set([...reglas.flatMap(regla => regla.CodigoTipoAsiento ?? []), ...(filtros.tipo ? [filtros.tipo] : [])])]
+    .sort((a, b) => compararEtiquetas(nombreTipo(a), nombreTipo(b)) || compararEtiquetas(a, b))
   const conceptosPorCodigo = new Map(catalogos.data?.conceptosContables.map(concepto => [concepto.CodigoConcepto, concepto.ConceptoDetalle]))
   const versiones = new Map(reglas.flatMap(regla => regla.fuente === 'PLANTILLA_ASIENTO' ? [[regla.IdPlantillaAsiento, regla] as const] : []))
   const detalle = useQuery({
@@ -126,10 +154,10 @@ export function PlantillasPage() {
           <option value="">Todos</option><option value="1">Activas o habilitadas</option><option value="0">Inactivas o no habilitadas</option>
         </select></div>
         <div><label htmlFor="plantillas-origen">Módulo contable</label><select id="plantillas-origen" name="origen" className={claseSelectorPlantilla} defaultValue={filtros.origen ?? ''}>
-          <option value="">Todos</option>{[...new Set([...modulos, ...(filtros.origen ? [filtros.origen] : [])])].map(origen => <option key={origen} value={origen}>{etiquetaPlantilla(origen)}</option>)}
+          <option value="">Todos</option>{modulos.map(origen => <option key={origen} value={origen}>{etiquetaPlantilla(origen)}</option>)}
         </select></div>
         <div><label htmlFor="plantillas-tipo">Tipo de asiento</label><select id="plantillas-tipo" name="tipo" className={claseSelectorPlantilla} defaultValue={filtros.tipo ?? ''}>
-          <option value="">Todos</option>{[...new Set([...tipos, ...(filtros.tipo ? [filtros.tipo] : [])])].map(tipo => <option key={tipo} value={tipo}>{tiposPorCodigo.get(tipo) ?? tipo}</option>)}
+          <option value="">Todos</option>{tipos.map(tipo => <option key={tipo} value={tipo}>{nombreTipo(tipo)}</option>)}
         </select></div>
         <label>Fecha de evaluación<Input type="date" name="fecha" defaultValue={filtros.fecha} /></label>
         <label>Agencia de Bóveda<Input name="agencia" inputMode="numeric" pattern="[0-9]{3}" title="Código de agencia de tres dígitos" maxLength={3} defaultValue={filtros.agencia} /></label>
@@ -143,7 +171,7 @@ export function PlantillasPage() {
       {reglas.some(regla => regla.fuente === 'PLANTILLA_BOVEDA' && regla.TipoMovimiento === 'Traslado') &&
         <p className="text-sm text-muted-foreground">En un traslado de Bóveda, el motor usa plantillas versionadas cuando ambas etapas tienen una versión seleccionada en la misma fecha contable. Durante el corte parcial, ambas etapas usan la matriz.</p>}
       {resultados?.length === 0 && <Aviso>No encontramos plantillas para los filtros seleccionados.</Aviso>}
-      {Boolean(resultados?.length) && <div className="overflow-x-auto rounded-xl border border-border" tabIndex={0} role="region" aria-label="Resultados de plantillas">
+      {Boolean(resultados?.length) && <TablaDesplazable etiqueta="Resultados de plantillas">
         <table className={claseTabla}>
           <thead className="bg-field"><tr>{['Nombre', 'Código', 'Concepto', 'Módulo contable', 'Tipo de asiento', 'Desde', 'Hacia', 'Alcance', 'Estado', 'Configuración', 'Vigencia', 'Integración', 'Evidencia de uso', 'Versión', 'Acción'].map(col => <th key={col} scope="col">{col}</th>)}</tr></thead>
           <tbody>{resultados?.map(p => <tr key={p.idRegla} className={claseFila}>
@@ -152,14 +180,14 @@ export function PlantillasPage() {
               {p.IdAgencia !== null && <span className="block text-xs text-muted-foreground">{fuenteRegla(p)}</span>}
             </th>
             <td>{codigoRegla(p)}</td><td>{p.fuente === 'PLANTILLA_ASIENTO' && p.CodigoConcepto ? conceptosPorCodigo.get(p.CodigoConcepto) ?? p.CodigoConcepto : '—'}</td>
-            <td>{etiquetaPlantilla(p.Origen)}</td><td>{p.CodigoTipoAsiento ? tiposPorCodigo.get(p.CodigoTipoAsiento) ?? p.CodigoTipoAsiento : '—'}</td>
+            <td>{etiquetaPlantilla(p.Origen)}</td><td>{p.CodigoTipoAsiento ? nombreTipo(p.CodigoTipoAsiento) : '—'}</td>
             <td>{p.desde ?? '—'}</td><td>{p.hacia ?? '—'}</td><td>{alcance(p)}</td><td>{estado(p)}</td>
             <td>Configurada</td><td><Badge variant="outline">{vigencia(p)}</Badge></td><td>{integraciones[p.integracion]}</td><td>{uso(p)}</td><td>{p.Version ?? '—'}</td>
             <td><Button variant="outline" size="sm" onClick={() => p.fuente === 'PLANTILLA_ASIENTO' ? setId(p.IdPlantillaAsiento) : setSeleccion({ fuente: p.fuente, id: p.idRegla })}
               aria-label={p.fuente === 'PLANTILLA_ASIENTO' ? `Ver ${p.Nombre}, versión ${p.Version}` : `Ver Bóveda, ${p.TipoMovimiento}, ${p.Naturaleza === 'I' ? 'ingreso' : 'egreso'}, agencia ${p.IdAgencia}`}>Ver detalle</Button></td>
           </tr>)}</tbody>
         </table>
-      </div>}
+      </TablaDesplazable>}
     </section> : <>
       <Button variant="ghost" className="w-fit" onClick={() => { setSeleccion(null); setMensaje('') }}>Volver al listado</Button>
       {seleccion.fuente === 'PLANTILLA_BOVEDA' ? <>
@@ -238,7 +266,7 @@ export function DetallePlantilla({ plantilla, seleccionar, alGuardar, puedeEdita
     {regla && <DatosRegla regla={regla} />}
     <div className="grid gap-3">
       <h3 className="text-lg font-semibold text-heading">Movimientos contables</h3>
-      <div className="overflow-x-auto rounded-xl border border-border" tabIndex={0} role="region" aria-label="Líneas contables de la versión">
+      <TablaDesplazable etiqueta="Líneas contables de la versión">
         <table className={claseTabla}>
           <thead className="bg-field"><tr>{['Orden', 'Cuenta', 'Movimiento', 'Componente'].map(col => <th key={col} scope="col">{col}</th>)}</tr></thead>
           <tbody>{plantilla.lineas.map(linea => <tr key={linea.Orden} className={claseFila}>
@@ -249,7 +277,7 @@ export function DetallePlantilla({ plantilla, seleccionar, alGuardar, puedeEdita
             <td>{etiquetaPlantilla(linea.TipoMovimiento)}</td><td>{etiquetaPlantilla(linea.ComponenteImporte)}</td>
           </tr>)}</tbody>
         </table>
-      </div>
+      </TablaDesplazable>
     </div>
 
     <section className="grid gap-3 rounded-xl border border-border p-4" aria-label="Solicitud de aprobación">
