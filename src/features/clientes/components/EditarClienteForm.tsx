@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { useActividadesEconomicas } from '@/features/catalogos'
 
 import type { Cliente, ClienteUpdate } from '@/features/clientes/api/gestion-clientes'
@@ -6,78 +6,101 @@ import { ErrorClientes } from '@/features/clientes/components/consulta-clientes'
 import { Field, fieldClassName } from '@/features/clientes/components/form-fields'
 import { Button, Input } from '@/shared/ui'
 
+type Campo = keyof ClienteUpdate
+type Seccion = 'ordinarios' | 'sensibles'
+interface CampoTexto { campo: Campo; label: string; type?: string; min?: number; max?: number; requerido: boolean }
+
 const estadosCiviles = ['Soltero', 'Casado', 'Divorciado', 'Viudo', 'Union Libre'] as const
-const camposComunes = [
+const tiposDocumento = [{ valor: 'C', label: 'Cédula' }, { valor: 'R', label: 'RUC' }, { valor: 'P', label: 'Pasaporte' }] as const
+/** Campos anulables: vacío se envía como null */
+const anulables: Campo[] = ['telefonoConvencional', 'nombreComercial']
+
+const contacto: CampoTexto[] = [
   { campo: 'telefonoCelular', label: 'Celular', type: 'tel', min: 7, max: 15, requerido: true },
   { campo: 'telefonoConvencional', label: 'Teléfono convencional', type: 'tel', max: 15, requerido: false },
-  { campo: 'email', label: 'Correo electrónico', type: 'email', min: 5, max: 150, requerido: true },
-] as const
-const nombres = { campo: 'nombres', label: 'Nombres', max: 250, requerido: true } as const
-const camposNatural = [nombres, { campo: 'apellidos', label: 'Apellidos', max: 250, requerido: true }] as const
-const camposJuridico = [
+]
+const nombreComercial: CampoTexto = { campo: 'nombreComercial', label: 'Nombre comercial', max: 250, requerido: false }
+const nombres: CampoTexto = { campo: 'nombres', label: 'Nombres', max: 250, requerido: true }
+const identidadNatural: CampoTexto[] = [nombres, { campo: 'apellidos', label: 'Apellidos', max: 250, requerido: true }]
+const identidadJuridico: CampoTexto[] = [
   { ...nombres, label: 'Nombres registrados' },
   { campo: 'razonSocial', label: 'Razón social', max: 250, requerido: true },
-  { campo: 'nombreComercial', label: 'Nombre comercial', max: 250, requerido: false },
-] as const
+]
+const identidadComun: CampoTexto[] = [
+  { campo: 'identificacion', label: 'Número de documento', min: 1, max: 13, requerido: true },
+  { campo: 'fechaNacimiento', label: 'Fecha de nacimiento o constitución', type: 'date', requerido: true },
+  { campo: 'email', label: 'Correo electrónico principal', type: 'email', min: 5, max: 150, requerido: true },
+]
 const selector = `${fieldClassName} w-full border text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:scheme-dark`
 
+/**
+ * E5-04 · Dos secciones que se guardan por separado: los datos ordinarios se aplican al
+ * instante; los de identidad y el correo principal los aprueba otra persona.
+ */
 export function EditarClienteForm({ cliente, guardar, ocupado, error }: {
   cliente: Cliente
   guardar: (cambios: ClienteUpdate) => Promise<void>
   ocupado: boolean
   error: Error | null
 }) {
-  const [borrador, setBorrador] = useState<Partial<Record<keyof ClienteUpdate, string>>>({})
+  const [borrador, setBorrador] = useState<Partial<Record<Campo, string>>>({})
+  const [enviada, setEnviada] = useState<Seccion | null>(null)
   const natural = cliente.tipoCliente === 'Natural'
-  const campos = [...(natural ? camposNatural : camposJuridico), ...camposComunes]
   const actividades = useActividadesEconomicas()
-  const valor = (campo: keyof ClienteUpdate) => borrador[campo] ?? String(cliente[campo] ?? '')
-  const cambiar = (campo: keyof ClienteUpdate, texto: string) => setBorrador((previo) => ({ ...previo, [campo]: texto }))
+  const original = (campo: Campo) => String(cliente[campo as keyof Cliente] ?? '')
+  const valor = (campo: Campo) => borrador[campo] ?? original(campo)
+  const cambiar = (campo: Campo, texto: string) => setBorrador((previo) => ({ ...previo, [campo]: texto }))
   const valorActividad = valor('idActividadEconomica')
   const actividadEnLista = actividades.data?.some((opcion) => String(opcion.idActividadEconomica) === valorActividad)
-  const hayCambios = Object.entries(borrador).some(([campo, texto]) => texto.trim() !== String(cliente[campo as keyof ClienteUpdate] ?? ''))
 
-  async function enviar(event: FormEvent<HTMLFormElement>) {
+  const textosOrdinarios = [...(natural ? [] : [nombreComercial]), ...contacto]
+  const textosSensibles = [...(natural ? identidadNatural : identidadJuridico), ...identidadComun]
+  const camposSeccion: Record<Seccion, Campo[]> = {
+    ordinarios: [...textosOrdinarios.map((c) => c.campo), 'idActividadEconomica', ...(natural ? ['estadoCivil' as const] : [])],
+    sensibles: [...textosSensibles.map((c) => c.campo), 'tipoDocumento'],
+  }
+  const cambiados = (seccion: Seccion) =>
+    camposSeccion[seccion].filter((campo) => borrador[campo] !== undefined && borrador[campo].trim() !== original(campo))
+
+  function armar(seccion: Seccion): ClienteUpdate {
+    const cambios: Record<string, unknown> = {}
+    for (const campo of cambiados(seccion)) {
+      const texto = (borrador[campo] ?? '').trim()
+      if (campo === 'idActividadEconomica') cambios[campo] = texto ? Number(texto) : null
+      else if (anulables.includes(campo)) cambios[campo] = texto || null
+      else cambios[campo] = texto
+    }
+    return cambios as ClienteUpdate
+  }
+
+  async function enviar(seccion: Seccion, event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (ocupado || !hayCambios) return
-    const cambios: ClienteUpdate = {}
-    for (const { campo } of campos) {
-      const texto = borrador[campo]?.trim()
-      if (texto === undefined || texto === String(cliente[campo] ?? '')) continue
-      if (campo === 'telefonoConvencional' || campo === 'nombreComercial') {
-        cambios[campo] = texto || null
-      } else {
-        cambios[campo] = texto
-      }
-    }
-    const estadoCivil = estadosCiviles.find((estado) => estado === borrador.estadoCivil)
-    if (natural && estadoCivil && estadoCivil !== cliente.estadoCivil) {
-      cambios.estadoCivil = estadoCivil
-    }
-    if (borrador.idActividadEconomica !== undefined && valorActividad !== String(cliente.idActividadEconomica ?? '')) {
-      cambios.idActividadEconomica = valorActividad ? Number(valorActividad) : null
-    }
+    if (ocupado || !cambiados(seccion).length) return
+    setEnviada(seccion)
     try {
-      await guardar(cambios)
-      setBorrador({})
+      await guardar(armar(seccion))
+      // Solo se limpia la sección guardada; la otra conserva lo que se escribió.
+      setBorrador((previo) => Object.fromEntries(Object.entries(previo).filter(([campo]) => !camposSeccion[seccion].includes(campo as Campo))))
     } catch {
       // Conserva los valores escritos para corregir o reintentar.
     }
   }
 
+  const textos = (lista: CampoTexto[]) => lista.map((campo) => (
+    <Field key={campo.campo} id={`editar-${campo.campo}`} label={campo.label} optional={!campo.requerido}>
+      <Input id={`editar-${campo.campo}`} className={fieldClassName} type={campo.type ?? 'text'}
+        minLength={campo.min} maxLength={campo.max} required={campo.requerido} value={valor(campo.campo)}
+        pattern={campo.requerido && !campo.type ? '.*\\S.*' : undefined}
+        onChange={(event) => cambiar(campo.campo, event.target.value)} />
+    </Field>
+  ))
+
   return (
-    <form className="grid gap-4 rounded-2xl border border-border bg-card p-5" onSubmit={(event) => void enviar(event)}>
-      <h2 className="text-xl font-semibold text-heading">Editar datos</h2>
-      <fieldset disabled={ocupado} className="grid gap-4 sm:grid-cols-2">
-        {campos.map((campo) => (
-          <Field key={campo.campo} id={`editar-${campo.campo}`} label={campo.label} optional={!campo.requerido}>
-            <Input id={`editar-${campo.campo}`} className={fieldClassName} type={'type' in campo ? campo.type : 'text'}
-              minLength={'min' in campo ? campo.min : undefined} maxLength={campo.max}
-              required={campo.requerido} value={valor(campo.campo)}
-              pattern={campo.requerido && !('type' in campo) ? '.*\\S.*' : undefined}
-              onChange={(event) => cambiar(campo.campo, event.target.value)} />
-          </Field>
-        ))}
+    <div className="grid gap-4">
+      <SeccionEdicion titulo="Datos de contacto y generales" descripcion="Se guardan al instante."
+        ocupado={ocupado} hayCambios={cambiados('ordinarios').length > 0} error={enviada === 'ordinarios' ? error : null}
+        boton="Guardar cambios" onSubmit={(event) => void enviar('ordinarios', event)}>
+        {textos(textosOrdinarios)}
         {natural && (
           <Field id="editar-estado-civil" label="Estado civil">
             <select id="editar-estado-civil" className={selector} required value={valor('estadoCivil')}
@@ -99,10 +122,51 @@ export function EditarClienteForm({ cliente, guardar, ocupado, error }: {
           {actividades.isPending && <p role="status" className="text-sm text-muted-foreground">Cargando actividades…</p>}
           {actividades.isError && <ErrorClientes error={actividades.error} reintentar={() => void actividades.refetch()} />}
         </Field>
-      </fieldset>
+      </SeccionEdicion>
+
+      <SeccionEdicion titulo="Identidad y correo principal" etiqueta="Requiere aprobación"
+        descripcion="Otra persona debe aprobar estos cambios; mientras tanto el cliente conserva sus datos actuales. Un cambio de nombre o documento puede exigir un documento de respaldo."
+        ocupado={ocupado} hayCambios={cambiados('sensibles').length > 0} error={enviada === 'sensibles' ? error : null}
+        boton="Enviar a aprobación" onSubmit={(event) => void enviar('sensibles', event)}>
+        {textos(textosSensibles.slice(0, 2))}
+        <Field id="editar-tipoDocumento" label="Tipo de documento">
+          <select id="editar-tipoDocumento" className={selector} required value={valor('tipoDocumento')}
+            onChange={(event) => cambiar('tipoDocumento', event.target.value)}>
+            {tiposDocumento.map((tipo) => <option key={tipo.valor} value={tipo.valor}>{tipo.label}</option>)}
+          </select>
+        </Field>
+        {textos(textosSensibles.slice(2))}
+        <p className="text-sm text-muted-foreground sm:col-span-2">
+          {cliente.emailVerificado ? 'El correo principal está verificado por el personal; si cambia, la marca se borra al aprobarse.' : 'El correo principal no está verificado.'}
+        </p>
+      </SeccionEdicion>
+    </div>
+  )
+}
+
+function SeccionEdicion({ titulo, etiqueta, descripcion, ocupado, hayCambios, error, boton, onSubmit, children }: {
+  titulo: string
+  etiqueta?: string
+  descripcion: string
+  ocupado: boolean
+  hayCambios: boolean
+  error: Error | null
+  boton: string
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  children: ReactNode
+}) {
+  const id = `seccion-${titulo.toLowerCase().replace(/\W+/g, '-')}`
+  return (
+    <form aria-labelledby={id} className="grid gap-4 rounded-2xl border border-border bg-card p-5" onSubmit={onSubmit}>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 id={id} className="text-xl font-semibold text-heading">{titulo}</h2>
+        {etiqueta && <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium">{etiqueta}</span>}
+      </div>
+      <p className="text-sm text-muted-foreground">{descripcion}</p>
+      <fieldset disabled={ocupado} className="grid gap-4 sm:grid-cols-2">{children}</fieldset>
       {error && <ErrorClientes error={error} />}
       <Button type="submit" className="justify-self-start" disabled={ocupado || !hayCambios}>
-        {ocupado ? 'Guardando…' : 'Guardar cambios'}
+        {ocupado ? 'Guardando…' : boton}
       </Button>
     </form>
   )
