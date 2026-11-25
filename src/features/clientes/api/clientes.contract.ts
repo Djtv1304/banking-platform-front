@@ -82,6 +82,8 @@ export const clienteSchema = clienteResumenSchema.extend({
   fechaNacimiento: z.string(),
   fechaRegistro: z.string(),
   direcciones: z.array(direccionSchema),
+  /** E5-04 · marca manual del personal; se borra al aprobarse un cambio de correo */
+  emailVerificado: z.boolean().default(false),
 })
 
 export const paginaClientesSchema = z.object({
