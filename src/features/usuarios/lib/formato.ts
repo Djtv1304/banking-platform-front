@@ -100,3 +100,9 @@ export const etiquetaAgencia = ({ idAgencia, nombre }: Pick<Agencia, 'idAgencia'
 
 /** El backend puede devolver el campo como `username` o `body.username`: se usa el último tramo */
 export const nombreCampo = (field: string) => field.split('.').pop() ?? field
+
+const ROLES_MULTIAGENCIA = new Set(['ADMIN', 'SUPERVISOR', 'CONTADOR', 'AUDITOR', 'APROBADOR_CREDITO'])
+
+export function admiteVariasAgencias(roles: readonly string[]): boolean {
+  return !roles.includes('CAJERO') && !roles.includes('ASESOR') && roles.some((rol) => ROLES_MULTIAGENCIA.has(rol))
+}

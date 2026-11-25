@@ -3,7 +3,12 @@ import { expect, test } from '@playwright/test'
 test('E1-04 protege la edición propia y permite asignar varios roles a otro usuario', async ({ page }) => {
   test.setTimeout(90_000)
   const email = 'admin@e104.invalid'
-  const agencia = { idAgencia: '001', codigo: 'MATRIZ', nombre: 'Matriz', estado: 'A', principal: true }
+  const agencia = { idAgencia: '001', codigo: 'MATRIZ', nombre: 'Matriz', tipoAgencia: 'Matriz', provincia: 'Guayas', ciudad: 'Guayaquil', estado: 'A', principal: true }
+  const sucursal = { ...agencia, idAgencia: '002', codigo: 'SUR', nombre: 'Sucursal Sur', tipoAgencia: 'Sucursal', principal: false }
+  const norte = { ...sucursal, idAgencia: '003', codigo: 'NORTE', nombre: 'Sucursal Norte' }
+  const permitidas = [agencia, sucursal, norte]
+  let operativa: string | null = null
+  const contexto = () => ({ idAgencia: operativa, idAgenciaPrincipal: '001', agenciasAsignadas: [agencia], agenciasPermitidas: permitidas, requiereSeleccionAgencia: false, alcanceGlobal: true, accesoTodasAgencias: true })
   const usuario = {
     idUsuario: 29, username: 'admin.qa', nombres: 'Admin', apellidos: 'QA', email,
     rol: 'ADMIN', estado: 'Activo', idAgencia: '001', vinculado: true,
@@ -11,19 +16,24 @@ test('E1-04 protege la edición propia y permite asignar varios roles a otro usu
     estadoInvitacion: null, bloqueo: null,
   }
   let rolesOtro = ['CONTADOR']
-  const otroUsuario = () => ({ ...usuario, idUsuario: 30, nombres: 'Andrea', email: 'andrea@e104.invalid', rol: rolesOtro[0], roles: rolesOtro })
+  let asignaciones = { idUsuario: 30, idAgenciaPrincipal: '001', agencias: [agencia], version: 1 }
+  const otroUsuario = () => ({ ...usuario, idUsuario: 30, nombres: 'Andrea', email: 'andrea@e104.invalid', idAgencia: asignaciones.idAgenciaPrincipal, rol: rolesOtro[0], roles: rolesOtro })
 
   await page.route('**/api/v1/**', async (route) => {
     const path = new URL(route.request().url()).pathname.replace('/api/v1', '')
     switch (path) {
       case '/auth/me':
-        return route.fulfill({ json: { idUsuario: 'user_e104', nombre: 'Admin QA', email, idOrganizacion: null, idAgencia: '001', roles: ['ADMIN'], permisos: ['usuariosEditar'] } })
+        return route.fulfill({ json: { idUsuario: 'user_e104', nombre: 'Admin QA', email, idOrganizacion: null, idAgencia: operativa, roles: ['ADMIN'], permisos: ['usuariosEditar'] } })
       case '/auth/refresh':
         return route.fulfill({ status: 204 })
       case '/auth/agencias':
-        return route.fulfill({ json: { idAgencia: '001', idAgenciaPrincipal: '001', agenciasAsignadas: [agencia], agenciasPermitidas: [agencia], requiereSeleccionAgencia: false, alcanceGlobal: true } })
+        return route.fulfill({ json: contexto() })
+      case '/auth/agencia-activa':
+        expect(route.request().postDataJSON()).toEqual({ idAgencia: '002' })
+        operativa = '002'
+        return route.fulfill({ json: contexto() })
       case '/catalogos/agencias':
-        return route.fulfill({ json: [agencia] })
+        return route.fulfill({ json: permitidas })
       case '/usuarios/29':
         return route.fulfill({ json: usuario })
       case '/usuarios/29/agencias':
@@ -33,7 +43,11 @@ test('E1-04 protege la edición propia y permite asignar varios roles a otro usu
       case '/usuarios/30':
         return route.fulfill({ json: otroUsuario() })
       case '/usuarios/30/agencias':
-        return route.fulfill({ json: { idUsuario: 30, idAgenciaPrincipal: '001', agencias: [agencia], version: 1 } })
+        if (route.request().method() === 'PUT') {
+          expect(route.request().postDataJSON()).toEqual({ idAgencias: ['001', '002', '003'], idAgenciaPrincipal: '003', version: 1 })
+          asignaciones = { ...asignaciones, idAgenciaPrincipal: '003', agencias: permitidas.map((a) => ({ ...a, principal: a.idAgencia === '003' })), version: 2 }
+        }
+        return route.fulfill({ json: asignaciones })
       case '/usuarios/30/roles':
         expect(route.request().method()).toBe('PUT')
         expect(route.request().postDataJSON()).toEqual({ roles: ['CONTADOR', 'AUDITOR'] })
@@ -62,6 +76,22 @@ test('E1-04 protege la edición propia y permite asignar varios roles a otro usu
   await expect(rolesYAgencia.getByText(/Contador, Auditor/i)).toBeVisible()
   await page.reload()
   await expect(rolesYAgencia.getByText(/Contador, Auditor/i)).toBeVisible({ timeout: 15_000 })
+  await agencias.getByRole('checkbox', { name: /Sucursal Sur/ }).check()
+  await agencias.getByRole('checkbox', { name: /Sucursal Norte/ }).check()
+  await expect(agencias.getByRole('checkbox', { checked: true })).toHaveCount(3)
+  await agencias.getByLabel('Agencia principal').selectOption('003')
+  await agencias.getByRole('button', { name: 'Guardar asignaciones' }).click()
+  await expect(rolesYAgencia.getByRole('listitem').filter({ hasText: 'Agencia principal' })).toContainText('Sucursal Norte')
+
+  const selector = page.getByLabel('Seleccionar agencia operativa')
+  await expect(page.getByText('Acceso a todas las agencias').first()).toBeVisible()
+  await selector.selectOption('002')
+  await selector.locator('..').getByRole('button', { name: 'Cambiar', exact: true }).click()
+  await expect(page).toHaveURL('/')
+  await page.goto('/usuarios/30')
+  await page.reload()
+  await expect(selector).toHaveValue('002')
+  await expect(page.getByText('Acceso a todas las agencias').first()).toBeVisible()
 })
 
 test('E1-04 muestra el traslado de agencia y actualiza el historial', async ({ page }, testInfo) => {

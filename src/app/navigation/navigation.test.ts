@@ -120,18 +120,20 @@ describe('matriz completa de consultas del menu por rol', () => {
 
 describe('presentacion del alcance de agencias', () => {
   it.each([
-    ['admin', 4, true, true, false],
-    ['una agencia', 1, false, false, false],
-    ['varias parciales', 2, false, false, true],
-    ['todas asignadas', 4, false, true, false],
-  ])('%s: selector=%s', (_nombre, cantidad, global, todas, selector) => {
+    ['admin sin selección', 4, true, true, true, null],
+    ['admin con selección', 4, true, true, true, '002'],
+    ['admin con una agencia disponible', 1, true, true, true, null],
+    ['una agencia', 1, false, false, false, '001'],
+    ['varias parciales', 2, false, false, true, '001'],
+    ['todas asignadas', 4, false, true, true, '001'],
+  ] as const)('%s', (_nombre, cantidad, global, todas, selector, idAgencia) => {
     const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } })
     const agencias = Array.from({ length: Number(cantidad) }, (_, i) => ({ idAgencia: String(i + 1).padStart(3, '0'), codigo: 'Agencia ' + (i + 1), estado: 'A', principal: i === 0 }))
-    client.setQueryData(['auth', 'agencias'], { idAgencia: global ? null : '001', idAgenciaPrincipal: '001', agenciasAsignadas: agencias, agenciasPermitidas: agencias, requiereSeleccionAgencia: false, alcanceGlobal: global, accesoTodasAgencias: todas })
+    client.setQueryData(['auth', 'agencias'], { idAgencia, idAgenciaPrincipal: '001', agenciasAsignadas: agencias, agenciasPermitidas: agencias, requiereSeleccionAgencia: false, alcanceGlobal: global, accesoTodasAgencias: todas })
     const html = renderToStaticMarkup(createElement(QueryClientProvider, { client }, createElement(SelectorAgencia)))
     expect(html.includes('<select')).toBe(selector)
     if (todas) expect(html).toContain('Acceso a todas las agencias')
-    if (cantidad === 1) expect(html).toContain('Agencia operativa: Agencia 1')
+    expect(html).toContain(idAgencia ? `Agencia operativa: Agencia ${Number(idAgencia)}` : 'Selección requerida')
     client.clear()
   })
 })

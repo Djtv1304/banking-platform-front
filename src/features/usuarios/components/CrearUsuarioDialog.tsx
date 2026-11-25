@@ -26,7 +26,7 @@ import {
 import { Campo } from '@/features/usuarios/components/Campo'
 import { ariaCampo, campoClassName, selectClassName } from '@/features/usuarios/lib/campos'
 import { useCrearUsuario } from '@/features/usuarios/hooks/useUsuarios'
-import { etiquetaAgencia, nombreCampo, OPCIONES_ROL } from '@/features/usuarios/lib/formato'
+import { admiteVariasAgencias, etiquetaAgencia, nombreCampo, OPCIONES_ROL } from '@/features/usuarios/lib/formato'
 
 const VACIO: CrearUsuarioInput = { username: '', nombres: '', apellidos: '', email: '', cedula: '', idAgencia: '', rol: '' }
 
@@ -59,7 +59,7 @@ export function CrearUsuarioDialog({ open, onOpenChange, onCreado }: CrearUsuari
   const principal = useWatch({ control, name: 'idAgencia' })
   const [adicionales, setAdicionales] = useState<string[]>([])
   const rol = useWatch({ control, name: 'rol' })
-  const varias = ['ADMIN', 'SUPERVISOR', 'CONTADOR', 'AUDITOR', 'APROBADOR_CREDITO'].includes(rol)
+  const varias = admiteVariasAgencias([rol])
   const pendiente = creacion.isPending
 
   const cerrar = () => {
