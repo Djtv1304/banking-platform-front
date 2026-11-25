@@ -33,6 +33,8 @@ import {
  * reducida (sin direcciones ni riesgo).
  */
 
+const ROLES_HABILITACION = ['ASESOR', 'SUPERVISOR', 'AUDITOR', 'ADMIN']
+
 export function FichaClientePage() {
   const { idCliente } = useParams()
   const id = parsearIdCliente(idCliente)
@@ -111,6 +113,8 @@ function Ficha({ cliente }: { cliente: Cliente }) {
   const verDirecciones = usePuedeFuncion('clientes.direcciones.consultar', gestion)
   const roles = useAuthStore((estado) => estado.user?.roles)
   const verRiesgo = usePuedeFuncion('clientes.riesgo.consultar', accesoRiesgo(roles ?? [], usePermisos()).historial)
+  // Mismos roles que GET /clientes/{id}/habilitacion: el cajero no la consulta (ficha reducida).
+  const verHabilitacion = (roles ?? []).some((rol) => ROLES_HABILITACION.includes(rol.trim().toUpperCase()))
   const agencias = useAgencias()
   const agencia = agencias.data.find((item) => item.idAgencia === cliente.idAgenciaRegistro)
   const id = cliente.idCliente
@@ -183,9 +187,11 @@ function Ficha({ cliente }: { cliente: Cliente }) {
 
       {verRiesgo && <GestionRiesgo key={`riesgo-${id}`} id={id} nombre={nombreVisible(cliente)} estado={cliente.estado} />}
 
-      <Seccion id="ficha-productos" titulo="Productos">
-        <IndicadorHabilitacion idCliente={id} />
-      </Seccion>
+      {verHabilitacion && (
+        <Seccion id="ficha-productos" titulo="Productos">
+          <IndicadorHabilitacion idCliente={id} />
+        </Seccion>
+      )}
     </div>
   )
 }

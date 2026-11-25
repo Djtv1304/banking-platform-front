@@ -5,12 +5,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Cliente } from '@/features/clientes/api/clientes.contract'
 import { FichaClientePage } from '@/features/clientes/pages/FichaClientePage'
 
-const h = vi.hoisted(() => ({ funciones: [] as string[] }))
+const h = vi.hoisted(() => ({ funciones: [] as string[], roles: ['ASESOR'] as string[] }))
 
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
 vi.mock('@/features/auth', () => ({
   usePuedeFuncion: (funcion: string) => h.funciones.includes(funcion),
-  useAuthStore: (selector: (estado: unknown) => unknown) => selector({ user: { roles: [] } }),
+  useAuthStore: (selector: (estado: unknown) => unknown) => selector({ user: { roles: h.roles } }),
   usePermisos: () => [],
 }))
 vi.mock('@/features/catalogos', () => ({ useAgencias: () => ({ data: [{ idAgencia: '001', nombre: 'Matriz Quito' }] }) }))
@@ -39,7 +39,7 @@ const render = () => renderToStaticMarkup(
   </MemoryRouter>,
 )
 
-beforeEach(() => { h.funciones = ['clientes.consultar'] })
+beforeEach(() => { h.funciones = ['clientes.consultar']; h.roles = ['ASESOR'] })
 
 describe('E5-05 · ficha con datos enmascarados por sección', () => {
   it('usa CampoEnmascarado para documento, correo y celular y muestra la agencia de registro', () => {
@@ -51,8 +51,10 @@ describe('E5-05 · ficha con datos enmascarados por sección', () => {
     expect(html).toContain('Contacto')
   })
 
-  it('el cajero (solo consulta) ve la ficha reducida: sin direcciones ni riesgo', () => {
+  it('el cajero (solo consulta) ve la ficha reducida: sin direcciones, riesgo ni habilitación', () => {
+    h.roles = ['CAJERO']
     const html = render()
+    expect(html).not.toContain('habilitacion')
     expect(html).not.toContain('seccion-direcciones')
     expect(html).not.toContain('href="#ficha-direcciones"')
     expect(html).not.toContain('href="#riesgo-titulo"')
