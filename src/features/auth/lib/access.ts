@@ -24,8 +24,8 @@ export const CLIENTES_ROLES = {
 
 /** Contratos de consulta existentes; compartidos entre menu y rutas. */
 export const CUENTAS_ROLES = {
-  consultar: ['ASESOR', 'CAJERO', 'SUPERVISOR', 'ADMIN'],
-  movimientos: ['ASESOR', 'CAJERO', 'SUPERVISOR', 'ADMIN'],
+  consultar: ['ASESOR', 'CAJERO', 'SUPERVISOR', 'ADMIN', 'CUMPLIMIENTO'],
+  movimientos: ['ASESOR', 'CAJERO', 'SUPERVISOR', 'ADMIN', 'CUMPLIMIENTO'],
   cupos: ['ASESOR', 'SUPERVISOR', 'ADMIN'],
 } as const
 

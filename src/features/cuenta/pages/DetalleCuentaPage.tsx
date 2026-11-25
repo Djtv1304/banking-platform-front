@@ -11,6 +11,7 @@ import { useAuthStore, usePuedeFuncion } from '@/features/auth'
 import { agregarAutorizado, anularApertura, consultarAutorizados, consultarEventosCuenta, finalizarAutorizado, type RolAutorizado } from '@/features/cuenta/api/apertura.api'
 import type { Cuenta } from '@/features/cuenta/api/cuentas.contract'
 import { Aviso, Cargando } from '@/features/cuenta/components/Aviso'
+import { CambiarEstadoCuenta } from '@/features/cuenta/components/CambiarEstadoCuenta'
 import { EstadoCuentaBadge } from '@/features/cuenta/components/EstadoCuentaBadge'
 import { useCuenta, useNombresCuenta, useSaldoCuenta } from '@/features/cuenta/hooks/useCuentas'
 import { usePermisosCupos } from '@/features/cuenta/hooks/useCupos'
@@ -82,6 +83,13 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
   const usuario = useAuthStore(state => state.user)
   const puedeAbrir = usePuedeFuncion('cuentas.abrir', !!usuario?.roles?.some(rol => rol === 'ASESOR' || rol === 'ADMIN'))
   const mismaAgencia = usuario?.idAgencia === cuenta.idAgencia
+  const supervisor = usuario?.roles.includes('SUPERVISOR') ?? false
+  const asesor = usuario?.roles.includes('ASESOR') ?? false
+  const cumplimiento = usuario?.roles.includes('CUMPLIMIENTO') ?? false
+  const puedeCambiarEstado = usePuedeFuncion('cuentas.cambiarEstado', supervisor || asesor || cumplimiento)
+  const accionEstado = (supervisor || cumplimiento) && cuenta.estado === 'ACTIVA' ? 'bloquear'
+    : supervisor && cuenta.estado === 'BLOQUEADA' ? 'desbloquear'
+    : asesor && cuenta.estado === 'INACTIVA' ? 'reactivar' : null
 
   return (
     <>
@@ -94,6 +102,7 @@ function DetalleCuenta({ cuenta }: { cuenta: Cuenta }) {
           <EstadoCuentaBadge estado={cuenta.estado} />
         </div>
         <div className="flex flex-wrap gap-3">
+          {mismaAgencia && puedeCambiarEstado && accionEstado && <CambiarEstadoCuenta key={`${cuenta.idCuenta}-${accionEstado}`} cuenta={cuenta.idCuenta} accion={accionEstado} />}
           {cupos.ver && (
             <Button asChild variant="outline" size="lg" className="rounded-lg px-3">
               <Link to={`/cuentas/${cuenta.idCuenta}/cupos`}>
