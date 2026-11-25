@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/shared/api'
 import {
   accionesEstado,
+  AVISO_SOBRE_PIN,
   admiteRegenerarPin,
   admiteSobrePin,
   armarMotivoBloqueo,
@@ -144,8 +145,11 @@ describe('mensajes', () => {
     expect(formatearFechaHora('2026-11-17T10:15:00-05:00')).toContain('10:15')
   })
 
-  it('al aprobar una de débito avisa que el sobre de PIN ya se puede descargar', () => {
-    expect(mensajeCambioEstado('Aprobada', { tipoTarjeta: 'Debito' }, fecha)).toContain('sobre de PIN')
+  it('al aprobar una de débito avisa del sobre de PIN sin darlo por hecho', () => {
+    const mensaje = mensajeCambioEstado('Aprobada', { tipoTarjeta: 'Debito', estadoActual: 'Generada' }, fecha)
+    expect(mensaje).toContain('pasó a Generada')
+    expect(mensaje).toContain(AVISO_SOBRE_PIN)
+    expect(AVISO_SOBRE_PIN).not.toMatch(/ya se puede descargar/)
     expect(mensajeCambioEstado('Aprobada', { tipoTarjeta: 'Credito' }, fecha)).not.toContain('sobre de PIN')
     expect(mensajeCambioEstado('Bloqueada', { tipoTarjeta: 'Debito' }, fecha)).toContain('Bloqueada')
   })

@@ -8,6 +8,7 @@ import {
   formatearFechaCorta,
   formatearFechaLarga,
   formatearHoraCorte,
+  MENSAJE_CALENDARIO_SIN_FECHAS,
   MENSAJE_FECHA_SIN_CALENDARIO,
   mensajeErrorFechaContable,
   sumarDias,
@@ -115,5 +116,6 @@ describe('errores', () => {
     expect(mensajeErrorFechaContable(new ApiError('x', 400, 'FECHA_INVALIDA'))).toMatch(/no es válida/)
     expect(mensajeErrorFechaContable(new ApiError('x', 403, 'http_403'))).toMatch(/Tu rol/)
     expect(mensajeErrorFechaContable(new ApiError('Falló', 500, 'ERROR'))).toBe('Falló')
+    expect(mensajeErrorFechaContable(new ApiError('x', 500, 'CALENDARIO_SIN_FECHA'))).toBe(MENSAJE_CALENDARIO_SIN_FECHAS)
   })
 })

@@ -91,10 +91,15 @@ export const esFechaFueraDelCalendario = (error: ApiError) => error.status === 4
 export const MENSAJE_FECHA_SIN_CALENDARIO =
   'Esa fecha no está en el calendario contable: no se puede operar en ella hasta generarlo.'
 
+/** 500 CALENDARIO_SIN_FECHA: el calendario no tiene fechas cargadas para el período (CON-02) */
+export const MENSAJE_CALENDARIO_SIN_FECHAS =
+  'El calendario contable no tiene fechas cargadas para este período. Hay que generarlo antes de operar.'
+
 /** Mensaje de error al consultar una fecha del calendario */
 export function mensajeErrorFechaContable(error: ApiError) {
   if (esFechaFueraDelCalendario(error)) return MENSAJE_FECHA_SIN_CALENDARIO
   if (error.status === 400) return 'La fecha no es válida. Revisa el día, el mes y el año.'
   if (error.status === 403) return 'Tu rol no tiene acceso a la fecha contable.'
+  if (error.code === 'CALENDARIO_SIN_FECHA') return MENSAJE_CALENDARIO_SIN_FECHAS
   return error.message
 }
