@@ -165,12 +165,18 @@ export function formatearFechaHora(valor: Date | string) {
   return Number.isNaN(fecha.getTime()) ? String(valor) : FECHA_HORA.format(fecha)
 }
 
-/** Confirmación tras TAR-04; al aprobar una de débito ya existe su sobre de PIN */
+/**
+ * Aviso tras generar un PIN de débito. El back sólo arma el sobre si tiene almacén configurado
+ * (si no, aprueba igual y no hay sobre), y la respuesta no dice cuál de los dos pasó: no se
+ * promete el sobre; si no existe, la descarga responde SOBRE_PIN_NO_DISPONIBLE.
+ */
+export const AVISO_SOBRE_PIN =
+  'Descarga el sobre de PIN para entregárselo al cliente; si el servidor no lo generó, te lo indicará.'
+
+/** Confirmación tras TAR-04; al aprobar una de débito se intenta generar su sobre de PIN */
 export function mensajeCambioEstado(destino: EstadoTarjeta, tarjeta: Pick<Tarjeta, 'tipoTarjeta'>, fecha: Date) {
   const base = `La tarjeta pasó a ${destino} el ${formatearFechaHora(fecha)}.`
-  return destino === 'Aprobada' && tarjeta.tipoTarjeta === 'Debito'
-    ? `${base} El sobre de PIN ya se puede descargar.`
-    : base
+  return destino === 'Aprobada' && tarjeta.tipoTarjeta === 'Debito' ? `${base} ${AVISO_SOBRE_PIN}` : base
 }
 
 export const SOBRE_YA_DESCARGADO = 'Este sobre ya se descargó. Si el cliente no lo recibió, regenera el PIN.'

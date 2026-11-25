@@ -18,6 +18,7 @@ import {
   type AccionTarjeta,
   admiteRegenerarPin,
   admiteSobrePin,
+  AVISO_SOBRE_PIN,
   formatearFechaHora,
   mensajeErrorAccionTarjeta,
 } from '@/features/tarjetas/lib/acciones-tarjeta'
@@ -101,7 +102,7 @@ function RegenerarPin({ tarjeta, onCancelar, onTerminado }: PasoProps) {
     regenerar.mutate(undefined, {
       onSuccess: () => {
         const base = `El PIN se regeneró el ${formatearFechaHora(new Date())}.`
-        onTerminado(debito ? `${base} El sobre de PIN nuevo ya se puede descargar.` : base)
+        onTerminado(debito ? `${base} ${AVISO_SOBRE_PIN}` : base)
       },
     })
 
