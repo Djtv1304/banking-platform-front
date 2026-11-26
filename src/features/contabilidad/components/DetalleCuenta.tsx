@@ -14,7 +14,7 @@ import {
 interface DetalleCuentaProps {
   nodo: NodoCuenta
   padre: NodoCuenta | undefined
-  /** Acciones de mantenimiento (solo CONTADOR y ADMIN) */
+  /** Acciones de mantenimiento (funciones contabilidad.cuentas.*; por defecto, CONTADOR) */
   acciones?: ReactNode
 }
 

@@ -12,7 +12,7 @@ interface AccionesCuentaProps {
   onAccion: (tipo: TipoAccion) => void
 }
 
-/** Acciones de CONTADOR y ADMIN. Una acción bloqueada queda deshabilitada con su motivo debajo */
+/** Acciones de quien tenga las funciones contabilidad.cuentas.editar y .eliminar (por defecto, CONTADOR). Una acción bloqueada queda deshabilitada con su motivo debajo */
 export function AccionesCuenta({ nodo, onAccion }: AccionesCuentaProps) {
   const { cuenta } = nodo
   const bloqueos = bloqueosCuenta(cuenta, nodo.hijos.length > 0)
