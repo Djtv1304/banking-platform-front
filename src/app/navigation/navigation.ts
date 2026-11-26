@@ -1,4 +1,4 @@
-import { SlidersHorizontal, ClipboardCheck, Building2, BookOpenText, Calculator, CalendarDays, CreditCard, Files, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, Vault, WalletCards, type LucideIcon } from 'lucide-react'
+import { SlidersHorizontal, ClipboardCheck, Building2, BookOpenText, Calculator, CalendarDays, CreditCard, FilePlus, Files, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, Vault, WalletCards, type LucideIcon } from 'lucide-react'
 
 import { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
 import { ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
@@ -76,7 +76,17 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   },
   {
     title: 'Tarjetas',
-    items: [{ to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas, roles: TARJETAS_ROLES.consultar }],
+    items: [
+      { to: '/tarjetas', label: 'Consultar tarjetas', Icon: CreditCard, profiles: ROUTE_ACCESS.consultarTarjetas, roles: TARJETAS_ROLES.consultar },
+      {
+        to: '/solicitar-tarjeta',
+        label: 'Solicitar tarjeta',
+        Icon: FilePlus,
+        profiles: ROUTE_ACCESS.solicitarTarjeta,
+        roles: ['ADMIN', 'ASESOR'],
+        permiso: PERMISOS.tarjetasEmitir,
+      },
+    ],
   },
   {
     title: 'Tesorería',
@@ -190,7 +200,7 @@ export interface PestanaConfigurable {
 
 /** Pestañas que un ADMIN puede personalizar, con los roles que las ven por defecto. */
 export function getPestanasConfigurables(): PestanaConfigurable[] {
-  const menu = NAV_SECTIONS.flatMap((section) =>
+  return NAV_SECTIONS.flatMap((section) =>
     section.items
       .filter((item) => !item.capacidad && !PESTANAS_FIJAS.includes(item.to))
       .map((item) => ({
@@ -201,8 +211,6 @@ export function getPestanasConfigurables(): PestanaConfigurable[] {
         requiereAccion: Boolean(item.permiso),
       })),
   )
-  // Existe como ruta de operación, aunque no tenga entrada propia en el menú lateral.
-  return [...menu, { to: '/solicitar-tarjeta', label: 'Solicitar tarjeta', seccion: 'Tarjetas', rolesPorDefecto: ['ADMIN', 'ASESOR'], requiereAccion: true }]
 }
 
 /** Opciones del menú para un rol reconocido. No sustituye la autorización de las APIs. */
