@@ -57,7 +57,9 @@ describe('mensajes de la ventanilla', () => {
     const incierta = new ApiError('No pudimos confirmar la apertura de la jornada.', 200, 'sin_confirmar')
     expect(operacionSinConfirmar(incierta)).toBe(true)
     expect(operacionSinConfirmar(new ApiError('x', 409, 'CAJA_EN_USO'))).toBe(false)
-    expect(mensajeErrorCaja(incierta, 'abrir la jornada')).toMatch(/Actualiza la pantalla/)
+    expect(mensajeErrorCaja(incierta, 'abrir la jornada', true)).toMatch(/Actualiza la pantalla/)
+    expect(mensajeErrorCaja(new ApiError('Network Error', null, 'network'), 'abrir la jornada', true)).toMatch(/Actualiza la pantalla/)
+    expect(mensajeErrorCaja(new ApiError('trace interno', 503, 'http_503'), 'consultar tu jornada')).not.toMatch(/trace/)
   })
 })
 

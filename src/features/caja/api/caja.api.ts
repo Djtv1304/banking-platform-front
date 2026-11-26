@@ -81,18 +81,28 @@ const MENSAJES_CODIGO: Record<string, string> = {
   SIN_JORNADA_ABIERTA: 'No tienes una jornada abierta.',
   JORNADA_NO_ENCONTRADA: 'No encontramos la jornada. Puede que ya no exista o que no sea tuya.',
   USUARIO_INTERNO_NO_VINCULADO: 'Tu usuario todavía no está habilitado para operar en caja. Pide a quien administra los accesos que lo vincule.',
+  USUARIO_NO_REGISTRADO: 'Tu usuario todavía no está registrado en la cooperativa. Pide a quien administra los accesos que lo habilite.',
+  AGENCIA_NO_ASIGNADA: 'No tienes una agencia asignada. Pide a tu supervisor que te asigne a una.',
+  SIN_ACCESO_AGENCIA: 'No tienes acceso a la agencia de esa ventanilla. Pide a tu supervisor que revise tu asignación.',
+  CONTEXTO_AGENCIA_DESACTUALIZADO: 'Cambió tu agencia de trabajo. Recarga la pantalla y vuelve a intentarlo.',
 }
 
-/** Mensaje de un error de la ventanilla. `que` completa «Tu rol no tiene permiso para …» */
-export function mensajeErrorCaja(error: unknown, que: string) {
+/**
+ * Mensaje de un error de la ventanilla. `que` completa «Tu rol no tiene permiso para …»; `escritura`
+ * avisa que, sin respuesta clara, no se sabe si la operación quedó hecha.
+ */
+export function mensajeErrorCaja(error: unknown, que: string, escritura = false) {
   const e = toApiError(error)
   const porCodigo = MENSAJES_CODIGO[e.code]
   if (porCodigo) return porCodigo
   if (e.status === 403) return `Tu rol no tiene permiso para ${que}.`
   if (e.status === 429) return 'Hiciste demasiados intentos seguidos. Espera un momento y vuelve a intentarlo.'
-  if (operacionSinConfirmar(error) && e.code === SIN_CONFIRMAR) {
-    return 'No pudimos confirmar si la jornada quedó abierta. Actualiza la pantalla y revisa antes de volver a intentarlo.'
+  if (operacionSinConfirmar(error)) {
+    return escritura
+      ? 'No pudimos confirmar si la jornada quedó abierta. Actualiza la pantalla y revisa antes de volver a intentarlo.'
+      : 'No pudimos conectar con el servidor. Inténtalo de nuevo en un momento.'
   }
   if ((e.status === 400 || e.status === 422) && e.fields.length > 0) return 'Revisa los campos marcados.'
+  // 409 u otros 4xx traen un detalle legible del backend
   return e.message
 }

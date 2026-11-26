@@ -19,7 +19,7 @@ export function VentanillaPage() {
 
   const contenido = (() => {
     if (jornada.isPending) return <Cargando texto="Buscando tu jornada…" />
-    if (jornada.isError) {
+    if (jornada.data === undefined) {
       return (
         <Aviso tono="error">
           {mensajeErrorCaja(jornada.error, 'consultar tu jornada de caja')}

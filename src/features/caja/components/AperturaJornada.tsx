@@ -37,7 +37,7 @@ export function AperturaJornada() {
       setFaltaCaja(true)
       return
     }
-    if (errorObservacion && !errorApi) return
+    if (errorObservacion) return
     const texto = observacion.trim()
     abrir.mutate({ idCajaFisica: Number(idCaja), dineroInicial: 0, ...(texto ? { observacion: texto } : {}) })
   }
@@ -120,7 +120,10 @@ export function AperturaJornada() {
             maxLength={OBSERVACION_MAXIMA}
             aria-invalid={!!errorObservacion}
             aria-describedby={errorObservacion ? 'apertura-observacion-error' : undefined}
-            onChange={(event) => setObservacion(event.target.value)}
+            onChange={(event) => {
+              setObservacion(event.target.value)
+              abrir.reset()
+            }}
           />
           {errorObservacion && (
             <p id="apertura-observacion-error" className="text-sm text-destructive">
@@ -129,7 +132,7 @@ export function AperturaJornada() {
           )}
         </div>
 
-        {abrir.isError && <Aviso tono="error">{mensajeErrorCaja(abrir.error, 'abrir la jornada')}</Aviso>}
+        {abrir.isError && <Aviso tono="error">{mensajeErrorCaja(abrir.error, 'abrir la jornada', true)}</Aviso>}
 
         <Button type="submit" disabled={abrir.isPending || cajas.isPending || cajas.isError} className="w-fit">
           <DoorOpen />
