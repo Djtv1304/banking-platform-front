@@ -20,6 +20,7 @@ const BASE = '/api/v1/clientes'
 export const CLIENTES_ENDPOINTS = {
   /** CLI-01 · POST para registrar */
   registrar: BASE,
+  reincorporar: `${BASE}/reincorporaciones`,
   buscar: `${BASE}/busqueda`,
   exportar: `${BASE}/busqueda/exportacion`,
   detalle: (idCliente: number) => `${BASE}/${idCliente}`,

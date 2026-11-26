@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ApiError, apiClient, toApiError } from '@/shared/api'
+import { aceptadaSchema, ApiError, apiClient, toApiError } from '@/shared/api'
 import { CLIENTES_ENDPOINTS, clienteSchema } from '@/features/clientes/api/clientes.contract'
 import type { RegistroClienteData } from '@/features/clientes/schemas/registro-cliente.schema'
 import { esCedulaValida, esPasaporteValido } from '@/features/clientes/lib/identificacion'
@@ -27,6 +27,8 @@ export const clienteCreateSchema = z.object({
   if (!valida) ctx.addIssue({ code: 'custom', path: ['identificacion'], message: 'El documento no cumple el formato de su tipo.' })
 })
 
+export type ClienteCreatePayload = z.infer<typeof clienteCreateSchema>
+
 export function aClienteCreate(registro: RegistroClienteData) {
   if (registro.cliente.tipoCliente !== 'NATURAL') throw new ApiError('El registro de empresas está pendiente de acordar con backend.', 400, 'JURIDICO_PENDIENTE')
   if (registro.direcciones.length !== 1 || !registro.direcciones[0].esPrincipal) throw new ApiError('Registra una sola dirección principal. Las adicionales se gestionan después.', 400, 'DIRECCION_PRINCIPAL_REQUERIDA')
@@ -49,11 +51,29 @@ export async function registrarCliente(registro: RegistroClienteData) {
   return respuesta.data
 }
 
+export async function reincorporarCliente(datos: RegistroClienteData | ClienteCreatePayload) {
+  const payload = 'cliente' in datos ? aClienteCreate(datos) : clienteCreateSchema.parse(datos)
+  const { data, status } = await apiClient.post<unknown>(CLIENTES_ENDPOINTS.reincorporar, payload)
+  if (status !== 202) {
+    throw new ApiError('No pudimos leer la respuesta del servidor.', status, 'respuesta_invalida')
+  }
+  const respuesta = aceptadaSchema.safeParse(data)
+  if (!respuesta.success) {
+    throw new ApiError('No pudimos leer la respuesta del servidor.', status, 'respuesta_invalida')
+  }
+  return respuesta.data
+}
+
 export function errorRegistro(error: unknown) {
   if (error instanceof z.ZodError) return 'Revisa los campos del formulario: los datos no coinciden con el formato requerido. No se envió el registro.'
   const e = toApiError(error)
   const mensajes: Record<string, string> = {
     CLIENTE_DUPLICADO: 'Ya existe un cliente con esa identificación. Búscalo en Consultar clientes.',
+    CLIENTE_ELIMINADO: 'Esta persona fue cliente y está eliminada. Puedes solicitar su reincorporación.',
+    CLIENTE_NO_ELIMINADO: 'El cliente no está eliminado; no se puede solicitar su reincorporación.',
+    CLIENTE_NO_ENCONTRADO: 'No se encontró un cliente con esa identificación.',
+    DATOS_NO_COINCIDEN: 'El tipo de cliente o de documento no coincide con el registrado.',
+    REINCORPORACION_PENDIENTE: 'Ya existe una solicitud de reincorporación pendiente para este cliente.',
     DOCUMENTO_INVALIDO: 'El backend rechazó el documento. Revisa la identificación del primer paso.',
     FECHA_NACIMIENTO_INVALIDA: 'La fecha de nacimiento debe ser anterior a hoy.',
     CONSENTIMIENTO_REQUERIDO: 'Confirma el consentimiento para registrar al cliente.',

@@ -5,13 +5,15 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CircleCheck, UserPlus } from 'lucide-react'
 
-import { Aviso, Button } from '@/shared/ui'
-import { registrarCliente, errorRegistro } from '@/features/clientes/api/registro-cliente'
+import { Aviso, AvisoRequiereAprobacion, Button } from '@/shared/ui'
+import { toApiError } from '@/shared/api'
+import { registrarCliente, reincorporarCliente, errorRegistro } from '@/features/clientes/api/registro-cliente'
 import type { Cliente } from '@/features/clientes/api/clientes.contract'
 import { RegistroStepper, type Paso } from '@/features/clientes/components/RegistroStepper'
 import { DatosClienteStep } from '@/features/clientes/components/steps/DatosClienteStep'
 import { DireccionesStep } from '@/features/clientes/components/steps/DireccionesStep'
 import { ActividadEconomicaStep } from '@/features/clientes/components/steps/ActividadEconomicaStep'
+import { MENSAJE_CLIENTE_ELIMINADO } from '@/features/clientes/lib/reincorporacion'
 import {
   ACTIVIDAD_VACIA,
   actividadSchema,
@@ -34,14 +36,28 @@ const PASOS = [
   { titulo: 'Actividad económica', descripcion: 'Actividad y consentimiento' },
 ] as const satisfies readonly Paso[]
 
+export interface RegistroClienteWizardProps {
+  initialError?: unknown
+  initialIdSolicitud?: number | null
+  initialPayload?: RegistroClienteData | null
+}
+
 /**
  * Un formulario por paso. Los tres viven aquí (no en cada paso) para conservar lo escrito al ir
  * y volver entre pasos; cada paso valida solo su esquema antes de avanzar.
  */
-export function RegistroClienteWizard() {
+export function RegistroClienteWizard({
+  initialError,
+  initialIdSolicitud = null,
+  initialPayload = null,
+}: RegistroClienteWizardProps = {}) {
   const [paso, setPaso] = useState(0)
   const [alcanzado, setAlcanzado] = useState(0)
   const [registro, setRegistro] = useState<Cliente | null>(null)
+  const [errorExterno, setErrorExterno] = useState<unknown>(initialError)
+  const [idSolicitudReincorporacion, setIdSolicitudReincorporacion] = useState<number | null>(initialIdSolicitud)
+  const [ultimoPayload, setUltimoPayload] = useState<RegistroClienteData | null>(initialPayload)
+
   const cache = useQueryClient()
   const guardado = useMutation({
     mutationFn: registrarCliente,
@@ -51,6 +67,19 @@ export function RegistroClienteWizard() {
       await cache.invalidateQueries({ queryKey: ['clientes', 'busqueda'] })
     },
   })
+
+  const reincorporacion = useMutation({
+    mutationFn: reincorporarCliente,
+    retry: false,
+    onSuccess: (solicitud) => {
+      setIdSolicitudReincorporacion(solicitud.idSolicitud)
+    },
+  })
+
+  const errorActivo = guardado.error ?? errorExterno
+  const errorGuardado = errorActivo ? toApiError(errorActivo) : null
+  const esClienteEliminado = errorGuardado?.code === 'CLIENTE_ELIMINADO'
+
   const inicioRef = useRef<HTMLDivElement>(null)
 
   const datosForm = useForm<DatosClienteInput, unknown, DatosClienteData>({
@@ -73,7 +102,7 @@ export function RegistroClienteWizard() {
   }
 
   const registrar = async (actividad: ActividadData) => {
-    if (guardado.isPending) return
+    if (guardado.isPending || reincorporacion.isPending) return
     // Si se editó un paso anterior desde el indicador, se vuelve a validar antes de enviar
     if (!(await datosForm.trigger())) return irA(0)
     if (!(await direccionesForm.trigger())) return irA(1)
@@ -82,6 +111,10 @@ export function RegistroClienteWizard() {
       cliente: { ...datosClienteSchema.parse(datosForm.getValues()), ...actividad },
       direcciones: direccionesSchema.parse(direccionesForm.getValues()).direcciones,
     }
+    setUltimoPayload(solicitud)
+    setErrorExterno(null)
+    setIdSolicitudReincorporacion(null)
+    reincorporacion.reset()
     try {
       const cliente = await guardado.mutateAsync(solicitud)
       setRegistro(cliente)
@@ -91,19 +124,39 @@ export function RegistroClienteWizard() {
     }
   }
 
+  const solicitarReincorporacion = async () => {
+    if (reincorporacion.isPending) return
+    const payload = ultimoPayload ?? {
+      cliente: { ...datosClienteSchema.parse(datosForm.getValues()), ...actividadSchema.parse(actividadForm.getValues()) },
+      direcciones: direccionesSchema.parse(direccionesForm.getValues()).direcciones,
+    }
+    try {
+      const solicitud = await reincorporacion.mutateAsync(payload)
+      setIdSolicitudReincorporacion(solicitud.idSolicitud)
+    } catch {
+      // El error de la reincorporación se muestra en pantalla.
+    }
+  }
+
   const nuevoRegistro = () => {
     datosForm.reset(DATOS_CLIENTE_VACIOS)
     direccionesForm.reset(DIRECCIONES_VACIAS)
     actividadForm.reset(ACTIVIDAD_VACIA)
     setRegistro(null)
     guardado.reset()
+    reincorporacion.reset()
+    setErrorExterno(null)
+    setIdSolicitudReincorporacion(null)
+    setUltimoPayload(null)
     setAlcanzado(0)
     irA(0)
   }
 
+  const ocupado = guardado.isPending || reincorporacion.isPending
+
   return (
     <div ref={inicioRef} className="flex scroll-mt-6 flex-col gap-8">
-      <fieldset disabled={guardado.isPending} className="flex min-w-0 flex-col gap-8" aria-busy={guardado.isPending}>
+      <fieldset disabled={ocupado} className="flex min-w-0 flex-col gap-8" aria-busy={ocupado}>
       <RegistroStepper pasos={PASOS} actual={paso} alcanzado={alcanzado} onSelect={irA} />
 
       <section className="rounded-3xl border border-border bg-card p-6 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-10">
@@ -111,7 +164,47 @@ export function RegistroClienteWizard() {
         {paso === 1 && <DireccionesStep form={direccionesForm} onBack={() => irA(0)} onNext={() => irA(2)} />}
         {paso === 2 && <ActividadEconomicaStep form={actividadForm} onBack={() => irA(1)} onSubmit={registrar} />}
         {guardado.isPending && <p role="status" className="mt-4 text-sm text-muted-foreground">Guardando cliente…</p>}
-        {guardado.isError && !registro && <div className="mt-6"><Aviso tono="error">{errorRegistro(guardado.error)}<Link to="/clientes-busqueda" className="font-semibold underline">Consultar clientes</Link></Aviso></div>}
+        {reincorporacion.isPending && <p role="status" className="mt-4 text-sm text-muted-foreground">Solicitando reincorporación…</p>}
+
+        {idSolicitudReincorporacion !== null && (
+          <div className="mt-6">
+            <AvisoRequiereAprobacion idSolicitud={idSolicitudReincorporacion} />
+          </div>
+        )}
+
+        {esClienteEliminado && idSolicitudReincorporacion === null && (
+          <div className="mt-6">
+            <Aviso tono="info">
+              <p>{MENSAJE_CLIENTE_ELIMINADO}</p>
+              <div>
+                <Button
+                  type="button"
+                  onClick={solicitarReincorporacion}
+                  disabled={ocupado}
+                >
+                  Solicitar reincorporación
+                </Button>
+              </div>
+            </Aviso>
+            {reincorporacion.isError && (
+              <div className="mt-4">
+                <Aviso tono="error">{errorRegistro(reincorporacion.error)}</Aviso>
+              </div>
+            )}
+          </div>
+        )}
+
+        {Boolean(errorActivo) && !esClienteEliminado && !registro && (
+          <div className="mt-6">
+            <Aviso tono="error">
+              {errorRegistro(errorActivo)}
+              <Link to="/clientes-busqueda" className="font-semibold underline">
+                Consultar clientes
+              </Link>
+            </Aviso>
+          </div>
+        )}
+
         {registro && <RegistroCompletado registro={registro} onNuevo={nuevoRegistro} />}
       </section>
       </fieldset>
