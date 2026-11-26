@@ -40,7 +40,7 @@ describe('E5-05 · revelación auditada con MFA', () => {
 
   it('explica cada error y pide un código nuevo solo con MFA_INVALIDO', () => {
     expect(errorRevelacion(new ApiError('x', 409, 'MFA_NO_CONFIGURADO'))).toMatchObject({ mensaje: expect.stringContaining('app de autenticación'), nuevoCodigo: false })
-    expect(errorRevelacion(new ApiError('x', 403, 'MFA_INVALIDO'))).toEqual({ mensaje: expect.stringContaining('código nuevo'), nuevoCodigo: true })
+    expect(errorRevelacion(new ApiError('x', 422, 'MFA_INVALIDO'))).toEqual({ mensaje: expect.stringContaining('código nuevo'), nuevoCodigo: true })
     expect(errorRevelacion(new ApiError('x', 429, 'http_429')).mensaje).toContain('Espera un minuto')
     expect(errorRevelacion(new ApiError('x', 503, 'MFA_NO_DISPONIBLE')).mensaje).toContain('no está disponible')
     expect(errorRevelacion(new ApiError('Sin permiso', 403, 'SIN_PERMISO')).mensaje).toBe('Sin permiso')

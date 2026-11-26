@@ -8,7 +8,7 @@ import { ApiError, apiClient } from '@/shared/api'
  * - POST /clientes/{id}/revelacion/desafio (sin body) → `{ idDesafio, expiraEn }`.
  *   409 MFA_NO_CONFIGURADO, 503 MFA_NO_DISPONIBLE.
  * - POST /clientes/{id}/revelacion `{ campos, idDesafio, codigo }` → solo los campos pedidos; el resto null.
- *   403 MFA_INVALIDO (hay que pedir otro desafío), 429 con más de 5 por minuto.
+ *   422 MFA_INVALIDO (hay que pedir otro desafío), 429 con más de 5 por minuto.
  *
  * Roles: ASESOR, SUPERVISOR y ADMIN (función `clientes.verSensible`). El backend audita cada intento.
  * El resultado nunca pasa por la caché de TanStack Query ni por el almacenamiento del navegador:
