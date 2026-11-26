@@ -20,14 +20,15 @@ export type CampoRevelable = (typeof CAMPOS_REVELABLES)[number]
 
 const base = (idCliente: number) => `/api/v1/clientes/${idCliente}/revelacion`
 
-const desafioSchema = z.object({ idDesafio: z.string().min(1), expiraEn: z.string().nullable() })
+// requiereCodigo=false mientras el backend tenga REVELACION_EXIGE_MFA apagado (pendiente E5-05)
+const desafioSchema = z.object({ idDesafio: z.string().min(1).nullable(), expiraEn: z.string().nullable(), requiereCodigo: z.boolean().default(true) })
 export type Desafio = z.infer<typeof desafioSchema>
 
 export const revelacionBodySchema = z.strictObject({
   campos: z.array(z.enum(CAMPOS_REVELABLES)).min(1).max(5)
     .refine((campos) => new Set(campos).size === campos.length, 'No repitas campos.'),
-  idDesafio: z.string().min(1),
-  codigo: z.string().regex(/^\d{6}$/, 'El código tiene 6 dígitos.'),
+  idDesafio: z.string().min(1).optional(),
+  codigo: z.string().regex(/^\d{6}$/, 'El código tiene 6 dígitos.').optional(),
 })
 export type RevelacionBody = z.input<typeof revelacionBodySchema>
 

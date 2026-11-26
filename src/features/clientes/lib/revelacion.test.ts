@@ -33,3 +33,12 @@ describe('E5-05 · estados de la revelación', () => {
     expect(revelacionReducer(REVELACION_INICIAL, { tipo: 'desafio', idDesafio: 'd2' })).toEqual(REVELACION_INICIAL)
   })
 })
+
+describe('MFA apagado (pendiente E5-05)', () => {
+  it('sin código pasa de pidiendo a verificando y luego muestra el valor', () => {
+    const pidiendo = revelacionReducer(REVELACION_INICIAL, { tipo: 'abrir' })
+    const verificando = revelacionReducer(pidiendo, { tipo: 'sinCodigo' })
+    expect(verificando.fase).toBe('verificando')
+    expect(revelacionReducer(REVELACION_INICIAL, { tipo: 'sinCodigo' })).toBe(REVELACION_INICIAL)
+  })
+})

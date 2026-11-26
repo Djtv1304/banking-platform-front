@@ -10,8 +10,13 @@ afterEach(() => vi.restoreAllMocks())
 describe('E5-05 · revelación auditada con MFA', () => {
   it('pide el desafío sin cuerpo', async () => {
     const post = vi.spyOn(apiClient, 'post').mockResolvedValue(respuesta({ idDesafio: 'abc', expiraEn: null }))
-    await expect(pedirDesafioRevelacion(42)).resolves.toEqual({ idDesafio: 'abc', expiraEn: null })
+    await expect(pedirDesafioRevelacion(42)).resolves.toEqual({ idDesafio: 'abc', expiraEn: null, requiereCodigo: true })
     expect(post).toHaveBeenCalledWith('/api/v1/clientes/42/revelacion/desafio')
+  })
+
+  it('con el MFA apagado en el backend no hay desafío ni código', async () => {
+    vi.spyOn(apiClient, 'post').mockResolvedValue(respuesta({ idDesafio: null, expiraEn: null, requiereCodigo: false }))
+    await expect(pedirDesafioRevelacion(42)).resolves.toEqual({ idDesafio: null, expiraEn: null, requiereCodigo: false })
   })
 
   it('rechaza un desafío con forma inesperada', async () => {

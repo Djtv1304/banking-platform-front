@@ -21,6 +21,8 @@ export type AccionRevelacion =
   | { tipo: 'desafio'; idDesafio: string }
   | { tipo: 'codigo'; valor: string }
   | { tipo: 'verificar' }
+  /** El backend no exige código (MFA apagado): se revela directo */
+  | { tipo: 'sinCodigo' }
   | { tipo: 'revelado'; datos: Revelacion }
   | { tipo: 'fallo'; mensaje: string; nuevoCodigo: boolean }
   | { tipo: 'ocultar' }
@@ -38,6 +40,8 @@ export function revelacionReducer(estado: EstadoRevelacion, accion: AccionRevela
       return estado.fase === 'pidiendo' ? { ...estado, fase: 'codigo', idDesafio: accion.idDesafio } : estado
     case 'codigo':
       return { ...estado, codigo: accion.valor.replace(/\D/g, '').slice(0, 6) }
+    case 'sinCodigo':
+      return estado.fase === 'pidiendo' ? { ...estado, fase: 'verificando' } : estado
     case 'verificar':
       return estado.fase === 'codigo' && estado.idDesafio && codigoValido(estado.codigo)
         ? { ...estado, fase: 'verificando', error: null }
