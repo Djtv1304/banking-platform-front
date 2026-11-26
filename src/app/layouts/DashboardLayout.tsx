@@ -70,7 +70,7 @@ export function DashboardLayout() {
       <aside
         className={cn(
           'flex shrink-0 flex-col print:hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200',
-          collapsed ? 'w-16' : 'w-60',
+          collapsed ? 'w-16' : 'w-[min(15rem,35vw)] sm:w-60',
         )}
       >
         <div className={cn('flex h-14 items-center gap-2 px-3', collapsed ? 'justify-center' : 'justify-between')}>
