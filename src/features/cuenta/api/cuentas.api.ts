@@ -24,11 +24,10 @@ async function getValidado<T extends z.ZodType>(url: string, schema: T, params?:
 
 /** CLI-03 · `null` si no hay un cliente con esa identificación */
 export async function buscarIdCliente(identificacion: string) {
-  const page = await getValidado(CUENTAS_ENDPOINTS.clientes, pageSchema(clienteSchema), {
-    identificacion,
-    pageSize: '1',
-  })
-  return page.items[0]?.idCliente ?? null
+  const { data, status } = await apiClient.post<unknown>(CUENTAS_ENDPOINTS.clientes, { identificacion, pageSize: 1 })
+  const result = pageSchema(clienteSchema).safeParse(data)
+  if (!result.success) throw new ApiError(RESPUESTA_INVALIDA, status, 'respuesta_invalida')
+  return result.data.items[0]?.idCliente ?? null
 }
 
 /** CTA-02 · `params` ya viene sin filtros vacíos (ver `armarParametros`) */

@@ -6,7 +6,8 @@ import { z } from 'zod'
  * - CTA-02 GET /cuentas?idCliente&numeroCuenta&estado&idAgencia&page&pageSize → búsqueda paginada, sin saldos
  * - CTA-03 GET /cuentas/{idCuenta}       → detalle de la cuenta en cualquier estado
  * - CTA-04 GET /cuentas/{idCuenta}/saldo → saldo, retenido y disponible (los tres en 0 si está CERRADA)
- * - CLI-03 GET /clientes?identificacion=… → el `idCliente` para filtrar por cliente
+ * - CLI-03 POST /clientes/busqueda `{ identificacion }` → el `idCliente` para filtrar por cliente (E5-05:
+ *   la identificación va en el cuerpo, nunca en la URL)
  *
  * Roles: ASESOR, CAJERO, SUPERVISOR y ADMIN. Los filtros de CTA-02 son de igualdad exacta e
  * `idAgencia` debe tener exactamente 3 caracteres (otro largo → 400). El dinero llega como
@@ -19,7 +20,7 @@ export const CUENTAS_ENDPOINTS = {
   buscar: `${BASE}/cuentas`,
   detalle: (idCuenta: number) => `${BASE}/cuentas/${idCuenta}`,
   saldo: (idCuenta: number) => `${BASE}/cuentas/${idCuenta}/saldo`,
-  clientes: `${BASE}/clientes`,
+  clientes: `${BASE}/clientes/busqueda`,
 } as const
 
 export const ESTADOS_CUENTA = ['ACTIVA', 'INACTIVA', 'BLOQUEADA', 'CERRADA', 'PendienteDeposito', 'Anulada'] as const

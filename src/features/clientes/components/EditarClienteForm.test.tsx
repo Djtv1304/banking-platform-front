@@ -10,9 +10,9 @@ vi.mock('@/features/catalogos', () => ({
 }))
 
 const natural: Cliente = {
-  idCliente: 1042, identificacion: '1710034065', tipoDocumento: 'C', tipoCliente: 'Natural', nombres: 'María', apellidos: 'Pérez',
+  idCliente: 1042, identificacion: '******4065', tipoDocumento: 'C', tipoCliente: 'Natural', nombres: 'María', apellidos: 'Pérez',
   razonSocial: null, nombreComercial: null, estadoCivil: 'Soltero', idActividadEconomica: null, estado: 'Activo',
-  email: 'maria@example.test', telefonoCelular: '0991234567', telefonoConvencional: null, fechaNacimiento: '1992-05-14',
+  email: 'm***@example.test', telefonoCelular: '******4567', telefonoConvencional: '******2345', fechaNacimiento: '1992-05-14',
   fechaRegistro: '2026-11-06T10:00:00Z', direcciones: [], emailVerificado: true,
 }
 
@@ -60,5 +60,20 @@ describe('E5-04 · edición por sección', () => {
     const botones = render(natural).match(/<button[^>]*type="submit"[^>]*>/g) ?? []
     expect(botones).toHaveLength(2)
     for (const boton of botones) expect(boton).toContain('disabled')
+  })
+
+  it('E5-05 · documento, correo y teléfonos empiezan vacíos con la máscara de placeholder y sin required', () => {
+    const html = render(natural)
+    for (const [campo, mascara] of [['identificacion', '******4065'], ['email', 'm***@example.test'], ['telefonoCelular', '******4567'], ['telefonoConvencional', '******2345']]) {
+      const input = html.match(new RegExp(`<input[^>]*id="editar-${campo}"[^>]*>`))?.[0] ?? ''
+      expect(input).toContain('value=""')
+      expect(input).toContain(`placeholder="${mascara} · Escribe el nuevo valor para cambiarlo"`)
+      expect(input).not.toContain('required')
+    }
+    expect(html).not.toContain('value="******4065"')
+  })
+
+  it('los nombres siguen precargados', () => {
+    expect(render(natural)).toContain('value="María"')
   })
 })

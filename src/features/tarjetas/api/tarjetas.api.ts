@@ -31,11 +31,8 @@ async function getValidado<T extends z.ZodType>(url: string, schema: T, params: 
 
 /** CLI-03 · `null` si no hay un cliente con esa identificación */
 export async function buscarClientePorIdentificacion(identificacion: string) {
-  const page = await getValidado(TARJETAS_ENDPOINTS.clientes, pageSchema(clienteSchema), {
-    identificacion,
-    pageSize: '1',
-  })
-  return page.items[0] ?? null
+  const { data, status } = await apiClient.post<unknown>(TARJETAS_ENDPOINTS.clientes, { identificacion, pageSize: 1 })
+  return validar(pageSchema(clienteSchema), data, status).items[0] ?? null
 }
 
 /** CTA-02 · Todas las cuentas del cliente, en cualquier estado */
