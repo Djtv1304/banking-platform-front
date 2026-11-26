@@ -30,6 +30,13 @@ export function estadosPermitidos(actual: string) {
   return transiciones[actual] ?? []
 }
 
+/** E5-07 · Transiciones que requieren aprobación de otra persona (202) */
+export function requiereAprobacionEstado(actual: string, destino: string): boolean {
+  if (destino === 'Bloqueado' || destino === 'Eliminado') return true
+  if (destino === 'Activo' && actual === 'Bloqueado') return true
+  return false
+}
+
 /** E5-05 · Respaldo por rol mientras la autorización por funciones no esté activa */
 export function accesoDatosSensibles(roles: readonly string[], permisos: readonly string[] = []) {
   const normalizados = roles.map((rol) => rol.trim().toUpperCase())

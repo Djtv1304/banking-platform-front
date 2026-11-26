@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { accesoDatosSensibles, accesoGestionClientes, estadosPermitidos } from '@/features/clientes/lib/gestion-clientes'
+import { accesoDatosSensibles, accesoGestionClientes, estadosPermitidos, requiereAprobacionEstado } from '@/features/clientes/lib/gestion-clientes'
 import { leerDetalleHistorial } from '@/features/clientes/lib/historial'
 
 describe('E5-05: respaldo por rol de datos sensibles', () => {
@@ -41,15 +41,31 @@ describe('transiciones C-04', () => {
   })
 })
 
+describe('E5-07: transiciones que requieren aprobación', () => {
+  it.each([
+    ['Activo', 'Bloqueado', true],
+    ['Activo', 'Eliminado', true],
+    ['Bloqueado', 'Activo', true],
+    ['Bloqueado', 'Eliminado', true],
+    ['Inactivo', 'Eliminado', true],
+    ['Suspendido', 'Eliminado', true],
+    ['Activo', 'Inactivo', false],
+    ['Activo', 'Suspendido', false],
+    ['Inactivo', 'Activo', false],
+    ['Suspendido', 'Activo', false],
+  ] as const)('desde %s hacia %s requiereAprobacion=%s', (actual, destino, requiere) => {
+    expect(requiereAprobacionEstado(actual, destino)).toBe(requiere)
+  })
+})
+
 describe('historial con formato actual y legado', () => {
   it('muestra el valor nuevo y el motivo de un registro v1', () => {
     expect(leerDetalleHistorial('{"v":1,"valorAnterior":"A","valorNuevo":"B","motivo":"Corrección"}')).toEqual({ nuevo: 'B', motivo: 'Corrección', tieneDetalle: true })
   })
   it('distingue un valor borrado de un valor no disponible', () => {
     expect(leerDetalleHistorial('{"v":1,"valorNuevo":null,"motivo":"Borrado"}').tieneDetalle).toBe(true)
-    expect(leerDetalleHistorial('Importación anterior')).toEqual({ nuevo: null, motivo: 'Importación anterior', tieneDetalle: false })
   })
-  it.each(['{incompleto', '{"v":2,"valorNuevo":"B","motivo":"Otro"}', '{"v":1,"motivo":"Sin valor"}'])('conserva observaciones sin inventar el nuevo valor: %s', (texto) => {
+  it.each(['Importación anterior', '{incompleto', '{"v":2,"valorNuevo":"B","motivo":"Otro"}', '{"v":1,"motivo":"Sin valor"}'])('conserva observaciones sin inventar el nuevo valor: %s', (texto) => {
     expect(leerDetalleHistorial(texto)).toEqual({ nuevo: null, motivo: texto, tieneDetalle: false })
   })
 })

@@ -5,7 +5,7 @@ import { cambiarEstadoCliente, clienteUpdateSchema, editarCliente, estadoUpdateS
 
 const cliente = { idCliente: 1042, identificacion: '1710034065', tipoDocumento: 'C', tipoCliente: 'Natural', nombres: 'María', apellidos: 'Pérez', razonSocial: null,
   nombreComercial: null, estadoCivil: 'Soltero', idActividadEconomica: 1, estado: 'Activo', email: 'maria@example.test', telefonoCelular: '0991234567', telefonoConvencional: null,
-  fechaNacimiento: '1992-05-14', fechaRegistro: '2026-11-06T10:00:00Z', direcciones: [] }
+  fechaNacimiento: '1992-05-14', fechaRegistro: '2026-11-06T10:00:00Z', direcciones: [], motivoEstado: null }
 const respuesta = (data: unknown) => ({ data, status: 200, statusText: 'OK', headers: {}, config: { headers: new AxiosHeaders() } })
 afterEach(() => vi.restoreAllMocks())
 
@@ -53,15 +53,27 @@ describe('contrato de edición parcial', () => {
 })
 
 describe('estado y consulta de historial', () => {
-  it('exige motivo no vacío de hasta 500 caracteres y destino válido', () => {
-    for (const datos of [{ estado: 'Inactivo', motivo: ' ' }, { estado: 'Activo', motivo: 'x'.repeat(501) }, { estado: 'Pendiente', motivo: 'Cambio' }]) {
+  it('exige motivo no vacío de hasta 300 caracteres y destino válido', () => {
+    for (const datos of [{ estado: 'Inactivo', motivo: ' ' }, { estado: 'Activo', motivo: 'x'.repeat(301) }, { estado: 'Pendiente', motivo: 'Cambio' }]) {
       expect(estadoUpdateSchema.safeParse(datos).success).toBe(false)
     }
+    expect(estadoUpdateSchema.safeParse({ estado: 'Activo', motivo: 'x'.repeat(300) }).success).toBe(true)
   })
-  it('envía el motivo recortado al endpoint de estado', async () => {
-    const llamada = vi.spyOn(apiClient, 'patch').mockResolvedValue(respuesta({ ...cliente, estado: 'Bloqueado' }))
-    await cambiarEstadoCliente(1042, 'Bloqueado', '  Solicitud del cliente  ')
-    expect(llamada).toHaveBeenCalledWith('/api/v1/clientes/1042/estado', { estado: 'Bloqueado', motivo: 'Solicitud del cliente' })
+  it('envía el motivo recortado al endpoint de estado y devuelve 200 con cliente y motivoEstado', async () => {
+    const llamada = vi.spyOn(apiClient, 'patch').mockResolvedValue(respuesta({ ...cliente, estado: 'Inactivo', motivoEstado: 'Solicitud del cliente' }))
+    const res = await cambiarEstadoCliente(1042, 'Inactivo', '  Solicitud del cliente  ')
+    expect(llamada).toHaveBeenCalledWith('/api/v1/clientes/1042/estado', { estado: 'Inactivo', motivo: 'Solicitud del cliente' })
+    expect(res).toEqual({ tipo: 'cliente', cliente: expect.objectContaining({ estado: 'Inactivo', motivoEstado: 'Solicitud del cliente' }) })
+  })
+  it('E5-07: cambio de estado que requiere aprobación responde 202 con la solicitud', async () => {
+    const llamada = vi.spyOn(apiClient, 'patch').mockResolvedValue({ ...respuesta({ idSolicitud: 88, estado: 'Pendiente', requiereAprobacion: true }), status: 202 })
+    const res = await cambiarEstadoCliente(1042, 'Bloqueado', 'Cliente moroso')
+    expect(llamada).toHaveBeenCalledWith('/api/v1/clientes/1042/estado', { estado: 'Bloqueado', motivo: 'Cliente moroso' })
+    expect(res).toEqual({ tipo: 'solicitud', idSolicitud: 88 })
+  })
+  it('E5-07: rechaza respuesta inválida del servidor al cambiar estado', async () => {
+    vi.spyOn(apiClient, 'patch').mockResolvedValue(respuesta('<html></html>'))
+    await expect(cambiarEstadoCliente(1042, 'Inactivo', 'Solicitud')).rejects.toMatchObject({ code: 'respuesta_invalida' })
   })
   it('conserva el conflicto por productos vigentes para explicarlo al usuario', async () => {
     const error = new ApiError('El cliente conserva cuentas vigentes.', 409, 'CLIENTE_CON_PRODUCTOS_VIGENTES')

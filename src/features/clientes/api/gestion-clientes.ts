@@ -32,7 +32,7 @@ export const clienteUpdateSchema = z.strictObject({
     return sensibles.length === 0 || sensibles.length === campos.length
   }, 'Guarde por separado los datos que requieren aprobación.')
 export type ClienteUpdate = z.input<typeof clienteUpdateSchema>
-export const estadoUpdateSchema = z.strictObject({ estado: estadoDestinoSchema, motivo: z.string().trim().min(1).max(500) })
+export const estadoUpdateSchema = z.strictObject({ estado: estadoDestinoSchema, motivo: z.string().trim().min(1).max(300) })
 
 const historialSchema = z.object({
   idHistorial: z.number(), tipoOperacion: z.string(), campoModificado: z.string(), valorAnterior: z.string().nullable(),
@@ -54,15 +54,20 @@ export type ResultadoEdicion =
   | { tipo: 'cliente'; cliente: z.infer<typeof clienteSchema> }
   | { tipo: 'solicitud'; idSolicitud: number }
 
+export type ResultadoCambioEstado =
+  | { tipo: 'cliente'; cliente: z.infer<typeof clienteSchema> }
+  | { tipo: 'solicitud'; idSolicitud: number }
+
 export async function editarCliente(id: number, cambios: ClienteUpdate): Promise<ResultadoEdicion> {
   const { data, status } = await apiClient.patch<unknown>(`/api/v1/clientes/${id}`, clienteUpdateSchema.parse(cambios))
   if (status === 202) return { tipo: 'solicitud', idSolicitud: validar(aceptadaSchema, data, status).idSolicitud }
   return { tipo: 'cliente', cliente: validar(clienteSchema, data, status) }
 }
 
-export async function cambiarEstadoCliente(id: number, estado: EstadoDestino, motivo: string) {
+export async function cambiarEstadoCliente(id: number, estado: EstadoDestino, motivo: string): Promise<ResultadoCambioEstado> {
   const { data, status } = await apiClient.patch<unknown>(`/api/v1/clientes/${id}/estado`, estadoUpdateSchema.parse({ estado, motivo }))
-  return validar(clienteSchema, data, status)
+  if (status === 202) return { tipo: 'solicitud', idSolicitud: validar(aceptadaSchema, data, status).idSolicitud }
+  return { tipo: 'cliente', cliente: validar(clienteSchema, data, status) }
 }
 
 export async function obtenerHistorial(id: number, page: number, signal?: AbortSignal) {
