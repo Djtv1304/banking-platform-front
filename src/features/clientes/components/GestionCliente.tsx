@@ -4,7 +4,15 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { usePuedeFuncion, useAuthStore, usePermisos } from '@/features/auth'
 import { AvisoRequiereAprobacion, Button } from '@/shared/ui'
 import type { Cliente } from '@/features/clientes/api/clientes.contract'
-import { cambiarEstadoCliente, editarCliente, historialClienteKey, type ClienteUpdate, type EstadoDestino, type ResultadoEdicion } from '@/features/clientes/api/gestion-clientes'
+import {
+  cambiarEstadoCliente,
+  editarCliente,
+  historialClienteKey,
+  type ClienteUpdate,
+  type EstadoDestino,
+  type ResultadoCambioEstado,
+  type ResultadoEdicion,
+} from '@/features/clientes/api/gestion-clientes'
 import { CorreosCliente } from '@/features/clientes/components/CorreosCliente'
 import { EditarClienteForm } from '@/features/clientes/components/EditarClienteForm'
 import { EstadoClienteForm } from '@/features/clientes/components/EstadoClienteForm'
@@ -46,8 +54,20 @@ export function GestionCliente({ cliente }: { cliente: Cliente }) {
       setSolicitud(resultado.idSolicitud)
     }
   }
+  async function estadoCambiado(resultado: ResultadoCambioEstado) {
+    if (resultado.tipo === 'cliente') {
+      await actualizado(resultado.cliente)
+      setAviso('Estado actualizado.')
+    } else {
+      // 202: el cliente no cambia hasta que otra persona apruebe la solicitud.
+      setSolicitud(resultado.idSolicitud)
+    }
+  }
   const edicion = useMutation({ mutationFn: (cambios: ClienteUpdate) => editarCliente(cliente.idCliente, cambios), onSuccess: editado })
-  const estado = useMutation({ mutationFn: ({ destino, motivo }: { destino: EstadoDestino; motivo: string }) => cambiarEstadoCliente(cliente.idCliente, destino, motivo), onSuccess: actualizado })
+  const estado = useMutation({
+    mutationFn: ({ destino, motivo }: { destino: EstadoDestino; motivo: string }) => cambiarEstadoCliente(cliente.idCliente, destino, motivo),
+    onSuccess: estadoCambiado,
+  })
   const ocupado = edicion.isPending || estado.isPending
   const eliminado = cliente.estado === 'Eliminado'
   // E5-04: nada se edita con el cliente bloqueado; su estado sí puede cambiar.
@@ -66,13 +86,18 @@ export function GestionCliente({ cliente }: { cliente: Cliente }) {
         {panel && <Button type="button" variant="ghost" disabled={ocupado} onClick={() => setPanel(null)}>Cerrar panel</Button>}
       </div>
       {cliente.estado === 'Bloqueado' && acceso.edicion && <p className="text-sm text-muted-foreground">El cliente está bloqueado: sus datos no se pueden editar hasta desbloquearlo.</p>}
+      {cliente.motivoEstado && (
+        <p className="text-sm text-muted-foreground">
+          Estado: <span className="font-semibold text-heading">{cliente.estado}</span> · Motivo: {cliente.motivoEstado}
+        </p>
+      )}
       {aviso && <p role="status" className="text-sm text-link">{aviso}</p>}
       {solicitud !== null && <AvisoRequiereAprobacion idSolicitud={solicitud} />}
       {panel === 'edicion' && acceso.edicion && editable && <EditarClienteForm cliente={cliente} ocupado={ocupado} error={edicion.error}
         guardar={async (cambios) => { setAviso(''); setSolicitud(null); await edicion.mutateAsync(cambios) }} />}
       {panel === 'correos' && acceso.correos && <CorreosCliente cliente={cliente} puedeGestionar={acceso.gestionarCorreos} />}
-      {panel === 'estado' && acceso.estado && !eliminado && <EstadoClienteForm opciones={estadosPermitidos(cliente.estado)} ocupado={ocupado} error={estado.error}
-        guardar={async (destino, motivo) => { setAviso(''); await estado.mutateAsync({ destino, motivo }); setAviso('Estado actualizado.'); }} />}
+      {panel === 'estado' && acceso.estado && !eliminado && <EstadoClienteForm estadoActual={cliente.estado} opciones={estadosPermitidos(cliente.estado)} ocupado={ocupado} error={estado.error}
+        guardar={async (destino, motivo) => { setAviso(''); setSolicitud(null); await estado.mutateAsync({ destino, motivo }) }} />}
       {panel === 'historial' && acceso.historial && <HistorialCliente id={cliente.idCliente} />}
     </div>
   )
