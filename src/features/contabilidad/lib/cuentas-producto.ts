@@ -1,3 +1,4 @@
+import { etiquetaContable } from '@/features/contabilidad/lib/etiquetas'
 import type { CuentaContable } from '@/features/contabilidad/api/contabilidad.contract'
 import type { AsignacionCuenta, ClaseCuenta } from '@/features/contabilidad/api/cuentas-producto.contract'
 import { estaActiva } from '@/features/contabilidad/lib/cuenta-contable'
@@ -30,7 +31,7 @@ export function pestanas(clases: readonly ClaseCuenta[]): Pestana[] {
     if (vistas.has(clave)) continue
     vistas.set(clave, {
       clave,
-      etiqueta: k.codigoTipoCredito ? (CREDITOS[k.codigoTipoCredito] ?? k.codigoTipoCredito) : (TIPOS[k.codigoTipoProducto] ?? k.codigoTipoProducto),
+      etiqueta: k.codigoTipoCredito ? (CREDITOS[k.codigoTipoCredito] ?? etiquetaContable(k.codigoTipoCredito)) : (TIPOS[k.codigoTipoProducto] ?? etiquetaContable(k.codigoTipoProducto)),
       idTipoProducto: k.idTipoProducto,
       idTipoCredito: k.idTipoCredito,
     })
@@ -40,10 +41,10 @@ export function pestanas(clases: readonly ClaseCuenta[]): Pestana[] {
 
 /** «Cartera refinanciada vencida · De 31 a 90 días» */
 export function descripcionClase(k: ClaseCuenta) {
-  const partes = [k.nombreRol]
+  const partes = [etiquetaContable(k.codigoRol, k.nombreRol)]
   const condicion = k.condicion ? CONDICIONES[k.condicion] : ''
   if (condicion) partes.push(condicion)
-  if (k.situacion) partes.push(SITUACIONES[k.situacion] ?? k.situacion)
+  if (k.situacion) partes.push(SITUACIONES[k.situacion] ?? etiquetaContable(k.situacion).toLowerCase())
   const texto = partes.join(' ')
   return k.tramo !== null && k.nombreCuentaBase ? `${texto} · ${k.nombreCuentaBase}` : texto
 }

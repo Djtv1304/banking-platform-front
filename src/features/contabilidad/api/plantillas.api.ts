@@ -6,7 +6,7 @@ import { CONTABILIDAD_ENDPOINTS, cuentaContableSchema } from '@/features/contabi
 const base = '/api/v1/contabilidad'
 const lado = z.enum(['DEBITO', 'CREDITO'])
 const origen = z.enum(['FIJA', 'PRODUCTO', 'CONTRAPRODUCTO', 'COMISION'])
-const componente = z.enum(['PRINCIPAL', 'COMISION', 'IMPUESTO', 'INTERES', 'MORA', 'SEGURO', 'DIFERENCIA', 'TOTAL'])
+const componente = z.enum(['PRINCIPAL', 'COMISION', 'IMPUESTO', 'INTERES', 'MORA', 'SEGURO', 'DIFERENCIA', 'TOTAL', 'PRIMA_FIJA', 'PRIMA_VARIABLE'])
 const id = z.number().int().positive().max(2_147_483_647)
 export const opcionesLinea = { lado: lado.options, origen: origen.options, base: componente.options }
 const plantilla = z.object({

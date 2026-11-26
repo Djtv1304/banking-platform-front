@@ -1,6 +1,7 @@
 import { toApiError } from '@/shared/api'
 import { Aviso, Cargando } from '@/shared/ui'
 import { useCuentasSubproducto } from '@/features/contabilidad/hooks/useCuentasProducto'
+import { etiquetaContable } from '@/features/contabilidad/lib/etiquetas'
 import { descripcionClase } from '@/features/contabilidad/lib/cuentas-producto'
 
 const ORIGEN = { TIPO: 'del tipo', PRODUCTO: 'del producto', SUBPRODUCTO: 'propia' } as const
@@ -23,7 +24,7 @@ export function CuentasSubproducto({ idSubProducto }: { idSubProducto: number })
         <p className="text-sm text-muted-foreground">La tarjeta de débito mueve el capital de la cuenta de ahorro vinculada.</p>
       )}
       {faltantes.length > 0 && (
-        <Aviso tono="error">Faltan cuentas para: {faltantes.join(', ')}. El subproducto no se puede activar hasta asignarlas.</Aviso>
+        <Aviso tono="error">Faltan cuentas para: {faltantes.map(valor => etiquetaContable(valor, valor)).join(', ')}. El subproducto no se puede activar hasta asignarlas.</Aviso>
       )}
       <ul className="flex flex-col gap-1 text-sm text-heading">
         {principales.map((r) => (

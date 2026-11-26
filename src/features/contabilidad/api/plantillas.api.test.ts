@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { consultarAuxiliares, consultarPlantilla, consultarSolicitudPlantilla, crearVersion, listarPlantillas, prepararLineas, simularPlantilla } from '@/features/contabilidad/api/plantillas.api'
+import { consultarAuxiliares, consultarPlantilla, consultarSolicitudPlantilla, crearVersion, listarPlantillas, opcionesLinea, prepararLineas, simularPlantilla } from '@/features/contabilidad/api/plantillas.api'
 import { apiClient } from '@/shared/api'
 
 vi.mock('@/shared/api', () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }))
@@ -72,6 +72,33 @@ describe('versiones de plantillas contables', () => {
     vi.mocked(apiClient.post).mockResolvedValue({ status: 202, data: { idPlantillaAsiento: 2, idSolicitud: 9 } })
     await expect(crearVersion(3, entrada)).resolves.toEqual({ idPlantillaAsiento: 2, idSolicitud: 9 })
     expect(apiClient.post).toHaveBeenCalledWith('/api/v1/contabilidad/tipos-asiento/3/plantillas', entrada)
+  })
+
+  it('conserva ambas bases de prima al preparar, simular y registrar una versión E4-03', async () => {
+    const bases = ['PRIMA_FIJA', 'PRIMA_VARIABLE'] as const
+    const lados = ['DEBITO', 'CREDITO'] as const
+    const detalle = bases.flatMap(base => lados.map(lado => ({
+      TipoMovimiento: lado, OrigenCuenta: 'FIJA', ComponenteImporte: base,
+      IdCuentaContable: 42, CodigoRol: null, CodigoCuenta: '450420', NombreCuenta: 'Prima',
+    }))).map((linea, i) => ({ ...linea, Orden: i + 1 }))
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: {
+      IdPlantillaAsiento: 1, CodigoPlantilla: 'CON_PRIMA_SEGURO_DEPOSITOS', Version: 1,
+      Nombre: 'Seguro de depósitos', VigenciaDesde: '2026-11-19', VigenciaHasta: null,
+      Estado: true, ...metadatos, lineas: detalle,
+    } })
+
+    expect(opcionesLinea.base).toEqual(expect.arrayContaining([...bases]))
+    const lineas = prepararLineas(await consultarPlantilla(1))
+    expect(lineas.map(linea => linea.base)).toEqual(['PRIMA_FIJA', 'PRIMA_FIJA', 'PRIMA_VARIABLE', 'PRIMA_VARIABLE'])
+    const simulacion = { lineas, montos: { PRIMA_FIJA: '5', PRIMA_VARIABLE: '2' }, producto: {}, contraproducto: {}, comision: null }
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { total: '7', lineas: [] } })
+    await expect(simularPlantilla(simulacion)).resolves.toEqual({ total: 7, lineas: [] })
+    expect(apiClient.post).toHaveBeenLastCalledWith('/api/v1/contabilidad/plantillas/simulaciones', simulacion)
+
+    const version = { codigoPlantilla: 'CON_PRIMA_SEGURO_DEPOSITOS', nombre: 'Seguro de depósitos', vigenciaDesde: '2026-11-27', lineas }
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ status: 202, data: { idPlantillaAsiento: 2, idSolicitud: 9 } })
+    await expect(crearVersion(3, version)).resolves.toEqual({ idPlantillaAsiento: 2, idSolicitud: 9 })
+    expect(apiClient.post).toHaveBeenLastCalledWith('/api/v1/contabilidad/tipos-asiento/3/plantillas', version)
   })
 
   it('acepta una solicitud no visible como null', async () => {
