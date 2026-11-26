@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, apiClient } from '@/shared/api'
-import { aClienteCreate, errorRegistro, registrarCliente } from '@/features/clientes/api/registro-cliente'
+import { aClienteCreate, errorRegistro, registrarCliente, reincorporarCliente } from '@/features/clientes/api/registro-cliente'
 import { actividadSchema, DATOS_CLIENTE_VACIOS, datosClienteSchema, direccionesSchema } from '@/features/clientes/schemas/registro-cliente.schema'
 
 const entrada = { ...DATOS_CLIENTE_VACIOS, identificacion: '1710034065', nombres: 'María', apellidos: 'Prueba', fechaNacimiento: '1992-05-14', genero: 'F', estadoCivil: 'UNION_HECHO', telefonoCelular: '991234567', email: 'maria@example.test' }
@@ -74,5 +74,50 @@ describe('C-01 · confirmación de guardado', () => {
     }
     await expect(registrarCliente({ ...registro, cliente: { ...registro.cliente, genero: 'O' } })).rejects.toThrow()
     expect(post).not.toHaveBeenCalled()
+  })
+})
+
+describe('C-01 / E5-05 · reincorporar cliente eliminado', () => {
+  const respuesta202 = { idSolicitud: 305, estado: 'Pendiente' as const, requiereAprobacion: true as const }
+
+  it('envía el mismo cuerpo que el alta a /api/v1/clientes/reincorporaciones', async () => {
+    const post = vi.spyOn(apiClient, 'post').mockResolvedValue({ status: 202, data: respuesta202 })
+    const resultado = await reincorporarCliente(registro)
+    expect(resultado).toEqual(respuesta202)
+    expect(post).toHaveBeenCalledExactlyOnceWith('/api/v1/clientes/reincorporaciones', aClienteCreate(registro))
+  })
+
+  it('acepta directamente el payload validado del alta', async () => {
+    const payload = aClienteCreate(registro)
+    const post = vi.spyOn(apiClient, 'post').mockResolvedValue({ status: 202, data: respuesta202 })
+    const resultado = await reincorporarCliente(payload)
+    expect(resultado).toEqual(respuesta202)
+    expect(post).toHaveBeenCalledExactlyOnceWith('/api/v1/clientes/reincorporaciones', payload)
+  })
+
+  it.each([
+    [200, respuesta202],
+    [201, respuesta202],
+    [202, '<html></html>'],
+    [202, { idSolicitud: 0, estado: 'Pendiente', requiereAprobacion: true }],
+    [202, { idSolicitud: 305, estado: 'Activo', requiereAprobacion: true }],
+    [202, { idSolicitud: 305, estado: 'Pendiente', requiereAprobacion: false }],
+    [202, {}],
+  ])('rechaza respuesta 202 inválida o status distinto con error respuesta_invalida (%s, %j)', async (status, data) => {
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ status, data })
+    await expect(reincorporarCliente(registro)).rejects.toMatchObject({
+      code: 'respuesta_invalida',
+      status,
+    })
+  })
+
+  it.each([
+    ['CLIENTE_ELIMINADO', 'eliminada'],
+    ['CLIENTE_NO_ELIMINADO', 'no está eliminado'],
+    ['CLIENTE_NO_ENCONTRADO', 'No se encontró'],
+    ['DATOS_NO_COINCIDEN', 'no coincide con el registrado'],
+    ['REINCORPORACION_PENDIENTE', 'reincorporación pendiente'],
+  ])('errorRegistro devuelve mensaje legible para código %s', (code, textoEsperado) => {
+    expect(errorRegistro(new ApiError('', 409, code))).toContain(textoEsperado)
   })
 })
