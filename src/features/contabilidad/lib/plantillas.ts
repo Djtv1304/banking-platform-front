@@ -1,14 +1,6 @@
 import { ApiError, toApiError } from '@/shared/api'
 import type { LineaPlantilla } from '@/features/contabilidad/api/plantillas.api'
 
-const etiquetas: Record<string, string> = {
-  DEBITO: 'Débito', CREDITO: 'Crédito', INTERES: 'Interés', COMISION: 'Comisión',
-  CONTRAPRODUCTO: 'Contraproducto', BOVEDA: 'Bóveda', NOMINA: 'Nómina', ATM: 'ATM',
-}
-
-export const etiquetaPlantilla = (valor: string) =>
-  Object.hasOwn(etiquetas, valor) ? etiquetas[valor] : valor.charAt(0) + valor.slice(1).toLowerCase()
-
 export const claseSelectorPlantilla = 'block min-h-9 w-full rounded-lg border border-input bg-field px-3 text-sm focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50'
 
 const campos: Record<string, string> = {

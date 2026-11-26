@@ -3,7 +3,8 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { consultarAuxiliares, crearVersion, opcionesLinea, prepararLineas, simularPlantilla, type LineaPlantilla, type PlantillaDetallada } from '@/features/contabilidad/api/plantillas.api'
 import { ErrorPlantilla } from '@/features/contabilidad/components/ErrorPlantilla'
-import { claseSelectorPlantilla, etiquetaPlantilla, traducirErrorPlantilla, validarLineasPlantilla } from '@/features/contabilidad/lib/plantillas'
+import { etiquetaContable, etiquetaOrigenCuenta } from '@/features/contabilidad/lib/etiquetas'
+import { claseSelectorPlantilla, traducirErrorPlantilla, validarLineasPlantilla } from '@/features/contabilidad/lib/plantillas'
 import { Aviso, Button, Cargando, Input } from '@/shared/ui'
 
 type DatosVersion = Parameters<typeof crearVersion>[1]
@@ -105,7 +106,7 @@ export function EditarVersionPlantilla({ plantilla, fecha, alGuardar, cerrar }: 
   }
 
   function campoCuenta(nombre: string, etiqueta: string) {
-    return <div key={etiqueta} className="grid gap-1">
+    return <div key={nombre} className="grid gap-1">
       <label>{etiqueta}<SelectorCuenta nombre={nombre} cuentas={cuentas} error={errores[nombre]} /></label>
       <MensajeCampo id={`error-${nombre}`} mensaje={errores[nombre]} />
     </div>
@@ -133,12 +134,12 @@ export function EditarVersionPlantilla({ plantilla, fecha, alGuardar, cerrar }: 
             const error = errores[nombre]
             return <fieldset key={i} className="grid min-w-0 items-start gap-3 rounded-xl border border-border p-3 sm:grid-cols-2 lg:grid-cols-[1fr_1.15fr_1fr_2fr_auto]">
               <legend className="px-1 text-sm font-medium">Línea {i + 1}</legend>
-              <label>Movimiento<select className={claseSelectorPlantilla} value={linea.lado} onChange={e => cambiar(i, { lado: e.target.value as LineaPlantilla['lado'] })}>{opcionesLinea.lado.map(o => <option key={o} value={o}>{etiquetaPlantilla(o)}</option>)}</select></label>
-              <label>Origen de cuenta<select className={claseSelectorPlantilla} value={linea.origen} onChange={e => cambiar(i, { origen: e.target.value as LineaPlantilla['origen'], cuenta: null, rol: null })}>{opcionesLinea.origen.map(o => <option key={o} value={o}>{etiquetaPlantilla(o)}</option>)}</select></label>
-              <label>Componente<select className={claseSelectorPlantilla} value={linea.base} onChange={e => cambiar(i, { base: e.target.value as LineaPlantilla['base'] })}>{opcionesLinea.base.map(o => <option key={o} value={o}>{etiquetaPlantilla(o)}</option>)}</select></label>
+              <label>Movimiento<select className={claseSelectorPlantilla} value={linea.lado} onChange={e => cambiar(i, { lado: e.target.value as LineaPlantilla['lado'] })}>{opcionesLinea.lado.map(o => <option key={o} value={o}>{etiquetaContable(o)}</option>)}</select></label>
+              <label>Origen de cuenta<select className={claseSelectorPlantilla} value={linea.origen} onChange={e => cambiar(i, { origen: e.target.value as LineaPlantilla['origen'], cuenta: null, rol: null })}>{opcionesLinea.origen.map(o => <option key={o} value={o}>{etiquetaOrigenCuenta(o)}</option>)}</select></label>
+              <label>Componente<select className={claseSelectorPlantilla} value={linea.base} onChange={e => cambiar(i, { base: e.target.value as LineaPlantilla['base'] })}>{opcionesLinea.base.map(o => <option key={o} value={o}>{etiquetaContable(o)}</option>)}</select></label>
               <div>
                 {linea.origen === 'FIJA' && <label>Cuenta fija<SelectorCuenta cuentas={cuentas} nombre={nombre} valor={linea.cuenta} cambiar={cuenta => cambiar(i, { cuenta })} error={error} /></label>}
-                {(linea.origen === 'PRODUCTO' || linea.origen === 'CONTRAPRODUCTO') && <label>Rol contable<Input maxLength={30} value={linea.rol ?? ''} aria-invalid={Boolean(error)} aria-describedby={error ? `error-${nombre}` : undefined} onChange={e => cambiar(i, { rol: e.target.value })} /></label>}
+                {(linea.origen === 'PRODUCTO' || linea.origen === 'CONTRAPRODUCTO') && <label>{linea.rol?.trim() ? etiquetaContable(linea.rol) : "Rol contable"}<Input aria-label="Código del rol contable" maxLength={30} value={linea.rol ?? ''} aria-invalid={Boolean(error)} aria-describedby={error ? `error-${nombre}` : undefined} onChange={e => cambiar(i, { rol: e.target.value })} /></label>}
                 {linea.origen === 'COMISION' && <p className="text-sm text-muted-foreground">Cuenta resuelta por el motor</p>}
                 <MensajeCampo id={`error-${nombre}`} mensaje={error} />
               </div>
@@ -151,18 +152,18 @@ export function EditarVersionPlantilla({ plantilla, fecha, alGuardar, cerrar }: 
           <summary className="cursor-pointer font-semibold">Simular movimientos</summary>
           <MensajeCampo id="error-montos" mensaje={errores.montos} />
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {bases.map(base => <div key={base} className="grid gap-1"><label>Importe de {etiquetaPlantilla(base).toLowerCase()}
+            {bases.map(base => <div key={base} className="grid gap-1"><label>Importe · {etiquetaContable(base)}
               <Input name={base} inputMode="decimal" defaultValue="0" aria-invalid={Boolean(errores[base])} aria-describedby={errores[base] ? `error-${base}` : undefined} /></label>
               <MensajeCampo id={`error-${base}`} mensaje={errores[base]} /></div>)}
-            {producto.map((rol, i) => campoCuenta(`producto-${i}`, `Cuenta del producto · ${rol}`))}
-            {contra.map((rol, i) => campoCuenta(`contra-${i}`, `Cuenta del contraproducto · ${rol}`))}
+            {producto.map((rol, i) => campoCuenta(`producto-${i}`, `Cuenta del producto · ${etiquetaContable(rol)}`))}
+            {contra.map((rol, i) => campoCuenta(`contra-${i}`, `Cuenta del producto de contrapartida · ${etiquetaContable(rol)}`))}
             {comision && campoCuenta('comision', 'Cuenta de comisión')}
           </div>
           <Button type="submit" variant="outline" value="simular" className="mt-3" disabled={(fijo || producto.length > 0 || contra.length > 0 || comision) && !auxiliares.data}>Simular</Button>
           {simulacion.isPending && <Cargando texto="Simulando movimientos…" />}
           {simulacion.data && <div className="mt-3"><Aviso><p>Total de débitos: {simulacion.data.total}</p><ul>{simulacion.data.lineas.map((linea, i) => {
             const cuenta = cuentas.find(c => c.idCuentaContable === linea.cuenta)
-            return <li key={i}>{etiquetaPlantilla(linea.lado)} · {cuenta ? `${cuenta.codigoCuenta} ${cuenta.nombreCuenta}` : 'Cuenta resuelta'} · {linea.monto}</li>
+            return <li key={i}>{etiquetaContable(linea.lado)} · {cuenta ? `${cuenta.codigoCuenta} ${cuenta.nombreCuenta}` : 'Cuenta resuelta'} · {linea.monto}</li>
           })}</ul></Aviso></div>}
         </details>
         <div className="flex flex-wrap gap-2">

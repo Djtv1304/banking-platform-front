@@ -33,23 +33,32 @@ function filas(valor: Record<string, unknown>, prefijo = ''): Record<string, unk
     return dato && typeof dato === 'object' && !Array.isArray(dato) ? Object.entries(filas(dato as Record<string, unknown>, nombre)) : [[nombre, dato]]
   }))
 }
-export function mostrarValor(valor: unknown): ReactNode {
+interface PresentacionCambios {
+  campo?: (clave: string) => string
+  valor?: (clave: string, valor: string, datos: Record<string, unknown>) => ReactNode
+}
+
+export function mostrarValor(valor: unknown, presentacion?: PresentacionCambios): ReactNode {
   if (valor === undefined) return 'Sin valor'
   if (valor === null) return 'No aplica'
   if (typeof valor === 'boolean') return valor ? 'Si' : 'No'
-  if (Array.isArray(valor)) return valor.length ? <ul className="space-y-2">{valor.map((item, i) => <li key={i} className="rounded border border-border p-2">{mostrarValor(item)}</li>)}</ul> : 'Ninguno'
-  if (typeof valor === 'object') return <dl className="space-y-1">{Object.entries(valor).filter(([clave]) => !clave.startsWith('_')).map(([clave, dato]) => <div key={clave}><dt className="inline font-medium">{nombreCampo(clave)}: </dt><dd className="inline">{mostrarValor(dato)}</dd></div>)}</dl>
+  if (Array.isArray(valor)) return valor.length ? <ul className="space-y-2">{valor.map((item, i) => <li key={i} className="rounded border border-border p-2">{mostrarValor(item, presentacion)}</li>)}</ul> : 'Ninguno'
+  if (typeof valor === 'object') return <dl className="space-y-1">{Object.entries(valor).filter(([clave]) => !clave.startsWith('_')).map(([clave, dato]) => <div key={clave}><dt className="inline font-medium">{(presentacion?.campo ?? nombreCampo)(clave)}: </dt><dd className="inline">{presentarValor(dato, clave, valor as Record<string, unknown>, presentacion)}</dd></div>)}</dl>
   if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) return new Date(`${valor}T12:00:00Z`).toLocaleDateString('es-EC', { timeZone: 'UTC' })
   return String(valor)
 }
 
+function presentarValor(valor: unknown, clave: string, datos: Record<string, unknown>, presentacion?: PresentacionCambios) {
+  return (typeof valor === 'string' ? presentacion?.valor?.(clave, valor, datos) : undefined) ?? mostrarValor(valor, presentacion)
+}
+
 /** Comparacion de datos suministrados por el backend; no reconstruye un resultado local. */
-export function ComparadorCambios({ antes, despues }: { antes: Record<string, unknown>; despues: Record<string, unknown> }) {
+export function ComparadorCambios({ antes, despues, presentacion }: { antes: Record<string, unknown>; despues: Record<string, unknown>; presentacion?: PresentacionCambios }) {
   const a = filas(antes), b = filas(despues)
   const claves = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter(clave => !valoresIguales(a[clave], b[clave], clave)).sort((a, b) => a.localeCompare(b, 'es'))
   if (!claves.length) return <p className="text-sm text-muted-foreground">No hay valores modificados en este conjunto.</p>
   return <div className="overflow-x-auto rounded-xl border border-border"><table className="w-full text-left text-sm"><caption className="sr-only">Comparacion del estado anterior y el cambio propuesto</caption>
     <thead className="bg-muted/50"><tr><th scope="col" className="p-3">Campo</th><th scope="col" className="p-3">Antes</th><th scope="col" className="p-3">Despues</th></tr></thead>
-    <tbody>{claves.map((clave) => <tr key={clave} className="border-t border-border"><th scope="row" className="p-3 font-medium">{clave.split('.').map(nombreCampo).join(' / ')}<span className="ml-2 rounded bg-amber-100 px-1 text-xs text-amber-950">Cambio</span></th><td className="max-w-md break-words whitespace-pre-wrap p-3">{mostrarValor(a[clave])}</td><td className="max-w-md break-words whitespace-pre-wrap p-3">{mostrarValor(b[clave])}</td></tr>)}</tbody>
+    <tbody>{claves.map((clave) => <tr key={clave} className="border-t border-border"><th scope="row" className="p-3 font-medium">{clave.split('.').map(presentacion?.campo ?? nombreCampo).join(' / ')}<span className="ml-2 rounded bg-amber-100 px-1 text-xs text-amber-950">Cambio</span></th><td className="max-w-md break-words whitespace-pre-wrap p-3">{presentarValor(a[clave], clave.split('.').at(-1) ?? clave, a, presentacion)}</td><td className="max-w-md break-words whitespace-pre-wrap p-3">{presentarValor(b[clave], clave.split('.').at(-1) ?? clave, b, presentacion)}</td></tr>)}</tbody>
   </table></div>
 }

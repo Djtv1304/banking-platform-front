@@ -89,7 +89,7 @@ describe('consulta y edición de Plantillas por función', () => {
   it('presenta cuentas fijas por código y nombre y reconoce una cuenta dinámica sin ID', () => {
     const html = mostrar([consulta])
     expect(html).toContain('11010101 · Caja auxiliar')
-    expect(html).toContain('Cuenta dinámica de producto · Rol CAPITAL')
+    expect(html).toContain('Cuenta del producto · Capital')
     expect(html).toContain('No hay una solicitud visible')
   })
 })
