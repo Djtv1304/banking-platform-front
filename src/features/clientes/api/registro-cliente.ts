@@ -41,7 +41,7 @@ export function aClienteCreate(registro: RegistroClienteData) {
 /** CLI-02. No reintentar POST automáticamente: una respuesta perdida no prueba rollback. */
 export async function registrarCliente(registro: RegistroClienteData) {
   const payload = aClienteCreate(registro)
-  const { data, status } = await apiClient.post<unknown>(CLIENTES_ENDPOINTS.buscar, payload)
+  const { data, status } = await apiClient.post<unknown>(CLIENTES_ENDPOINTS.registrar, payload)
   const respuesta = clienteSchema.extend({ idCliente: z.number().int().positive() }).safeParse(data)
   if (status !== 201 || !respuesta.success || respuesta.data.identificacion !== payload.identificacion || respuesta.data.tipoCliente !== payload.tipoCliente || respuesta.data.tipoDocumento !== payload.tipoDocumento) {
     throw new ApiError('No pudimos confirmar el registro. Busca la identificación en Consultar clientes antes de volver a enviarlo.', status, 'registro_sin_confirmar')

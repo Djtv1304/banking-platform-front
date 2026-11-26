@@ -1,28 +1,34 @@
 import { Link } from 'react-router'
-import { ChevronLeft, ChevronRight, CircleAlert, LoaderCircle, RotateCcw, Search, SearchX } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import { ChevronLeft, ChevronRight, CircleAlert, Download, Info, LoaderCircle, RotateCcw, Search, SearchX } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
 import { Badge, Button, Input } from '@/shared/ui'
-import { ESTADOS_CLIENTE, TIPOS_CLIENTE, type PaginaClientes } from '@/features/clientes/api/clientes.contract'
+import { usePuedeFuncion, useAuthStore, usePermisos } from '@/features/auth'
+import { useAgencias } from '@/features/catalogos'
+import { exportarClientes } from '@/features/clientes/api/clientes.api'
+import { ESTADOS_CLIENTE, TIPOS_CLIENTE, type PaginaClientes, type ParametrosBusqueda } from '@/features/clientes/api/clientes.contract'
 import { Field, fieldClassName } from '@/features/clientes/components/form-fields'
 import { useBuscarClientes } from '@/features/clientes/hooks/useConsultaClientes'
 import { useFiltrosClientes } from '@/features/clientes/hooks/useFiltrosClientes'
+import { accesoDatosSensibles } from '@/features/clientes/lib/gestion-clientes'
 import {
-  armarParametros,
+  armarBusqueda,
+  FILTROS_TEXTO,
+  NOMBRE_MAX,
   nombreVisible,
   ORDENES,
-  Q_MAX,
   TIPO_CLIENTE_LABEL,
   totalPaginas,
   varianteEstado,
 } from '@/features/clientes/lib/consulta'
 
 /*
- * C-03 · Búsqueda y listado de clientes (CLI-03).
+ * C-03 / E5-05 · Búsqueda de clientes (POST /clientes/busqueda).
  *
- * Los filtros viven en el estado del componente, no en la URL: la identificación y los nombres
- * no deben quedar en el historial de navegación. La API conserva su contrato GET;
- * los logs de infraestructura requieren su propia política de protección de datos.
+ * Los filtros viven en el estado del componente y viajan en el cuerpo del POST, nunca en la URL:
+ * documento, nombre y correo no deben quedar en el historial ni en los logs (ASVS 14.2.1).
+ * Sin al menos un filtro no se consulta. Los resultados llegan enmascarados.
  */
 
 const selectClassName = cn(
@@ -30,76 +36,64 @@ const selectClassName = cn(
   'w-full border text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:scheme-dark',
 )
 
+type FiltroTexto = (typeof FILTROS_TEXTO)[number]
+
 export function BuscarClientesPage() {
   const { filtros, busqueda, cambiar, limpiar, buscar, irAPagina, iniciarComposicion, terminarComposicion } = useFiltrosClientes()
-  const consulta = useBuscarClientes(armarParametros(busqueda.filtros, busqueda.page))
-  const esperandoTexto = filtros.q.trim() !== busqueda.filtros.q.trim()
-    || filtros.identificacion.trim() !== busqueda.filtros.identificacion.trim()
-  const actualizando = esperandoTexto || consulta.isFetching
+  const aplicada = armarBusqueda(busqueda.filtros, busqueda.page)
+  const borrador = armarBusqueda(filtros, 1)
+  const consulta = useBuscarClientes(aplicada.params)
+  const agencias = useAgencias()
+  const roles = useAuthStore((estado) => estado.user?.roles)
+  const puedeExportar = usePuedeFuncion('clientes.exportar', accesoDatosSensibles(roles ?? [], usePermisos()).exportar)
+  const exportacion = useMutation({ mutationFn: (params: ParametrosBusqueda) => exportarClientes(params) })
+  const esperandoTexto = FILTROS_TEXTO.some((campo) => filtros[campo].trim() !== busqueda.filtros[campo].trim())
+  const actualizando = aplicada.params !== null && (esperandoTexto || consulta.isFetching)
+  const texto = (campo: FiltroTexto) => ({
+    value: filtros[campo],
+    onChange: (event: { target: { value: string } }) => cambiar(campo, event.target.value),
+    onCompositionStart: iniciarComposicion,
+    onCompositionEnd: (event: { currentTarget: { value: string } }) => terminarComposicion(campo, event.currentTarget.value),
+  })
+  const aplicarSiValido = () => { if (!borrador.aviso) buscar() }
 
   return (
     <div className="mx-auto w-full max-w-6xl">
       <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">Consultar clientes</h1>
       <p className="mt-2 text-base text-muted-foreground">
-        Busca por nombre, razón social o identificación y abre la ficha del cliente que atiendes.
+        Busca por documento, nombre, correo, estado o agencia de registro y abre la ficha del cliente que atiendes.
       </p>
 
       <form
-        onSubmit={(event) => { event.preventDefault(); buscar() }}
+        onSubmit={(event) => { event.preventDefault(); aplicarSiValido() }}
         onKeyDown={(event) => {
           if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
           if ((event.target as HTMLElement).tagName !== 'INPUT') return
           event.preventDefault()
-          buscar()
+          aplicarSiValido()
         }}
         noValidate
         role="search"
         aria-label="Filtros de clientes"
         className="mt-8 grid gap-5 rounded-2xl border border-border bg-card p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3"
       >
-        <Field id="clientes-q" label="Buscar" className="lg:col-span-2">
+        <Field id="clientes-identificacion" label="Documento exacto">
+          <Input id="clientes-identificacion" autoComplete="off" maxLength={13} placeholder="Cédula, RUC o pasaporte"
+            className={fieldClassName} {...texto('identificacion')} />
+        </Field>
+
+        <Field id="clientes-nombre" label="Nombre o razón social">
           <div className="relative">
             <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              id="clientes-q"
-              type="search"
-              autoComplete="off"
-              maxLength={Q_MAX}
-              placeholder="Un nombre, un apellido, la razón social o parte de la identificación"
-              className={cn(fieldClassName, 'pl-12')}
-              value={filtros.q}
-              onChange={(event) => cambiar('q', event.target.value)}
-              onCompositionStart={iniciarComposicion}
-              onCompositionEnd={(event) => terminarComposicion('q', event.currentTarget.value)}
-              aria-describedby="clientes-busqueda-ayuda"
-            />
+            <Input id="clientes-nombre" type="search" autoComplete="off" maxLength={NOMBRE_MAX}
+              placeholder="Al menos 3 letras del inicio de un nombre o apellido" className={cn(fieldClassName, 'pl-12')}
+              aria-describedby="clientes-busqueda-ayuda" {...texto('nombre')} />
           </div>
         </Field>
 
-        <Field id="clientes-identificacion" label="Identificación exacta">
-          <Input
-            id="clientes-identificacion"
-            autoComplete="off"
-            maxLength={13}
-            placeholder="Cédula, RUC o pasaporte"
-            className={fieldClassName}
-            value={filtros.identificacion}
-            onChange={(event) => cambiar('identificacion', event.target.value)}
-            onCompositionStart={iniciarComposicion}
-            onCompositionEnd={(event) => terminarComposicion('identificacion', event.currentTarget.value)}
-          />
-        </Field>
-
-        <Field id="clientes-tipo" label="Tipo de cliente">
-          <select id="clientes-tipo" className={selectClassName} value={filtros.tipoCliente}
-            onChange={(event) => cambiar('tipoCliente', TIPOS_CLIENTE.find((tipo) => tipo === event.target.value) ?? '')}>
-            <option value="">Todos</option>
-            {TIPOS_CLIENTE.map((tipo) => (
-              <option key={tipo} value={tipo}>
-                {TIPO_CLIENTE_LABEL[tipo]}
-              </option>
-            ))}
-          </select>
+        <Field id="clientes-email" label="Correo exacto">
+          <Input id="clientes-email" type="email" autoComplete="off" maxLength={150} placeholder="correo@dominio.ec"
+            className={fieldClassName} {...texto('email')} />
         </Field>
 
         <Field id="clientes-estado" label="Estado">
@@ -109,6 +103,30 @@ export function BuscarClientesPage() {
             {ESTADOS_CLIENTE.map((estado) => (
               <option key={estado} value={estado}>
                 {estado}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field id="clientes-agencia" label="Agencia de registro">
+          <select id="clientes-agencia" className={selectClassName} value={filtros.idAgenciaRegistro}
+            onChange={(event) => cambiar('idAgenciaRegistro', event.target.value)}>
+            <option value="">{agencias.isPending ? 'Cargando agencias…' : 'Todas'}</option>
+            {agencias.data.map((agencia) => (
+              <option key={agencia.idAgencia} value={agencia.idAgencia}>
+                {agencia.idAgencia} · {agencia.nombre}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field id="clientes-tipo" label="Tipo de cliente">
+          <select id="clientes-tipo" className={selectClassName} value={filtros.tipoCliente}
+            onChange={(event) => cambiar('tipoCliente', TIPOS_CLIENTE.find((tipo) => tipo === event.target.value) ?? '')}>
+            <option value="">Todos</option>
+            {TIPOS_CLIENTE.map((tipo) => (
+              <option key={tipo} value={tipo}>
+                {TIPO_CLIENTE_LABEL[tipo]}
               </option>
             ))}
           </select>
@@ -126,25 +144,52 @@ export function BuscarClientesPage() {
         </Field>
 
         <p id="clientes-busqueda-ayuda" className="text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">
-          La lista se actualiza al dejar de escribir o cambiar un filtro. Enter aplica la búsqueda inmediatamente.
+          Indica al menos un filtro (el tipo de cliente solo acota). La lista se actualiza al dejar de escribir o cambiar un filtro; Enter busca de inmediato.
         </p>
+        {borrador.aviso && (
+          <p role="status" className="flex items-center gap-2 text-sm text-heading sm:col-span-2 lg:col-span-3">
+            <Info aria-hidden className="size-4 shrink-0" />
+            {borrador.aviso}
+          </p>
+        )}
         <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row sm:justify-end lg:col-span-3">
+          {puedeExportar && (
+            <Button type="button" variant="outline" className="h-[52px] rounded-xl px-6 text-base"
+              disabled={!aplicada.params || exportacion.isPending}
+              onClick={() => { if (aplicada.params) exportacion.mutate(aplicada.params) }}>
+              <Download aria-hidden />
+              {exportacion.isPending ? 'Preparando CSV…' : 'Exportar CSV'}
+            </Button>
+          )}
           <Button type="button" variant="outline" onClick={limpiar} className="h-[52px] rounded-xl px-6 text-base">
             <RotateCcw />
             Limpiar
           </Button>
+          <Button type="submit" disabled={borrador.aviso !== null} className="h-[52px] rounded-xl px-6 text-base">
+            <Search aria-hidden />
+            Buscar
+          </Button>
         </div>
+        {exportacion.isError && (
+          <p role="alert" className="text-sm text-destructive sm:col-span-2 lg:col-span-3">{exportacion.error.message}</p>
+        )}
       </form>
 
       <section aria-label="Resultados" className="mt-8" aria-busy={actualizando}>
         <p role="status" aria-atomic="true" className="mb-3 text-sm text-muted-foreground">
           {actualizando
             ? 'Actualizando resultados…'
-            : consulta.isSuccess
+            : consulta.isSuccess && aplicada.params
               ? `${consulta.data.total.toLocaleString('es-EC')} ${consulta.data.total === 1 ? 'cliente encontrado' : 'clientes encontrados'}`
               : ''}
         </p>
-        {consulta.isError ? (
+        {!aplicada.params ? (
+          <div role="status" className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-6 py-12 text-center">
+            <Search aria-hidden className="size-8 text-muted-foreground" />
+            <p className="font-semibold text-heading">Escribe un filtro para buscar clientes</p>
+            <p className="text-sm text-muted-foreground">Por seguridad no se listan todos los clientes.</p>
+          </div>
+        ) : consulta.isError ? (
           <div
             role="alert"
             className="flex flex-col items-start gap-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-5 text-sm sm:flex-row sm:items-center"

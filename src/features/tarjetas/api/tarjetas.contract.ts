@@ -3,7 +3,7 @@ import { z } from 'zod'
 /*
  * Contrato de la solicitud de tarjeta (A-04) en camelCase.
  *
- * - CLI-03 GET /clientes?identificacion=…  → buscar al cliente
+ * - CLI-03 POST /clientes/busqueda `{ identificacion }` → buscar al cliente (identificación en el cuerpo)
  * - CTA-02 GET /cuentas?idCliente=…         → sus cuentas (solo una Activa admite tarjeta)
  * - CLI-09 GET /clientes/{id}/direcciones   → direcciones para el envío de la tarjeta
  * - TAR-02 GET /tarjetas?idCuenta=…&esExtension=false → principales (titular de una extensión)
@@ -23,7 +23,7 @@ import { z } from 'zod'
 const BASE = '/api/v1'
 
 export const TARJETAS_ENDPOINTS = {
-  clientes: `${BASE}/clientes`,
+  clientes: `${BASE}/clientes/busqueda`,
   direcciones: (idCliente: number) => `${BASE}/clientes/${idCliente}/direcciones`,
   cuentas: `${BASE}/cuentas`,
   tarjetas: `${BASE}/tarjetas`,

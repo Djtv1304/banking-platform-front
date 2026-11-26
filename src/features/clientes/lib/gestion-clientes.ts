@@ -29,3 +29,13 @@ const transiciones: Partial<Record<string, EstadoDestino[]>> = {
 export function estadosPermitidos(actual: string) {
   return transiciones[actual] ?? []
 }
+
+/** E5-05 · Respaldo por rol mientras la autorización por funciones no esté activa */
+export function accesoDatosSensibles(roles: readonly string[], permisos: readonly string[] = []) {
+  const normalizados = roles.map((rol) => rol.trim().toUpperCase())
+  const tieneRol = (permitidos: string[]) => normalizados.some((rol) => permitidos.includes(rol))
+  return {
+    verSensible: tieneRol(['ASESOR', 'SUPERVISOR', 'ADMIN']),
+    exportar: tieneRol(['SUPERVISOR', 'ADMIN']) && hasPermission(permisos, PERMISOS.organizacionExportar),
+  }
+}
