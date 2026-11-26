@@ -1,6 +1,6 @@
 import { responsable } from '@/features/aprobaciones/lib/presentacion'
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 
 import type { BandejaNombre } from '@/features/aprobaciones/api/aprobaciones.contract'
 import { useAccesosAprobaciones, useBandejaAprobaciones } from '@/features/aprobaciones/hooks/useAprobaciones'
@@ -17,7 +17,10 @@ export function AprobacionesPage() {
     const user = state.user
     return !!user && (user.roles.length === 1 && user.roles[0] === 'AUDITOR' || user.roles.length === 0 && user.permisos.includes('org-exportar'))
   })
-  const [bandeja, setBandeja] = useState<BandejaNombre>(soloAuditoria ? 'resueltas' : 'pendientes')
+  const [parametros] = useSearchParams()
+  const [bandeja, setBandeja] = useState<BandejaNombre>(
+    soloAuditoria ? 'resueltas' : parametros.get('bandeja') === 'mias' ? 'mias' : 'pendientes',
+  )
   const [page, setPage] = useState(1)
   const [ahora, setAhora] = useState(Date.now)
   const accesos = useAccesosAprobaciones()

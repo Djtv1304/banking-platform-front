@@ -23,11 +23,10 @@ const selectClassName = cn(
 interface FiltrosTarjetasProps {
   buscando: boolean
   onBuscar: (filtros: Filtros) => void
-  puedeAprobar: boolean
 }
 
 /** Filtros combinables de TAR-02: cliente y cuenta por su ID, y estado */
-export function FiltrosTarjetas({ buscando, onBuscar, puedeAprobar }: FiltrosTarjetasProps) {
+export function FiltrosTarjetas({ buscando, onBuscar }: FiltrosTarjetasProps) {
   const {
     register,
     handleSubmit,
@@ -98,12 +97,6 @@ export function FiltrosTarjetas({ buscando, onBuscar, puedeAprobar }: FiltrosTar
       </div>
 
       <div className="flex justify-end gap-3">
-        {puedeAprobar && <Button type="button" variant="outline" onClick={() => {
-          busqueda.cancelar()
-          const pendientes = { ...FILTROS_VACIOS, estado: 'Solicitada' } as const
-          reset(pendientes)
-          onBuscar(pendientes)
-        }}>Por aprobar</Button>}
         <Button type="button" variant="outline" onClick={limpiar} className="h-[52px] rounded-xl px-6 text-base">
           Limpiar
         </Button>

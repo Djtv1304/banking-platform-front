@@ -123,6 +123,7 @@ export const tarjetaSchema = tarjetaResumenSchema.extend({
   entregaVerificadaEn: z.string().nullish(),
   sobreDescargadoEn: z.string().nullish(),
   envio: envioTarjetaSchema.nullish(),
+  idSolicitudAprobacion: z.number().int().positive().nullish(),
 })
 
 /** TAR-01 · Body `TarjetaCreate` */

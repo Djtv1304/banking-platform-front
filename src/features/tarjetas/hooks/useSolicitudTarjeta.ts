@@ -49,7 +49,9 @@ export function useSolicitarTarjeta() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: solicitarTarjeta,
-    // La cuenta tiene una tarjeta más: su lista ya no está al día
-    onSuccess: (tarjeta) => queryClient.invalidateQueries({ queryKey: ['tarjetas', 'por-cuenta', tarjeta.idCuenta] }),
+    onSuccess: (tarjeta) => Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['tarjetas', 'por-cuenta', tarjeta.idCuenta] }),
+      queryClient.invalidateQueries({ queryKey: ['aprobaciones'] }),
+    ]),
   })
 }

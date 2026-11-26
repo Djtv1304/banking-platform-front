@@ -133,7 +133,14 @@ function DetalleTarjeta({ tarjeta }: { tarjeta: Tarjeta }) {
       </div>
 
       {tarjeta.envio && <EnvioTarjeta tarjeta={tarjeta} editar={permisos.estado} />}
-      <AccionesTarjeta tarjeta={tarjeta} permisos={permisos} />
+      {tarjeta.estadoActual === 'Solicitada' ? (
+        <Aviso>
+          <Link className="text-link underline" to={tarjeta.idSolicitudAprobacion
+            ? `/aprobaciones/${tarjeta.idSolicitudAprobacion}` : '/aprobaciones?bandeja=mias'}>
+            {tarjeta.idSolicitudAprobacion ? `Ver solicitud #${tarjeta.idSolicitudAprobacion} en Aprobaciones` : 'Consultar la bandeja de Aprobaciones'}
+          </Link>
+        </Aviso>
+      ) : <AccionesTarjeta tarjeta={tarjeta} permisos={permisos} />}
       <PinTarjeta tarjeta={tarjeta} permisos={permisos} />
       {permisos.historial && <HistorialTarjeta idTarjeta={tarjeta.idTarjeta} />}
     </>

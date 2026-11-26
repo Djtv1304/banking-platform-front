@@ -39,7 +39,7 @@ const TIPOS_TARJETA = [
 /** Las tarjetas de envío se entregan en Ecuador */
 const PAIS_ENVIO = 'ECU'
 
-export function SolicitudTarjetaForm() {
+export function SolicitudTarjetaForm({ agencia }: { agencia: string }) {
   const [identificacion, setIdentificacion] = useState<string>()
   const [registrada, setRegistrada] = useState<Tarjeta | null>(null)
 
@@ -83,7 +83,8 @@ export function SolicitudTarjetaForm() {
     ],
   })
 
-  const { data: cuentas, isFetching: cargandoCuentas } = useCuentasCliente(cliente?.idCliente)
+  const { data: cuentasCliente, isFetching: cargandoCuentas } = useCuentasCliente(cliente?.idCliente)
+  const cuentas = cuentasCliente?.filter((cuenta) => cuenta.idAgencia.trim() === agencia)
   const { data: productos, isLoading: cargandoProductos } = useProductos('Tarjeta', tipoTarjeta, cliente?.idCliente)
   const { data: tarjetasCuenta } = useTarjetasPrincipales(idCuenta ? Number(idCuenta) : undefined, esExtension)
   const { data: direcciones, isFetching: cargandoDirecciones } = useDireccionesCliente(
@@ -176,7 +177,7 @@ export function SolicitudTarjetaForm() {
               {cargandoCuentas && <Cargando texto="Cargando cuentas…" />}
               {cuentas && cuentas.length === 0 && (
                 <p className="rounded-xl border border-border bg-field px-4 py-3 text-sm text-muted-foreground">
-                  El cliente no tiene cuentas. Abre una cuenta antes de solicitar la tarjeta.
+                  El cliente no tiene cuentas en la agencia operativa.
                 </p>
               )}
               {cuentas && cuentas.length > 0 && (
