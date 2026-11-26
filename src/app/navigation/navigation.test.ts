@@ -123,7 +123,7 @@ describe('matriz completa de consultas del menu por rol', () => {
   const rutas: Record<string, string[]> = {
     ADMIN: ['/', '/organizacion/entidad', '/parametros', '/organizacion/agencias', '/organizacion/directorios', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/bovedas', '/contabilidad', '/contabilidad/cuentas-producto', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/pestanas', '/seguridad/roles'],
     ASESOR: ['/', '/organizacion/entidad', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas'],
-    CAJERO: ['/', '/clientes-busqueda', '/cuentas'],
+    CAJERO: ['/', '/clientes-busqueda', '/cuentas', '/caja'],
     SUPERVISOR: ['/', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas', '/bovedas'],
     APROBADOR_CREDITO: ['/', '/productos'],
     CONTADOR: ['/', '/productos', '/bovedas', '/contabilidad', '/contabilidad/cuentas-producto', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
