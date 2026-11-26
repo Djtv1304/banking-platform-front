@@ -1,3 +1,4 @@
+import { etiquetaContable } from '@/features/contabilidad/lib/etiquetas'
 import type { ApiError } from '@/shared/api'
 import type { Agencia } from '@/features/catalogos'
 import {
@@ -124,30 +125,10 @@ export function formatearFechaAsiento(iso: string) {
 }
 
 /** «PENDIENTE_APROBACION» → «Pendiente aprobación»; un valor nuevo se muestra legible igual */
-export function etiquetaTexto(valor: string) {
-  const texto = valor.trim().toLowerCase().replaceAll('_', ' ')
-  return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : '—'
-}
+export const etiquetaTexto = (valor: string) => valor.trim() ? etiquetaContable(valor) : '—'
 
-/* Los valores llegan en mayúsculas y sin tilde: se muestran con la ortografía de la pantalla */
-const ETIQUETAS_ESTADO: Record<string, string> = {
-  BORRADOR: 'Borrador',
-  PENDIENTE_APROBACION: 'Pendiente de aprobación',
-  CONTABILIZADO: 'Contabilizado',
-  REVERSADO: 'Reversado',
-  ANULADO: 'Anulado',
-}
-
-const ETIQUETAS_ORIGEN: Record<string, string> = {
-  ATM: 'ATM',
-  BOVEDA: 'Bóveda',
-  CREDITO: 'Crédito',
-  NOMINA: 'Nómina',
-}
-
-export const etiquetaEstadoAsiento = (estado: string) => ETIQUETAS_ESTADO[estado.trim().toUpperCase()] ?? etiquetaTexto(estado)
-
-export const etiquetaOrigenAsiento = (origen: string) => ETIQUETAS_ORIGEN[origen.trim().toUpperCase()] ?? etiquetaTexto(origen)
+export const etiquetaEstadoAsiento = etiquetaTexto
+export const etiquetaOrigenAsiento = etiquetaTexto
 
 export type TonoEstadoAsiento = 'exito' | 'advertencia' | 'apagado' | 'neutro'
 

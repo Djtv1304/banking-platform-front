@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 
 import { hasPermission, PERMISOS, useAuthStore, usePermisos } from '@/features/auth'
 import {
@@ -11,7 +11,8 @@ import { consultarReglasContables, type ReglaBoveda, type ReglaContable, type Re
 import { EditarVersionPlantilla } from '@/features/contabilidad/components/EditarVersionPlantilla'
 import { ErrorPlantilla } from '@/features/contabilidad/components/ErrorPlantilla'
 import { useFechaContableActual } from '@/features/contabilidad/hooks/useFechaContable'
-import { claseSelectorPlantilla, etiquetaPlantilla } from '@/features/contabilidad/lib/plantillas'
+import { etiquetaContable, etiquetaOrigenCuenta } from '@/features/contabilidad/lib/etiquetas'
+import { claseSelectorPlantilla } from '@/features/contabilidad/lib/plantillas'
 import { Aviso, Badge, Button, Cargando, Input } from '@/shared/ui'
 
 const clave = ['contabilidad', 'plantillas'] as const
@@ -20,16 +21,14 @@ const claseFila = 'border-t border-border'
 const compararEtiquetas = new Intl.Collator('es', { numeric: true }).compare
 type Catalogos = Awaited<ReturnType<typeof consultarCatalogosPlantillas>>
 type Filtros = { q?: string; codigo?: string; estado?: string; origen?: string; tipo?: string; fecha?: string; agencia?: string }
-type Seleccion = { fuente: 'PLANTILLA_ASIENTO'; id: number } | { fuente: 'PLANTILLA_BOVEDA'; id: string }
 
 const integraciones = { CONECTADA: 'Conectada', PENDIENTE: 'Pendiente', SIN_VERIFICAR: 'Sin verificar' }
 const nombreRegla = (regla: ReglaContable) => regla.fuente === 'PLANTILLA_ASIENTO'
-  ? regla.Nombre : etiquetaPlantilla(regla.TipoMovimiento)
+  ? etiquetaContable(regla.CodigoPlantilla, regla.Nombre) : etiquetaContable(regla.TipoMovimiento)
 const codigoRegla = (regla: ReglaContable) => regla.fuente === 'PLANTILLA_ASIENTO'
   ? regla.CodigoPlantilla : regla.TipoMovimiento
 const alcance = (regla: ReglaContable) => regla.IdAgencia === null ? 'General' : `Agencia ${regla.IdAgencia}`
 const fuenteRegla = (regla: ReglaContable) => regla.fuente === 'PLANTILLA_BOVEDA' ? 'Matriz de Bóveda' : 'Plantilla versionada'
-const estadosTipo: Record<string, string> = { A: 'Activo', I: 'Inactivo' }
 const vigencia = (regla: ReglaContable) => regla.fuente === 'PLANTILLA_BOVEDA' ? 'No aplica'
   : regla.vigente === null ? 'Sin fecha de evaluación' : regla.vigente ? 'Vigente' : 'No seleccionada'
 const uso = (regla: ReglaContable) => regla.fuente === 'PLANTILLA_BOVEDA' ? 'No disponible' : regla.Usada ? 'Usada' : 'Sin uso registrado'
@@ -50,9 +49,9 @@ function aplicarFiltros(regla: ReglaContable, filtros: Filtros) {
 
 function DatosRegla({ regla }: { regla: ReglaContable }) {
   const campos = {
-    'Módulo contable': etiquetaPlantilla(regla.Origen), Desde: regla.desde ?? 'Sin identificar', Hacia: regla.hacia ?? 'Sin identificar',
+    'Módulo contable': etiquetaContable(regla.Origen), Desde: etiquetaContable(regla.desde, regla.desde), Hacia: etiquetaContable(regla.hacia, regla.hacia),
     Alcance: alcance(regla), Fuente: fuenteRegla(regla), Estado: estado(regla), Configuración: 'Configurada', Vigencia: vigencia(regla),
-    Integración: integraciones[regla.integracion], 'Evidencia de uso': uso(regla), Consumidor: regla.consumidor ?? 'Sin identificar',
+    Integración: integraciones[regla.integracion], 'Evidencia de uso': uso(regla), Consumidor: etiquetaContable(regla.consumidor, regla.consumidor),
   }
   return <dl className="grid gap-3 rounded-xl bg-field p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
     {Object.entries(campos).map(([etiqueta, valor]) => <div key={etiqueta}>
@@ -91,8 +90,10 @@ export function PlantillasPage() {
   const puedeEditar = hasPermission(permisos, PERMISOS.plantillasEditar) && esContador
   const cliente = useQueryClient()
   const [filtros, setFiltros] = useState<Filtros>({})
-  const [seleccion, setSeleccion] = useState<Seleccion | null>(null)
-  const id = seleccion?.fuente === 'PLANTILLA_ASIENTO' ? seleccion.id : null
+  const [url, setUrl] = useSearchParams()
+  const [idBoveda, setIdBoveda] = useState<string | null>(null)
+  const version = url.get('version') ?? ''
+  const id = /^[1-9]\d*$/.test(version) && Number(version) <= 2_147_483_647 ? Number(version) : null
   const agenciaSesion = useAuthStore(s => s.user?.idAgencia)
   const [mensaje, setMensaje] = useState('')
   const catalogos = useQuery({ queryKey: [...clave, 'catalogos'], queryFn: ({ signal }) => consultarCatalogosPlantillas(signal), retry: false })
@@ -103,14 +104,13 @@ export function PlantillasPage() {
     queryFn: ({ signal }) => consultarReglasContables(evaluacion, signal), retry: false,
   })
   const reglas = lista.data?.reglas ?? []
-  const reglaBoveda = seleccion?.fuente === 'PLANTILLA_BOVEDA'
-    ? reglas.find(regla => regla.fuente === 'PLANTILLA_BOVEDA' && regla.idRegla === seleccion.id)
-    : undefined
+  const reglaBoveda = reglas.find(regla => regla.fuente === 'PLANTILLA_BOVEDA' && regla.idRegla === idBoveda)
   const resultados = lista.data?.reglas.filter(regla => aplicarFiltros(regla, filtros))
   const tiposPorCodigo = new Map(catalogos.data?.tiposAsiento.map(tipo => [tipo.Codigo, tipo.Nombre]))
-  const nombreTipo = (codigo: string) => tiposPorCodigo.get(codigo) ?? codigo
+  const nombreTipo = (codigo: string) => !tiposPorCodigo.get(codigo) && /^[A-Z]{1,3}\d+$/.test(codigo)
+    ? `Tipo de asiento · ${codigo}` : etiquetaContable(codigo, tiposPorCodigo.get(codigo))
   const modulos = [...new Set([...reglas.map(regla => regla.Origen), ...(filtros.origen ? [filtros.origen] : [])])]
-    .sort((a, b) => compararEtiquetas(etiquetaPlantilla(a), etiquetaPlantilla(b)))
+    .sort((a, b) => compararEtiquetas(etiquetaContable(a), etiquetaContable(b)))
   const tipos = [...new Set([...reglas.flatMap(regla => regla.CodigoTipoAsiento ?? []), ...(filtros.tipo ? [filtros.tipo] : [])])]
     .sort((a, b) => compararEtiquetas(nombreTipo(a), nombreTipo(b)) || compararEtiquetas(a, b))
   const conceptosPorCodigo = new Map(catalogos.data?.conceptosContables.map(concepto => [concepto.CodigoConcepto, concepto.ConceptoDetalle]))
@@ -131,7 +131,13 @@ export function PlantillasPage() {
   }
 
   function setId(idPlantilla: number) {
-    setSeleccion({ fuente: 'PLANTILLA_ASIENTO', id: idPlantilla })
+    setUrl({ version: String(idPlantilla) })
+  }
+
+  function volverAlListado() {
+    if (id !== null) setUrl({})
+    setIdBoveda(null)
+    setMensaje('')
   }
 
   function guardar(nuevaId: number) {
@@ -146,7 +152,7 @@ export function PlantillasPage() {
       <p className="mt-2 text-muted-foreground">Consulta las reglas que generan movimientos contables y revisa sus versiones y solicitudes de aprobación.</p>
     </header>
     {mensaje && <Aviso>{mensaje}</Aviso>}
-    {seleccion === null ? <section className="grid min-w-0 gap-5 rounded-3xl border border-border bg-card p-4 sm:p-6" aria-label="Listado de plantillas">
+    {id === null && idBoveda === null ? <section className="grid min-w-0 gap-5 rounded-3xl border border-border bg-card p-4 sm:p-6" aria-label="Listado de plantillas">
       <form onSubmit={buscar} className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label>Buscar por nombre o código<Input type="search" name="q" defaultValue={filtros.q} maxLength={100} /></label>
         <label>Código exacto<Input name="codigo" defaultValue={filtros.codigo} maxLength={50} /></label>
@@ -154,7 +160,7 @@ export function PlantillasPage() {
           <option value="">Todos</option><option value="1">Activas o habilitadas</option><option value="0">Inactivas o no habilitadas</option>
         </select></div>
         <div><label htmlFor="plantillas-origen">Módulo contable</label><select id="plantillas-origen" name="origen" className={claseSelectorPlantilla} defaultValue={filtros.origen ?? ''}>
-          <option value="">Todos</option>{modulos.map(origen => <option key={origen} value={origen}>{etiquetaPlantilla(origen)}</option>)}
+          <option value="">Todos</option>{modulos.map(origen => <option key={origen} value={origen}>{etiquetaContable(origen)}</option>)}
         </select></div>
         <div><label htmlFor="plantillas-tipo">Tipo de asiento</label><select id="plantillas-tipo" name="tipo" className={claseSelectorPlantilla} defaultValue={filtros.tipo ?? ''}>
           <option value="">Todos</option>{tipos.map(tipo => <option key={tipo} value={tipo}>{nombreTipo(tipo)}</option>)}
@@ -179,21 +185,21 @@ export function PlantillasPage() {
               {nombreRegla(p)}{p.fuente === 'PLANTILLA_BOVEDA' && ` · ${p.Naturaleza === 'I' ? 'Ingreso' : 'Egreso'}`}
               {p.IdAgencia !== null && <span className="block text-xs text-muted-foreground">{fuenteRegla(p)}</span>}
             </th>
-            <td>{codigoRegla(p)}</td><td>{p.fuente === 'PLANTILLA_ASIENTO' && p.CodigoConcepto ? conceptosPorCodigo.get(p.CodigoConcepto) ?? p.CodigoConcepto : '—'}</td>
-            <td>{etiquetaPlantilla(p.Origen)}</td><td>{p.CodigoTipoAsiento ? nombreTipo(p.CodigoTipoAsiento) : '—'}</td>
-            <td>{p.desde ?? '—'}</td><td>{p.hacia ?? '—'}</td><td>{alcance(p)}</td><td>{estado(p)}</td>
+            <td className="text-muted-foreground">{codigoRegla(p)}</td><td>{p.fuente === 'PLANTILLA_ASIENTO' && p.CodigoConcepto ? etiquetaContable(p.CodigoConcepto, conceptosPorCodigo.get(p.CodigoConcepto)) : '—'}</td>
+            <td>{etiquetaContable(p.Origen)}</td><td>{p.CodigoTipoAsiento ? nombreTipo(p.CodigoTipoAsiento) : '—'}</td>
+            <td>{p.desde ? etiquetaContable(p.desde, p.desde) : '—'}</td><td>{p.hacia ? etiquetaContable(p.hacia, p.hacia) : '—'}</td><td>{alcance(p)}</td><td>{estado(p)}</td>
             <td>Configurada</td><td><Badge variant="outline">{vigencia(p)}</Badge></td><td>{integraciones[p.integracion]}</td><td>{uso(p)}</td><td>{p.Version ?? '—'}</td>
-            <td><Button variant="outline" size="sm" onClick={() => p.fuente === 'PLANTILLA_ASIENTO' ? setId(p.IdPlantillaAsiento) : setSeleccion({ fuente: p.fuente, id: p.idRegla })}
-              aria-label={p.fuente === 'PLANTILLA_ASIENTO' ? `Ver ${p.Nombre}, versión ${p.Version}` : `Ver Bóveda, ${p.TipoMovimiento}, ${p.Naturaleza === 'I' ? 'ingreso' : 'egreso'}, agencia ${p.IdAgencia}`}>Ver detalle</Button></td>
+            <td><Button variant="outline" size="sm" onClick={() => p.fuente === 'PLANTILLA_ASIENTO' ? setId(p.IdPlantillaAsiento) : setIdBoveda(p.idRegla)}
+              aria-label={p.fuente === 'PLANTILLA_ASIENTO' ? `Ver ${nombreRegla(p)}, versión ${p.Version}` : `Ver Bóveda, ${nombreRegla(p)}, ${p.Naturaleza === 'I' ? 'ingreso' : 'egreso'}, agencia ${p.IdAgencia}`}>Ver detalle</Button></td>
           </tr>)}</tbody>
         </table>
       </TablaDesplazable>}
     </section> : <>
-      <Button variant="ghost" className="w-fit" onClick={() => { setSeleccion(null); setMensaje('') }}>Volver al listado</Button>
-      {seleccion.fuente === 'PLANTILLA_BOVEDA' ? <>
+      <Button variant="ghost" className="w-fit" onClick={volverAlListado}>Volver al listado</Button>
+      {idBoveda !== null && id === null ? <>
         {lista.isPending && <Cargando texto="Cargando detalle…" />}
         {lista.isError && <ErrorPlantilla error={lista.error} reintentar={() => void lista.refetch()} />}
-        {reglaBoveda?.fuente === 'PLANTILLA_BOVEDA' && <DetalleBoveda regla={reglaBoveda} />}
+        {reglaBoveda?.fuente === 'PLANTILLA_BOVEDA' && <DetalleBoveda nombreTipo={nombreTipo} regla={reglaBoveda} />}
         {lista.isSuccess && !reglaBoveda && <Aviso>La regla de Bóveda no está disponible para este alcance.</Aviso>}
       </> : <>
         {detalle.isPending && <Cargando texto="Cargando detalle…" />}
@@ -204,7 +210,7 @@ export function PlantillasPage() {
   </div>
 }
 
-function DetalleBoveda({ regla }: { regla: ReglaBoveda }) {
+function DetalleBoveda({ regla, nombreTipo }: { regla: ReglaBoveda; nombreTipo: (codigo: string) => string }) {
   const titulo = useRef<HTMLHeadingElement>(null)
   useEffect(() => { titulo.current?.focus() }, [])
   return <section className="grid min-w-0 gap-5 rounded-3xl border border-border bg-card p-4 sm:p-6">
@@ -216,8 +222,8 @@ function DetalleBoveda({ regla }: { regla: ReglaBoveda }) {
     <dl className="grid gap-3 rounded-xl bg-field p-4 text-sm sm:grid-cols-2">
       <div><dt className="text-muted-foreground">Debe</dt><dd>{regla.Debe ?? 'Sin cuenta'}</dd></div>
       <div><dt className="text-muted-foreground">Haber</dt><dd>{regla.Haber ?? 'Sin cuenta'}</dd></div>
-      <div><dt className="text-muted-foreground">Tipo de asiento</dt><dd>{regla.CodigoTipoAsiento ?? 'Sin identificar'}</dd></div>
-      <div><dt className="text-muted-foreground">Estado del tipo</dt><dd>{regla.EstadoTipo === null ? 'Sin identificar' : estadosTipo[regla.EstadoTipo] ?? regla.EstadoTipo}</dd></div>
+      <div><dt className="text-muted-foreground">Tipo de asiento</dt><dd>{regla.CodigoTipoAsiento ? nombreTipo(regla.CodigoTipoAsiento) : 'Sin identificar'}</dd></div>
+      <div><dt className="text-muted-foreground">Estado del tipo</dt><dd>{etiquetaContable(regla.EstadoTipo)}</dd></div>
       <div><dt className="text-muted-foreground">Operación</dt><dd>{regla.EsManual === null ? 'Sin identificar' : regla.EsManual ? 'Manual' : 'Automática'}</dd></div>
     </dl>
     <p className="text-sm text-muted-foreground">Regla de Bóveda de solo consulta.</p>
@@ -244,22 +250,22 @@ export function DetallePlantilla({ plantilla, seleccionar, alGuardar, puedeEdita
   const familia = { codigo: plantilla.CodigoPlantilla, idTipoAsiento: plantilla.IdTipoAsiento }
   const historial = useQuery({ queryKey: [...clave, 'historial', familia], queryFn: ({ signal }) => listarPlantillas(familia, signal), retry: false, staleTime: 0 })
   const gestion = solicitud.data && (solicitud.data.puedeAprobar || solicitud.data.puedeRechazar || solicitud.data.puedeCancelar)
-  const concepto = catalogos?.conceptosContables.find(c => c.IdConceptoContable === plantilla.IdConceptoContable)?.ConceptoDetalle ?? plantilla.ConceptoDetalle
-  const tipo = catalogos?.tiposAsiento.find(t => t.IdTipoAsiento === plantilla.IdTipoAsiento)?.Nombre ?? plantilla.NombreTipoAsiento
+  const descripcionConcepto = catalogos?.conceptosContables.find(c => c.IdConceptoContable === plantilla.IdConceptoContable)?.ConceptoDetalle ?? plantilla.ConceptoDetalle
+  const descripcionTipo = catalogos?.tiposAsiento.find(t => t.IdTipoAsiento === plantilla.IdTipoAsiento)?.Nombre ?? plantilla.NombreTipoAsiento
   const versionesAnteriores = historial.data?.filter(p => p.IdPlantillaAsiento !== id)
 
   return <section className="grid min-w-0 gap-5 rounded-3xl border border-border bg-card p-4 sm:p-6">
     <header>
       <div className="flex flex-wrap items-center gap-3">
-        <h2 ref={titulo} tabIndex={-1} className="text-2xl font-semibold text-heading">{plantilla.Nombre}</h2>
+        <h2 ref={titulo} tabIndex={-1} className="text-2xl font-semibold text-heading">{etiquetaContable(plantilla.CodigoPlantilla, plantilla.Nombre)}</h2>
         <Badge variant="outline">{plantilla.Estado ? 'Activa' : 'Inactiva'}</Badge>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">{plantilla.CodigoPlantilla} · Versión {plantilla.Version}</p>
     </header>
     <dl className="grid gap-3 rounded-xl bg-field p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-      <div><dt className="text-muted-foreground">Concepto contable</dt><dd className="font-medium">{concepto ?? 'Sin descripción'}</dd></div>
-      <div><dt className="text-muted-foreground">Tipo de asiento</dt><dd className="font-medium">{tipo ?? 'Sin descripción'}</dd></div>
-      {!regla && <div><dt className="text-muted-foreground">Módulo contable</dt><dd className="font-medium">{etiquetaPlantilla(plantilla.Origen)}</dd></div>}
+      <div><dt className="text-muted-foreground">Concepto contable</dt><dd className="font-medium">{etiquetaContable(plantilla.CodigoConcepto, descripcionConcepto)}</dd></div>
+      <div><dt className="text-muted-foreground">Tipo de asiento</dt><dd className="font-medium">{etiquetaContable(plantilla.CodigoTipoAsiento, descripcionTipo)}</dd></div>
+      {!regla && <div><dt className="text-muted-foreground">Módulo contable</dt><dd className="font-medium">{etiquetaContable(plantilla.Origen)}</dd></div>}
       <div><dt className="text-muted-foreground">Intervalo de vigencia</dt><dd className="font-medium">Desde {plantilla.VigenciaDesde}{plantilla.VigenciaHasta && ` hasta ${plantilla.VigenciaHasta}`}</dd></div>
       {regla?.Prioridad != null && <div><dt className="text-muted-foreground">Prioridad</dt><dd className="font-medium">{regla.Prioridad}</dd></div>}
     </dl>
@@ -273,8 +279,8 @@ export function DetallePlantilla({ plantilla, seleccionar, alGuardar, puedeEdita
             <td>{linea.Orden}</td>
             <td>{linea.OrigenCuenta === 'FIJA'
               ? [linea.CodigoCuenta, linea.NombreCuenta].filter(Boolean).join(' · ') || 'Cuenta fija no disponible'
-              : `Cuenta dinámica de ${etiquetaPlantilla(linea.OrigenCuenta).toLowerCase()}${linea.CodigoRol ? ` · Rol ${linea.CodigoRol}` : ''}`}</td>
-            <td>{etiquetaPlantilla(linea.TipoMovimiento)}</td><td>{etiquetaPlantilla(linea.ComponenteImporte)}</td>
+              : `${etiquetaOrigenCuenta(linea.OrigenCuenta)}${linea.CodigoRol ? ` · ${etiquetaContable(linea.CodigoRol)}` : ''}`}</td>
+            <td>{etiquetaContable(linea.TipoMovimiento)}</td><td>{etiquetaContable(linea.ComponenteImporte)}</td>
           </tr>)}</tbody>
         </table>
       </TablaDesplazable>
@@ -286,7 +292,7 @@ export function DetallePlantilla({ plantilla, seleccionar, alGuardar, puedeEdita
       {solicitud.isError && <ErrorPlantilla error={solicitud.error} reintentar={() => void solicitud.refetch()} />}
       {solicitud.data === null && <p className="text-sm text-muted-foreground">No hay una solicitud visible para esta versión.</p>}
       {solicitud.data && <div className="flex flex-wrap items-center gap-3">
-        <Badge variant="outline">{solicitud.data.estado}</Badge>
+        <Badge variant="outline">{etiquetaContable(solicitud.data.estado)}</Badge>
         <Button asChild variant="outline"><Link to={`/aprobaciones/${solicitud.data.idSolicitud}`}>{gestion ? 'Gestionar solicitud en Aprobaciones' : 'Ver historial de la solicitud'}</Link></Button>
       </div>}
     </section>
@@ -304,7 +310,7 @@ export function DetallePlantilla({ plantilla, seleccionar, alGuardar, puedeEdita
         {versionesAnteriores?.map(p => {
           const anterior = versiones?.get(p.IdPlantillaAsiento)
           return <li key={p.IdPlantillaAsiento} className="flex flex-wrap items-center justify-between gap-3 p-3">
-            <span className="text-sm">Versión {p.Version} · {p.Nombre} · {p.Estado ? 'Activa' : 'Inactiva'}{anterior && ` · ${vigencia(anterior)}`}</span>
+            <span className="text-sm">Versión {p.Version} · {etiquetaContable(p.CodigoPlantilla, p.Nombre)} · {p.Estado ? 'Activa' : 'Inactiva'}{anterior && ` · ${vigencia(anterior)}`}</span>
             <Button variant="outline" size="sm" onClick={() => seleccionar(p.IdPlantillaAsiento)} aria-label={`Ver versión ${p.Version}`}>Ver versión</Button>
           </li>
         })}

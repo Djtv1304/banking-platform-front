@@ -1,3 +1,4 @@
+import { etiquetaContable } from '@/features/contabilidad/lib/etiquetas'
 import type { CuentaContable } from '@/features/contabilidad/api/contabilidad.contract'
 
 /* Cómo se muestra una cuenta contable y qué se puede hacer con ella (sin UI) */
@@ -9,11 +10,8 @@ export const formatearSaldo = (valor: number) => SALDO.format(valor)
 
 export const estaActiva = (cuenta: Pick<CuentaContable, 'estado'>) => cuenta.estado.trim().toLowerCase() === 'activo'
 
-/** «DEUDORA» → «Deudora»; un valor desconocido se muestra tal cual */
-export function etiquetaNaturaleza(naturaleza: string) {
-  const texto = naturaleza.trim().toLowerCase()
-  return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : '—'
-}
+/** «DEUDORA» → «Deudora» */
+export const etiquetaNaturaleza = (naturaleza: string) => naturaleza.trim() ? etiquetaContable(naturaleza) : '—'
 
 /** «ACTIVO» → «Activo»; sin tipo, «—» */
 export const etiquetaTipo = (tipo: string | null | undefined) => (tipo ? etiquetaNaturaleza(tipo) : '—')
