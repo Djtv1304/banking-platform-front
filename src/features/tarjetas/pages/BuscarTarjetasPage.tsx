@@ -7,7 +7,6 @@ import type { TarjetaResumen } from '@/features/tarjetas/api/tarjetas.contract'
 import { EstadoTarjetaBadge } from '@/features/tarjetas/components/EstadoTarjetaBadge'
 import { FiltrosTarjetas } from '@/features/tarjetas/components/FiltrosTarjetas'
 import { useBuscarTarjetas } from '@/features/tarjetas/hooks/useConsultaTarjetas'
-import { usePermisosTarjeta } from '@/features/tarjetas/hooks/useAccionesTarjeta'
 import {
   armarParametros,
   FILTROS_VACIOS,
@@ -19,7 +18,6 @@ import { etiquetaTipo, formatearDia, mensajeErrorTarjetas } from '@/features/tar
 
 /** TAR-02 · Búsqueda de tarjetas; sin filtros lista la primera página */
 export function BuscarTarjetasPage() {
-  const permisos = usePermisosTarjeta()
   // Los filtros quedan en memoria, no en la URL
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_VACIOS)
   const [page, setPage] = useState(1)
@@ -60,7 +58,7 @@ export function BuscarTarjetasPage() {
       </header>
 
       <section className="rounded-3xl border border-border bg-card p-6 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-8">
-        <FiltrosTarjetas buscando={tarjetas.isFetching} onBuscar={buscar} puedeAprobar={permisos.resolverSolicitud} />
+        <FiltrosTarjetas buscando={tarjetas.isFetching} onBuscar={buscar} />
       </section>
 
       <section aria-label="Resultados" className="rounded-3xl border border-border bg-card p-6 sm:p-8">

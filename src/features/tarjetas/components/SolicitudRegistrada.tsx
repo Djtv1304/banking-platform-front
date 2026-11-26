@@ -1,4 +1,5 @@
 import { CircleCheck, CreditCard } from 'lucide-react'
+import { Link } from 'react-router'
 
 import { Button } from '@/shared/ui'
 import type { Cliente, Tarjeta } from '@/features/tarjetas/api/tarjetas.contract'
@@ -34,8 +35,9 @@ export function SolicitudRegistrada({ tarjeta, cliente, onNueva }: SolicitudRegi
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-bold text-heading">Solicitud registrada</h2>
         <p className="max-w-md text-muted-foreground">
-          La tarjeta quedó <span className="font-semibold text-heading">{tarjeta.estadoActual}</span> y pasa a
-          aprobación. El PIN se generará al aprobarla.
+          {tarjeta.idSolicitudAprobacion
+            ? 'Otro operador podrá resolverla desde Aprobaciones.'
+            : 'El registro en Aprobaciones está pendiente. Puedes consultar su avance en Mis solicitudes.'}
         </p>
       </div>
 
@@ -48,10 +50,13 @@ export function SolicitudRegistrada({ tarjeta, cliente, onNueva }: SolicitudRegi
         ))}
       </dl>
 
-      <Button onClick={onNueva} className="h-[52px] rounded-xl px-8 text-base font-semibold hover:bg-primary/90">
-        <CreditCard />
-        Solicitar otra tarjeta
-      </Button>
+      <div className="flex flex-wrap justify-center gap-3">
+        <Button asChild variant="outline"><Link to={tarjeta.idSolicitudAprobacion
+          ? `/aprobaciones/${tarjeta.idSolicitudAprobacion}` : '/aprobaciones?bandeja=mias'}>
+          {tarjeta.idSolicitudAprobacion ? `Ver solicitud #${tarjeta.idSolicitudAprobacion}` : 'Ir a Mis solicitudes'}
+        </Link></Button>
+        <Button onClick={onNueva}><CreditCard />Solicitar otra tarjeta</Button>
+      </div>
     </section>
   )
 }

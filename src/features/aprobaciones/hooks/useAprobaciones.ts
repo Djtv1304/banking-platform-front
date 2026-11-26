@@ -37,6 +37,9 @@ export function useResolverAprobacion(id: number, operacion?: string) {
     if (operacion === 'SEG-USUARIO-ROLES' && resultado?.estado === 'Ejecutada') {
       await client.invalidateQueries({ queryKey: ['usuarios'] })
     }
+    if (operacion === 'TAR-SOLICITAR') {
+      await client.invalidateQueries({ queryKey: ['tarjetas'] })
+    }
     if (resultado?.estado === 'Ejecutada' || (error && accion === 'aprobar')) {
       await Promise.all([
         client.invalidateQueries({ queryKey: ['organizacion', 'agencias'] }),
