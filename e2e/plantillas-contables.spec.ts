@@ -30,7 +30,7 @@ const lineas = [
 ]
 const cuenta = { idCuentaContable: 42, codigoCuenta: '11010101', nombreCuenta: 'Caja auxiliar', estado: 'Activo', esImputable: true, idCuentaSuperior: 11, saldo: 0, naturaleza: 'DEUDORA' }
 
-async function simular(page: Page, opciones: { editar?: boolean; aprobador?: boolean; validar?: boolean; falloListado?: boolean; catalogoNoDesplegado?: boolean; primas?: boolean } = {}) {
+async function simular(page: Page, opciones: { editar?: boolean; aprobador?: boolean; validar?: boolean; falloListado?: boolean; catalogoNoDesplegado?: boolean; primas?: boolean; agenciaRestringida?: boolean; integracionPendiente?: boolean } = {}) {
   const movimientos = opciones.primas
     ? ['PRIMA_FIJA', 'PRIMA_VARIABLE'].flatMap(base => lineas.map(linea => ({ ...linea, ComponenteImporte: base })))
       .map((linea, i) => ({ ...linea, Orden: i + 1 }))
@@ -50,10 +50,18 @@ async function simular(page: Page, opciones: { editar?: boolean; aprobador?: boo
     const permisos = opciones.editar === false ? [] : ['con-plantilla-editar']
     const funciones = ['contabilidad.plantillas.consultar', ...(opciones.editar === false ? [] : ['contabilidad.plantillas.editar'])]
     if (pathname.endsWith('/auth/me')) return responder({ idUsuario: 'user_plantillas', nombre: 'Contadora QA',
-      email: 'qa@example.invalid', idOrganizacion: 'org_qa', roles: ['CONTADOR'], permisos, idAgencia: null,
+      email: 'qa@example.invalid', idOrganizacion: 'org_qa', roles: ['CONTADOR'], permisos, idAgencia: opciones.agenciaRestringida ? '001' : null,
       autorizacion: { version: 'a'.repeat(64), activa: true, funciones, rutas: [ruta] } })
-    if (pathname.endsWith('/auth/agencias')) return responder({ idAgencia: null, idAgenciaPrincipal: null, agenciasAsignadas: [],
-      agenciasPermitidas: [], requiereSeleccionAgencia: false, alcanceGlobal: true, accesoTodasAgencias: true })
+    if (pathname.endsWith('/auth/agencias')) return responder({
+      idAgencia: opciones.agenciaRestringida ? '001' : null, idAgenciaPrincipal: null, agenciasAsignadas: [],
+      agenciasPermitidas: [{ idAgencia: '001', codigo: 'MATRIZ', estado: 'A' },
+        ...(opciones.agenciaRestringida ? [] : [{ idAgencia: '002', codigo: 'NORTE', estado: 'A' }])],
+      requiereSeleccionAgencia: false, alcanceGlobal: !opciones.agenciaRestringida, accesoTodasAgencias: !opciones.agenciaRestringida,
+    })
+    if (pathname.endsWith('/catalogos/agencias')) return responder([
+      { idAgencia: '001', codigo: 'MATRIZ', nombre: 'Matriz', tipoAgencia: 'Matriz', provincia: 'Pichincha', ciudad: 'Quito', estado: 'A' },
+      { idAgencia: '002', codigo: 'NORTE', nombre: 'Norte', tipoAgencia: 'Sucursal', provincia: 'Pichincha', ciudad: 'Quito', estado: 'A' },
+    ])
     if (pathname.endsWith('/institucion')) return responder({ nombre: 'Cooperativa QA', sitioWeb: null, logoUrl: null, origen: 'ENTIDAD' })
     if (pathname.endsWith('/aprobaciones/accesos')) return responder({ puedeVer: true, puedeSolicitar: true, pendientesParaMi: 0, diasResaltar: 30 })
     if (pathname.endsWith('/aprobaciones/19')) return responder({
@@ -77,7 +85,7 @@ async function simular(page: Page, opciones: { editar?: boolean; aprobador?: boo
       if (opciones.catalogoNoDesplegado && estado.evaluaciones.length === 1) return responder({ detail: 'Not Found' }, 404)
       if (opciones.falloListado && estado.evaluaciones.length === 1) return route.abort('internetdisconnected')
       const agencia = searchParams.get('agencia')
-      if (agencia === '999') return responder({ detail: 'Agencia fuera del alcance' }, 403)
+      if (opciones.agenciaRestringida && agencia === '002') return responder({ detail: 'Agencia fuera del alcance' }, 403)
       const fecha = searchParams.get('fecha')
       const fechaContable = fecha === '2026-01-01' ? null : fecha ?? '2026-11-20'
       return responder({
@@ -85,7 +93,7 @@ async function simular(page: Page, opciones: { editar?: boolean; aprobador?: boo
         reglas: [
           ...inventario.map(p => {
             const vigente = fechaContable === null ? null : p.Version === (fechaContable < '2026-11-01' ? 1 : 2)
-            return { ...p, vigente, Prioridad: vigente ? 1 : null }
+            return { ...p, vigente, Prioridad: vigente ? 1 : null, integracion: opciones.integracionPendiente ? 'PENDIENTE' : p.integracion }
           }),
           ...(agencia !== '002' ? [{
             ...inventario[0], idRegla: 'plantilla:4', IdPlantillaAsiento: 4, IdAgencia: '001',
@@ -112,7 +120,7 @@ async function simular(page: Page, opciones: { editar?: boolean; aprobador?: boo
     if (pathname === `${base}/1`) return responder({ ...anterior, lineas: movimientos })
     if (pathname === `${base}/1/solicitudes`) return responder(null)
     if (pathname === `${base}/2/solicitudes`) return responder(opciones.editar === false ? null
-      : { idSolicitud: 19, estado: 'Pendiente', puedeAprobar: Boolean(opciones.aprobador), puedeRechazar: Boolean(opciones.aprobador), puedeCancelar: false })
+      : { idSolicitud: 19, estado: opciones.integracionPendiente ? 'Ejecutada' : 'Pendiente', puedeAprobar: Boolean(opciones.aprobador), puedeRechazar: Boolean(opciones.aprobador), puedeCancelar: false })
     if (pathname === `${base}/3/solicitudes`) return responder({ idSolicitud: 20, estado: 'Pendiente', puedeAprobar: false, puedeRechazar: false, puedeCancelar: true })
     if (pathname.endsWith('/cuentas-contables')) {
       return responder([cuenta, { ...cuenta, idCuentaContable: 43, codigoCuenta: '11010102', nombreCuenta: 'Cuenta cerrada', estado: 'Inactivo' },
@@ -155,14 +163,16 @@ async function prepararVersion(page: Page) {
 
 test('aplica los filtros al inventario y consulta historial por familia desde una pantalla de solo lectura', async ({ page }) => {
   const estado = await simular(page, { editar: false })
-  await page.getByLabel('Buscar por nombre o código').fill('Dep')
-  await page.getByLabel('Código exacto').fill('OTRO')
+  await expect(page.getByLabel('Código exacto')).toHaveCount(0)
+  await page.getByLabel('Buscar por nombre o código').fill('OTRO')
   await page.getByLabel('Estado', { exact: true }).selectOption('1')
   await page.getByLabel('Módulo contable', { exact: true }).selectOption('CAJA')
+  await page.getByText('Filtros avanzados', { exact: true }).click()
   await page.getByLabel('Tipo de asiento').selectOption({ label: 'Depósito' })
+  await expect(page.getByLabel('Agencia de Bóveda')).toHaveCount(0)
   await page.getByRole('button', { name: 'Buscar', exact: true }).click()
   await expect(page.getByText('No encontramos plantillas para los filtros seleccionados.')).toBeVisible()
-  await page.getByLabel('Código exacto').fill('DEP')
+  await page.getByLabel('Buscar por nombre o código').fill('DEP')
   await page.getByRole('button', { name: 'Buscar', exact: true }).click()
   await expect(page.getByRole('row', { name: /Traslado/ })).toHaveCount(0)
   expect(estado.evaluaciones).toEqual([{}])
@@ -173,7 +183,13 @@ test('aplica los filtros al inventario y consulta historial por familia desde un
   await expect(page.getByRole('button', { name: 'Preparar nueva versión' })).toHaveCount(0)
   await expect.poll(() => estado.filtros.at(-1)).toEqual({ codigo: 'DEP', idTipoAsiento: '3' })
   await page.getByRole('button', { name: 'Ver versión 1' }).click()
-  await expect(page.getByText('DEP · Versión 1')).toBeVisible()
+  await expect(page.getByText('Versión 1', { exact: true })).toBeVisible()
+  await expect(page.getByText('DEP', { exact: true })).toBeVisible()
+  const auditoria = page.locator('details').filter({ hasText: 'Información técnica y auditoría' })
+  await expect(auditoria.getByText('Usada', { exact: true })).toBeHidden()
+  await auditoria.locator('summary').click()
+  await expect(auditoria.getByText('Usada', { exact: true })).toBeVisible()
+  await expect(auditoria.getByText('Sin verificar', { exact: true })).toBeVisible()
 })
 
 test('avisa si el catálogo aún no está desplegado y permite reintentar', async ({ page }) => {
@@ -185,26 +201,26 @@ test('avisa si el catálogo aún no está desplegado y permite reintentar', asyn
   await expect(page.getByRole('region', { name: 'Resultados de plantillas' })).toBeVisible()
 })
 
-test('ordena los filtros y permite recorrer el listado horizontal con el teclado', async ({ page }) => {
+test('muestra las siete columnas y permite consultar en móvil y con teclado', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await simular(page)
   await expect(page.getByLabel('Módulo contable').getByRole('option')).toHaveText(['Todos', 'Bóveda', 'Caja'])
+  await expect(page.getByLabel('Tipo de asiento')).toBeHidden()
+  await page.getByText('Filtros avanzados', { exact: true }).click()
   await expect(page.getByLabel('Tipo de asiento').getByRole('option')).toHaveText(['Todos', 'Depósito', 'Tipo de asiento · T2', 'Tipo de asiento · T10'])
 
-  const listado = page.getByRole('region', { name: 'Resultados de plantillas' })
-  const posicion = () => listado.evaluate(elemento => elemento.scrollLeft)
-  await page.getByRole('button', { name: 'Buscar', exact: true }).focus()
-  await page.keyboard.press('Tab')
-  await expect(page.getByRole('button', { name: 'Desplazar tabla a la izquierda' })).toBeFocused()
-  await page.keyboard.press('Tab')
-  const derecha = page.getByRole('button', { name: 'Desplazar tabla a la derecha' })
-  await expect(derecha).toBeFocused()
-  await expect(derecha).toBeInViewport()
-  await page.keyboard.press('Enter')
-  await expect.poll(posicion).toBeGreaterThan(0)
-  await page.keyboard.press('Shift+Tab')
-  await page.keyboard.press('Space')
-  await expect.poll(posicion).toBe(0)
+  const tabla = page.getByRole('table', { name: 'Catálogo de reglas contables' })
+  await page.setViewportSize({ width: 1024, height: 844 })
+  await expect(tabla.getByRole('columnheader')).toHaveText(['Plantilla', 'Módulo contable', 'Desde', 'Hacia', 'Estado', 'Vigencia', 'Acción'])
+  await page.setViewportSize({ width: 320, height: 844 })
+  expect(await tabla.evaluate(el => el.scrollWidth)).toBeLessThanOrEqual(await tabla.evaluate(el => el.clientWidth))
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
+  await page.getByRole('button', { name: 'Expandir menú' }).click()
+  await expect(page.getByRole('complementary')).toHaveCSS('width', '112px')
+  await expect.poll(() => tabla.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0)
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
+  await page.getByRole('button', { name: 'Limpiar filtros' }).focus()
+  // La ayuda contextual está antes del primer resultado en el orden del teclado.
   await page.keyboard.press('Tab')
   await page.keyboard.press('Tab')
   await expect(page.getByRole('button', { name: 'Ver Depósito de caja, versión 2' })).toBeFocused()
@@ -212,54 +228,74 @@ test('ordena los filtros y permite recorrer el listado horizontal con el teclado
   await expect(page.getByRole('heading', { name: 'Depósito de caja' })).toBeFocused()
 })
 
-test('muestra Bóveda junto a las versiones y consulta sus cuentas sin acciones E4-03', async ({ page }) => {
+test('muestra los datos de Bóveda y su ayuda contextual bajo demanda', async ({ page }) => {
   const estado = await simular(page)
-  const version = page.getByRole('row', { name: /Depósito de caja.*No seleccionada/ })
-  await expect(version.getByText('Usada', { exact: true })).toBeVisible()
-  await expect(version.getByText('Sin verificar', { exact: true })).toBeVisible()
   const versionBoveda = page.getByRole('row', { name: /Recepción versionada/ })
-  await expect(versionBoveda).toHaveCount(1)
-  await expect(versionBoveda.getByText('Agencia 001')).toBeVisible()
-  await expect(versionBoveda.getByText('Plantilla versionada')).toBeVisible()
   await expect(versionBoveda.getByText('Efectivo en tránsito')).toBeVisible()
-  const fila = page.getByRole('row', { name: /Traslado.*Matriz de Bóveda/ })
-  await expect(fila).toHaveCount(1)
-  await expect(fila.getByText('Agencia 001')).toBeVisible()
-  await expect(fila.getByText('Pendiente', { exact: true })).toBeVisible()
-  await expect(fila.getByText('Configurada', { exact: true })).toBeVisible()
-  await expect(fila.getByText('No habilitada', { exact: true })).toBeVisible()
-  await expect(fila.getByText('No aplica', { exact: true })).toBeVisible()
-  await expect(page.getByText(/Durante el corte parcial, ambas etapas usan la matriz/)).toBeVisible()
+  const fila = page.getByRole('row', { name: /Traslado de efectivo/ })
+  await expect(fila.getByRole('cell', { name: 'No habilitada', exact: true })).toBeVisible()
+  await expect(fila.getByRole('cell', { name: 'No aplica', exact: true })).toBeVisible()
+  const ayuda = page.getByText(/Si falta una versión seleccionada/)
+  await expect(ayuda).toBeHidden()
+  await page.getByText('¿Cómo se evalúa un traslado de Bóveda?').click()
+  await expect(ayuda).toBeVisible()
   await fila.getByRole('button').click()
   await expect(page.getByRole('heading', { name: 'Traslado de efectivo' })).toBeFocused()
+  await expect(page.getByText('Agencia 001', { exact: true })).toBeVisible()
+  await expect(page.getByText('Matriz de Bóveda', { exact: true })).toBeVisible()
+  await expect(page.getByText('Configurada', { exact: true })).toBeVisible()
   await expect(page.getByText('11010101', { exact: true })).toBeVisible()
   await expect(page.getByText('Sin cuenta', { exact: true })).toBeVisible()
   await expect(page.getByText('Inactivo', { exact: true })).toBeVisible()
+  await expect(page.getByText('No habilitada en la matriz', { exact: true })).toBeVisible()
+  await page.getByText('Información técnica y auditoría').click()
+  await expect(page.getByText('Pendiente', { exact: true })).toBeVisible()
   await expect(page.getByText('Regla de Bóveda de solo consulta.')).toBeVisible()
   await expect(page.getByText(/Preparar nueva versión|Simular movimientos|Solicitud de aprobación/)).toHaveCount(0)
   expect(estado.rutasPlantillas).toEqual([])
 })
 
-test('envía fecha y agencia y conserva el inventario general con fecha y matriz no disponibles', async ({ page }) => {
+test('envía la fecha y agencia seleccionadas y restablece los filtros', async ({ page }) => {
   const estado = await simular(page)
+  await page.getByText('Filtros avanzados', { exact: true }).click()
   await page.getByLabel('Fecha de evaluación').fill('2026-10-15')
-  await page.getByLabel('Agencia de Bóveda').fill('001')
+  await page.getByLabel('Agencia de Bóveda').selectOption({ label: 'Matriz · 001' })
   await page.getByRole('button', { name: 'Buscar', exact: true }).click()
-  const versionUsada = page.getByRole('row', { name: /Depósito de caja.*\bUsada\b/ })
-  await expect(versionUsada.getByText('Vigente', { exact: true })).toBeVisible()
+  const versionesCaja = page.getByRole('row', { name: /Depósito de caja/ })
+  await expect(versionesCaja.getByRole('cell', { name: 'Vigente', exact: true })).toHaveCount(1)
   expect(estado.evaluaciones.at(-1)).toEqual({ fecha: '2026-10-15', agencia: '001' })
   await page.getByLabel('Fecha de evaluación').fill('2026-01-01')
-  await page.getByLabel('Agencia de Bóveda').fill('002')
+  await page.getByLabel('Agencia de Bóveda').selectOption('002')
   await page.getByRole('button', { name: 'Buscar', exact: true }).click()
   await expect(page.getByText('Fecha de evaluación: No disponible')).toBeVisible()
   await expect(page.getByText('La matriz de Bóveda no está disponible para este alcance.')).toBeVisible()
-  await expect(page.getByText('Sin fecha de evaluación', { exact: true })).toHaveCount(2)
+  await expect(page.getByRole('cell', { name: 'Sin fecha de evaluación', exact: true })).toHaveCount(2)
   await expect(page.getByRole('row', { name: /Traslado/ })).toHaveCount(0)
   expect(estado.evaluaciones.at(-1)).toEqual({ fecha: '2026-01-01', agencia: '002' })
-  await page.getByLabel('Agencia de Bóveda').fill('999')
-  await page.getByRole('button', { name: 'Buscar', exact: true }).click()
-  await expect(page.getByRole('region', { name: 'Listado de plantillas' }).getByRole('alert')).toContainText('No tienes permiso para realizar esta acción.')
-  await expect(page.getByRole('region', { name: 'Resultados de plantillas' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Limpiar filtros' }).click()
+  await expect(page.getByLabel('Fecha de evaluación')).toHaveValue('')
+  await expect(page.getByLabel('Agencia de Bóveda')).toBeHidden()
+  await expect(page.getByRole('row', { name: /Traslado/ })).toBeVisible()
+  await page.getByText('Filtros avanzados', { exact: true }).click()
+  await expect(page.getByLabel('Agencia de Bóveda')).toHaveValue('')
+})
+
+test('muestra en el selector las agencias autorizadas para la sesión', async ({ page }) => {
+  await simular(page, { agenciaRestringida: true })
+  await page.getByLabel('Módulo contable').selectOption('BOVEDA')
+  await page.getByText('Filtros avanzados', { exact: true }).click()
+  await expect(page.getByLabel('Agencia de Bóveda').getByRole('option')).toHaveText(['Agencia de la sesión', 'Matriz · 001'])
+})
+
+test('distingue una aprobación ejecutada de la vigencia y la integración pendiente', async ({ page }) => {
+  await simular(page, { integracionPendiente: true })
+  await verDetalle(page)
+  await expect(page.getByRole('region', { name: 'Solicitud de aprobación' }).getByText('Aprobación · Ejecutada')).toBeVisible()
+  await expect(page.getByText('Vigente', { exact: true })).toBeVisible()
+  await expect(page.getByText('Integración pendiente', { exact: true })).toBeVisible()
+  await page.getByText('Información técnica y auditoría').click()
+  await expect(page.getByText('Pendiente', { exact: true })).toBeVisible()
+  await expect(page.getByText('Sin uso registrado', { exact: true })).toBeVisible()
 })
 
 test('simula las primas E4-03, confirma la edición y muestra la solicitud pendiente', async ({ page }) => {
@@ -281,7 +317,7 @@ test('simula las primas E4-03, confirma la edición y muestra la solicitud pendi
   await page.getByRole('button', { name: 'Confirmar y enviar' }).click()
   await expect(page.getByRole('heading', { name: 'Depósito actualizado' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Gestionar solicitud en Aprobaciones' })).toHaveAttribute('href', '/aprobaciones/20')
-  await expect(page.getByText('Pendiente', { exact: true })).toBeVisible()
+  await expect(page.getByText('Aprobación · Pendiente', { exact: true })).toBeVisible()
   expect(estado.simulaciones).toBe(1)
   expect(estado.creaciones).toBe(1)
 })
