@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
+import { Aviso, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
 import { Field, fieldClassName } from '@/features/clientes/components/form-fields'
 import { listarTiposAntecedente, NIVELES_LAFT, RESULTADOS_RIESGO, riesgoCreateSchema, type RiesgoCreate } from '@/features/clientes/api/riesgo'
 
@@ -10,21 +10,25 @@ interface Props {
   error: Error | null
   guardar: (entrada: RiesgoCreate) => Promise<void>
   cancelar: () => void
+  valoresIniciales?: Partial<RiesgoCreate>
 }
 
-export function EvaluacionRiesgoForm({ nombre, ocupado, error, guardar, cancelar }: Props) {
-  const [nivel, setNivel] = useState('')
-  const [pep, setPep] = useState('')
-  const [antecedentes, setAntecedentes] = useState('')
-  const [tipo, setTipo] = useState('')
-  const [resultado, setResultado] = useState('')
-  const [observaciones, setObservaciones] = useState('')
+export function EvaluacionRiesgoForm({ nombre, ocupado, error, guardar, cancelar, valoresIniciales }: Props) {
+  const [nivel, setNivel] = useState(valoresIniciales?.nivelRiesgoLAFT ?? '')
+  const [pep, setPep] = useState(valoresIniciales?.esPEP === undefined ? '' : valoresIniciales.esPEP ? 'si' : 'no')
+  const [antecedentes, setAntecedentes] = useState(valoresIniciales?.tieneAntecedentes === undefined ? '' : valoresIniciales.tieneAntecedentes ? 'si' : 'no')
+  const [tipo, setTipo] = useState(valoresIniciales?.idTipoAntecedente ? String(valoresIniciales.idTipoAntecedente) : '')
+  const [resultado, setResultado] = useState(valoresIniciales?.resultadoEvaluacion ?? '')
+  const [observaciones, setObservaciones] = useState(valoresIniciales?.observaciones ?? '')
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [confirmacion, setConfirmacion] = useState<RiesgoCreate | null>(null)
   const catalogo = useQuery({ queryKey: ['catalogos', 'tipos-antecedente'], queryFn: ({ signal }) => listarTiposAntecedente(signal), staleTime: Infinity, gcTime: Infinity, retry: false, enabled: antecedentes === 'si' })
   const tipoElegido = catalogo.data?.find((fila) => String(fila.idTipoAntecedente) === tipo)
   const bloqueado = ocupado || (antecedentes === 'si' && (catalogo.isPending || catalogo.isError || !catalogo.data?.length))
   const clase = `${fieldClassName} w-full border outline-none focus-visible:ring-2 focus-visible:ring-ring dark:scheme-dark`
+
+  const requiereAprobacion = pep === 'si' || nivel === 'Alto' || resultado === 'Rechazado'
+  const textoBoton = requiereAprobacion ? 'Enviar a aprobación' : 'Registrar evaluación'
 
   function revisar(evento: React.FormEvent) {
     evento.preventDefault()
@@ -72,13 +76,21 @@ export function EvaluacionRiesgoForm({ nombre, ocupado, error, guardar, cancelar
             <p id="riesgo-observaciones-ayuda" className="text-sm text-muted-foreground">{observaciones.length}/250 caracteres. Incluye el sustento de la evaluación.</p>
           </Field>
         </fieldset>
+        {requiereAprobacion && (
+          <Aviso>
+            <p>
+              Esta evaluación requiere la aprobación de otra persona y no rige hasta entonces.
+              {resultado === 'Rechazado' && ' Si se aprueba, el cliente quedará bloqueado.'}
+            </p>
+          </Aviso>
+        )}
         {error && <div role="alert" className="rounded-xl border border-destructive/40 p-4 text-sm text-destructive"><p>{error.message}</p><p className="mt-2">Los datos se conservaron. Si hubo una interrupción, consulta el historial antes de reenviar.</p></div>}
         <div className="flex flex-wrap justify-end gap-3">
           <Button type="button" variant="outline" size="form" disabled={ocupado} onClick={cancelar}>
             Cancelar
           </Button>
           <Button type="submit" size="form" disabled={bloqueado}>
-            {ocupado ? 'Guardando…' : 'Revisar evaluación'}
+            {ocupado ? 'Guardando…' : textoBoton}
           </Button>
         </div>
       </form>
@@ -86,12 +98,18 @@ export function EvaluacionRiesgoForm({ nombre, ocupado, error, guardar, cancelar
         <DialogContent showCloseButton={!ocupado}>
           <DialogHeader><DialogTitle>Confirmar evaluación de riesgo</DialogTitle><DialogDescription>Se registrará para {nombre}. El resultado puede cambiar el estado del cliente.</DialogDescription></DialogHeader>
           {confirmacion && <dl className="grid gap-2 text-sm"><dt className="font-semibold">Resultado</dt><dd>{confirmacion.resultadoEvaluacion}</dd><dt className="font-semibold">Riesgo LAFT</dt><dd>{confirmacion.nivelRiesgoLAFT}</dd><dt className="font-semibold">PEP y antecedentes</dt><dd>PEP {confirmacion.esPEP ? 'Sí' : 'No'} · Antecedentes {confirmacion.tieneAntecedentes ? 'Sí' : 'No'}</dd></dl>}
+          {requiereAprobacion && (
+            <p className="text-sm text-muted-foreground">
+              Esta evaluación requiere la aprobación de otra persona y no rige hasta entonces.
+              {resultado === 'Rechazado' && ' Si se aprueba, el cliente quedará bloqueado.'}
+            </p>
+          )}
           <div className="flex flex-wrap justify-end gap-3">
             <Button type="button" variant="outline" size="form" disabled={ocupado} onClick={() => setConfirmacion(null)}>
               Volver al formulario
             </Button>
             <Button type="button" size="form" disabled={ocupado} onClick={() => void confirmar()}>
-              {ocupado ? 'Guardando…' : 'Confirmar y registrar'}
+              {ocupado ? 'Guardando…' : textoBoton}
             </Button>
           </div>
         </DialogContent>
