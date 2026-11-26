@@ -9,19 +9,20 @@ afterEach(() => vi.restoreAllMocks())
 
 describe('E5-05 · revelación auditada con MFA', () => {
   it('pide el desafío sin cuerpo', async () => {
-    const post = vi.spyOn(apiClient, 'post').mockResolvedValue(respuesta({ idDesafio: 'abc', expiraEn: null }))
-    await expect(pedirDesafioRevelacion(42)).resolves.toEqual({ idDesafio: 'abc', expiraEn: null, requiereCodigo: true })
-    expect(post).toHaveBeenCalledWith('/api/v1/clientes/42/revelacion/desafio')
+    const post = vi.spyOn(apiClient, 'post').mockResolvedValue(respuesta({ idDesafio: 'abc', comprobante: '1700000000.firma', expiraEn: null }))
+    await expect(pedirDesafioRevelacion(42, ['email'])).resolves.toEqual({ idDesafio: 'abc', comprobante: '1700000000.firma', expiraEn: null, requiereCodigo: true })
+    // El desafío se pide para esos campos: el código no servirá para otros
+    expect(post).toHaveBeenCalledWith('/api/v1/clientes/42/revelacion/desafio', { campos: ['email'] })
   })
 
   it('con el MFA apagado en el backend no hay desafío ni código', async () => {
     vi.spyOn(apiClient, 'post').mockResolvedValue(respuesta({ idDesafio: null, expiraEn: null, requiereCodigo: false }))
-    await expect(pedirDesafioRevelacion(42)).resolves.toEqual({ idDesafio: null, expiraEn: null, requiereCodigo: false })
+    await expect(pedirDesafioRevelacion(42, ['email'])).resolves.toEqual({ idDesafio: null, comprobante: null, expiraEn: null, requiereCodigo: false })
   })
 
   it('rechaza un desafío con forma inesperada', async () => {
     vi.spyOn(apiClient, 'post').mockResolvedValue(respuesta({ expiraEn: null }))
-    await expect(pedirDesafioRevelacion(42)).rejects.toMatchObject({ code: 'respuesta_invalida' })
+    await expect(pedirDesafioRevelacion(42, ['email'])).rejects.toMatchObject({ code: 'respuesta_invalida' })
   })
 
   it('envía campos, desafío y código; los no pedidos quedan null', async () => {

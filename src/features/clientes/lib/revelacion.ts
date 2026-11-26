@@ -10,6 +10,7 @@ export type FaseRevelacion = 'cerrado' | 'pidiendo' | 'codigo' | 'verificando' |
 export interface EstadoRevelacion {
   fase: FaseRevelacion
   idDesafio: string | null
+  comprobante: string | null
   codigo: string
   error: string | null
   /** Solo en memoria del componente: nunca en la caché de consultas ni en el almacenamiento del navegador */
@@ -18,7 +19,7 @@ export interface EstadoRevelacion {
 
 export type AccionRevelacion =
   | { tipo: 'abrir' }
-  | { tipo: 'desafio'; idDesafio: string }
+  | { tipo: 'desafio'; idDesafio: string; comprobante: string }
   | { tipo: 'codigo'; valor: string }
   | { tipo: 'verificar' }
   /** El backend no exige código (MFA apagado): se revela directo */
@@ -27,7 +28,7 @@ export type AccionRevelacion =
   | { tipo: 'fallo'; mensaje: string; nuevoCodigo: boolean }
   | { tipo: 'ocultar' }
 
-export const REVELACION_INICIAL: EstadoRevelacion = { fase: 'cerrado', idDesafio: null, codigo: '', error: null, datos: null }
+export const REVELACION_INICIAL: EstadoRevelacion = { fase: 'cerrado', idDesafio: null, comprobante: null, codigo: '', error: null, datos: null }
 
 export const codigoValido = (codigo: string) => /^\d{6}$/.test(codigo)
 
@@ -37,7 +38,7 @@ export function revelacionReducer(estado: EstadoRevelacion, accion: AccionRevela
       return { ...REVELACION_INICIAL, fase: 'pidiendo' }
     case 'desafio':
       // Si se canceló mientras llegaba, el desafío se descarta
-      return estado.fase === 'pidiendo' ? { ...estado, fase: 'codigo', idDesafio: accion.idDesafio } : estado
+      return estado.fase === 'pidiendo' ? { ...estado, fase: 'codigo', idDesafio: accion.idDesafio, comprobante: accion.comprobante } : estado
     case 'codigo':
       return { ...estado, codigo: accion.valor.replace(/\D/g, '').slice(0, 6) }
     case 'sinCodigo':
@@ -57,6 +58,7 @@ export function revelacionReducer(estado: EstadoRevelacion, accion: AccionRevela
         codigo: '',
         error: accion.mensaje,
         idDesafio: accion.nuevoCodigo ? null : estado.idDesafio,
+        comprobante: accion.nuevoCodigo ? null : estado.comprobante,
       }
     case 'ocultar':
       return REVELACION_INICIAL

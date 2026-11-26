@@ -5,9 +5,10 @@ import { ApiError, apiClient } from '@/shared/api'
 /*
  * E5-05 · Revelación auditada de datos sensibles (ASVS 16.2.1), con MFA de la cuenta del usuario.
  *
- * - POST /clientes/{id}/revelacion/desafio (sin body) → `{ idDesafio, expiraEn }`.
+ * - POST /clientes/{id}/revelacion/desafio `{ campos }` → `{ idDesafio, comprobante, expiraEn, requiereCodigo }`:
+ *   el código solo servirá para esos campos de ese cliente (MFA ligado a la acción, core/security/mfa).
  *   409 MFA_NO_CONFIGURADO, 503 MFA_NO_DISPONIBLE.
- * - POST /clientes/{id}/revelacion `{ campos, idDesafio, codigo }` → solo los campos pedidos; el resto null.
+ * - POST /clientes/{id}/revelacion `{ campos, idDesafio, comprobante, codigo }` → solo los campos pedidos; el resto null.
  *   422 MFA_INVALIDO (hay que pedir otro desafío), 429 con más de 5 por minuto.
  *
  * Roles: ASESOR, SUPERVISOR y ADMIN (función `clientes.verSensible`). El backend audita cada intento.
@@ -21,13 +22,17 @@ export type CampoRevelable = (typeof CAMPOS_REVELABLES)[number]
 const base = (idCliente: number) => `/api/v1/clientes/${idCliente}/revelacion`
 
 // requiereCodigo=false mientras el backend tenga REVELACION_EXIGE_MFA apagado (pendiente E5-05)
-const desafioSchema = z.object({ idDesafio: z.string().min(1).nullable(), expiraEn: z.string().nullable(), requiereCodigo: z.boolean().default(true) })
+const desafioSchema = z.object({
+  idDesafio: z.string().min(1).nullable(), comprobante: z.string().min(1).nullable().default(null),
+  expiraEn: z.string().nullable(), requiereCodigo: z.boolean().default(true),
+})
 export type Desafio = z.infer<typeof desafioSchema>
 
 export const revelacionBodySchema = z.strictObject({
   campos: z.array(z.enum(CAMPOS_REVELABLES)).min(1).max(5)
     .refine((campos) => new Set(campos).size === campos.length, 'No repitas campos.'),
   idDesafio: z.string().min(1).optional(),
+  comprobante: z.string().min(1).optional(),
   codigo: z.string().regex(/^\d{6}$/, 'El código tiene 6 dígitos.').optional(),
 })
 export type RevelacionBody = z.input<typeof revelacionBodySchema>
@@ -48,8 +53,8 @@ function validar<T extends z.ZodType>(schema: T, data: unknown, status: number):
   return resultado.data
 }
 
-export async function pedirDesafioRevelacion(idCliente: number) {
-  const { data, status } = await apiClient.post<unknown>(`${base(idCliente)}/desafio`)
+export async function pedirDesafioRevelacion(idCliente: number, campos: readonly CampoRevelable[]) {
+  const { data, status } = await apiClient.post<unknown>(`${base(idCliente)}/desafio`, { campos: [...campos] })
   return validar(desafioSchema, data, status)
 }
 
