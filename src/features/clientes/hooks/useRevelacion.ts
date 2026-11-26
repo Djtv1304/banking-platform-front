@@ -21,9 +21,9 @@ export function useRevelacion(idCliente: number, campos: readonly CampoRevelable
   async function abrir() {
     despachar({ tipo: 'abrir' })
     try {
-      const { idDesafio, requiereCodigo } = await pedirDesafioRevelacion(idCliente)
-      if (requiereCodigo && idDesafio) {
-        despachar({ tipo: 'desafio', idDesafio })
+      const { idDesafio, comprobante, requiereCodigo } = await pedirDesafioRevelacion(idCliente, campos)
+      if (requiereCodigo && idDesafio && comprobante) {
+        despachar({ tipo: 'desafio', idDesafio, comprobante })
         return
       }
       // Pendiente E5-05: sin MFA el backend solo exige el permiso y audita la revelación.
@@ -36,10 +36,10 @@ export function useRevelacion(idCliente: number, campos: readonly CampoRevelable
 
   async function enviar() {
     const siguiente = revelacionReducer(estado, { tipo: 'verificar' })
-    if (siguiente === estado || !estado.idDesafio) return
+    if (siguiente === estado || !estado.idDesafio || !estado.comprobante) return
     despachar({ tipo: 'verificar' })
     try {
-      const datos = await revelarDatos(idCliente, { campos: [...campos], idDesafio: estado.idDesafio, codigo: estado.codigo })
+      const datos = await revelarDatos(idCliente, { campos: [...campos], idDesafio: estado.idDesafio, comprobante: estado.comprobante, codigo: estado.codigo })
       despachar({ tipo: 'revelado', datos })
     } catch (error) {
       despachar({ tipo: 'fallo', ...errorRevelacion(error) })
