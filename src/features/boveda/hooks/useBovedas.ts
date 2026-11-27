@@ -3,11 +3,12 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { ApiError } from '@/shared/api'
 import {
   aprobarArqueo,
-  aprobarSolicitudMovimiento,
+  avanzarSolicitudMovimiento,
   cancelarSolicitudMovimiento,
   crearSolicitudMovimiento,
   listarArqueosBoveda,
   listarBovedas,
+  listarDestinos,
   listarMovimientosBoveda,
   listarSolicitudesMovimiento,
   obtenerBoveda,
@@ -15,8 +16,9 @@ import {
   operacionSinConfirmar,
   rechazarSolicitudMovimiento,
   registrarArqueo,
+  resolverNovedadArqueo,
 } from '@/features/boveda/api/bovedas.api'
-import type { CrearSolicitudMovimiento, RegistrarArqueo } from '@/features/boveda/api/bovedas.contract'
+import type { ConfirmacionSolicitud, CrearSolicitudMovimiento, RegistrarArqueo, ResolverNovedadArqueo } from '@/features/boveda/api/bovedas.contract'
 
 export const BOVEDAS_KEY = ['bovedas'] as const
 
@@ -35,6 +37,14 @@ export const useBovedas = (params: Record<string, string>, habilitado: boolean) 
     queryFn: ({ signal }) => listarBovedas(params, signal),
     enabled: habilitado,
     placeholderData: keepPreviousData,
+  })
+
+export const useDestinosBoveda = (idBoveda: number, habilitado: boolean) =>
+  useQuery({
+    ...SIEMPRE_FRESCO,
+    queryKey: [...BOVEDAS_KEY, 'destinos', idBoveda],
+    queryFn: ({ signal }) => listarDestinos(idBoveda, signal),
+    enabled: habilitado,
   })
 
 /** BOV-02 · `null` cuando el id de la URL no es válido: no se llama a la API */
@@ -64,6 +74,7 @@ export const useArqueosBoveda = (idBoveda: number, params: Record<string, string
     queryFn: ({ signal }) => listarArqueosBoveda(idBoveda, params, signal),
     enabled: habilitado,
     placeholderData: keepPreviousData,
+    refetchInterval: (query) => query.state.data?.items.some((item) => item.novedad?.estado === 'PENDIENTE') ? 60_000 : false,
   })
 
 /* Las solicitudes cuelgan de BOVEDAS_KEY: al resolverse una cambian también saldos y movimientos */
@@ -115,8 +126,8 @@ export const useCrearSolicitudMovimiento = (idBoveda: number) =>
     crearSolicitudMovimiento(idBoveda, solicitud, clave),
   )
 
-/** SMV-04 · Ejecuta el movimiento: cambian saldos, denominaciones y movimientos */
-export const useAprobarSolicitudMovimiento = () => useOperacionBoveda(aprobarSolicitudMovimiento)
+export const useAvanzarSolicitudMovimiento = (idSolicitud: number) =>
+  useOperacionBoveda((confirmacion: ConfirmacionSolicitud) => avanzarSolicitudMovimiento(idSolicitud, confirmacion))
 
 /** SMV-05 */
 export const useRechazarSolicitudMovimiento = () =>
@@ -126,8 +137,9 @@ export const useRechazarSolicitudMovimiento = () =>
 export const useCancelarSolicitudMovimiento = () =>
   useOperacionBoveda(({ idSolicitud, motivo }: { idSolicitud: number; motivo: string }) => cancelarSolicitudMovimiento(idSolicitud, motivo))
 
-/** BOV-05 · Registrar un arqueo no mueve efectivo (los ajustes llegan al aprobarlo), pero aparece en BOV-07 */
 export const useRegistrarArqueo = (idBoveda: number) => useOperacionBoveda((arqueo: RegistrarArqueo) => registrarArqueo(idBoveda, arqueo))
 
-/** BOV-06 · Aprobar genera los ajustes: cambian saldo, denominaciones, movimientos y el arqueo */
 export const useAprobarArqueo = () => useOperacionBoveda(aprobarArqueo)
+
+export const useResolverNovedadArqueo = (idArqueo: number) =>
+  useOperacionBoveda((resolucion: ResolverNovedadArqueo) => resolverNovedadArqueo(idArqueo, resolucion))

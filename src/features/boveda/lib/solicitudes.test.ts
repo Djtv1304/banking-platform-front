@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
+import { solicitudMovimientoSchema } from '@/features/boveda/api/bovedas.contract'
 import {
+  accionesConfirmacion,
   etiquetaEstadoSolicitud,
   nombreBoveda,
   solicitudPendiente,
@@ -20,9 +22,35 @@ describe('solicitudes de movimiento', () => {
     expect(textoResolucion('EJECUTADA')).toBe('Aprobada por')
   })
 
-  it('solo una pendiente admite acciones', () => {
+  it('distingue las solicitudes que esperan aprobación', () => {
     expect(solicitudPendiente({ estado: 'PENDIENTE' })).toBe(true)
     expect(solicitudPendiente({ estado: 'EJECUTADA' })).toBe(false)
+  })
+
+  it('muestra cada confirmación del traslado en su agencia operativa', () => {
+    const base = solicitudMovimientoSchema.parse({
+      idSolicitudMovimiento: 1, idBoveda: 2, idBovedaContraparte: 3, idAgencia: '001', idAgenciaDestino: '002',
+      tipoMovimiento: 'Traslado', estado: 'PENDIENTE', monto: 100, fechaSolicitud: '2026-11-27T14:30:00-05:00',
+    })
+    expect(accionesConfirmacion(base, '001')).toEqual(['aprobacion'])
+    expect(accionesConfirmacion({ ...base, estado: 'APROBADO' }, '001')).toEqual(['despacho'])
+    const enTransito = { ...base, estado: 'DESPACHADO' }
+    expect(accionesConfirmacion(enTransito, '002')).toEqual(['recepcion'])
+    expect(accionesConfirmacion(enTransito, '001')).toEqual(['devolucion'])
+    expect(accionesConfirmacion(enTransito, '003')).toEqual([])
+    expect(accionesConfirmacion(enTransito, null)).toEqual([])
+    expect(accionesConfirmacion({ ...base, estado: 'ANULADA' }, '001')).toEqual([])
+  })
+
+  it('conserva los asientos del despacho, confirmación y diferencia', () => {
+    const recibida = solicitudMovimientoSchema.parse({
+      idSolicitudMovimiento: 1, idBoveda: 2, tipoMovimiento: 'Traslado', estado: 'RECIBIDO',
+      monto: 100, montoConfirmado: 95, fechaSolicitud: '2026-11-27T14:30:00-05:00',
+      diferencia: -5, actaNovedad: 'ACTA-5', idAsientoDespacho: 1, idAsientoConfirmacion: 2, idAsientoNovedad: 3,
+      conteoConfirmado: [{ idDenominacion: 1, cantidad: 19, valorUnitario: 5 }],
+    })
+    expect(recibida).toMatchObject({ diferencia: -5, idAsientoDespacho: 1, idAsientoConfirmacion: 2, idAsientoNovedad: 3 })
+    expect(recibida.conteoConfirmado).toHaveLength(1)
   })
 
   it('el valor unitario de la solicitud manda sobre el catálogo', () => {

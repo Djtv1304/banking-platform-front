@@ -177,13 +177,14 @@ function rolPuedeVer(item: NavItem, roles: readonly string[], pestanas?: Pestana
  * (vista de un rol en «Roles y accesos») no se filtra por permiso: eso se configura en WorkOS.
  * Solo decide qué se muestra: cada API valida su propio rol o permiso.
  */
-export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[], pestanas?: PestanasPorRol, accesos?: MeResponse['accesosSecciones'], capacidades: { aprobaciones?: boolean } = {}, autorizacion?: MeResponse['autorizacion']) {
+export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[], pestanas?: PestanasPorRol, accesos?: MeResponse['accesosSecciones'], capacidades: { aprobaciones?: boolean; matriz?: boolean } = {}, autorizacion?: MeResponse['autorizacion']) {
   if (!profile) return []
   return NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter(
       (item) => {
         if (item.capacidad && !capacidades[item.capacidad]) return false
+        if (capacidades.matriz === false && /^\/(contabilidad|auditoria)(\/|$)/.test(item.to)) return false
         const funciones = funcionesDeRuta(item.to)
         if (autorizacion?.activa && funciones) return funciones.some((f) => autorizacion.funciones.includes(f))
         return (

@@ -28,7 +28,7 @@ import {
 
 const SIN_FILTROS = {}
 
-/** SMV-02 · Cola de solicitudes de movimiento de todas las bóvedas; por defecto, las pendientes */
+/** Solicitudes visibles en la agencia operativa, con su estado de confirmación */
 export function SolicitudesMovimiento({ puedeListarBovedas }: { puedeListarBovedas: boolean }) {
   const [filtros, setFiltros] = useState<FiltrosSolicitudes>(FILTROS_SOLICITUDES_INICIALES)
   const [page, setPage] = useState(1)

@@ -11,6 +11,14 @@ import { ROLES_USUARIO } from '@/features/usuarios'
 const opciones = (rol: string) => getRoleNavigation(rol).flatMap((s) => s.opciones.map((o) => o.titulo))
 
 describe('vista de roles y menú comparten la configuración', () => {
+  it('reserva Contabilidad y Auditoría a la agencia operativa matriz', () => {
+    const roles = ['ADMIN']
+    const consultar = (matriz: boolean) => getVisibleSections(getAccessProfile(roles), roles, [], undefined, undefined, { matriz }).flatMap(section => section.items.map(item => item.to))
+    expect(consultar(true)).toEqual(expect.arrayContaining(['/auditoria', '/contabilidad']))
+    expect(consultar(false).filter(ruta => /^\/(contabilidad|auditoria)(\/|$)/.test(ruta))).toEqual([])
+    expect(consultar(false)).toContain('/bovedas')
+  })
+
   it('Aprobaciones requiere capacidad efectiva y no se ofrece como seccion configurable', () => {
     const rutas = (efectiva: boolean) => getVisibleSections(getAccessProfile(['CONTADOR']), ['CONTADOR'], [], { '/aprobaciones': ['CONTADOR'] }, undefined, { aprobaciones: efectiva }).flatMap(s => s.items.map(i => i.to))
     expect(rutas(false)).not.toContain('/aprobaciones')
@@ -50,11 +58,11 @@ describe('contratos de consulta por rol', () => {
     expect(opciones('AUDITOR')).toEqual(['Inicio', 'Parámetros', 'Directorios de auditoría', ...operativas, 'Bitácora de auditoría', 'Integridad de la bitácora'])
   })
 
-  it.each(['SUPERVISOR', 'CONTADOR', 'AUDITOR', 'ADMIN'])('%s ve Bóvedas (BOV-01 a BOV-03)', (rol) => {
+  it.each(['CAJERO', 'SUPERVISOR', 'CONTADOR', 'AUDITOR', 'ADMIN'])('%s ve Bóvedas', (rol) => {
     expect(opciones(rol)).toContain('Bóvedas')
   })
 
-  it.each(['ASESOR', 'CAJERO', 'APROBADOR_CREDITO'])('%s no ve Bóvedas', (rol) => {
+  it.each(['ASESOR', 'APROBADOR_CREDITO'])('%s no ve Bóvedas', (rol) => {
     expect(opciones(rol)).not.toContain('Bóvedas')
   })
 
@@ -123,7 +131,7 @@ describe('matriz completa de consultas del menu por rol', () => {
   const rutas: Record<string, string[]> = {
     ADMIN: ['/', '/organizacion/entidad', '/parametros', '/organizacion/agencias', '/organizacion/directorios', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/bovedas', '/contabilidad', '/contabilidad/cuentas-producto', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/pestanas', '/seguridad/roles', '/auditoria', '/auditoria/integridad'],
     ASESOR: ['/', '/organizacion/entidad', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas'],
-    CAJERO: ['/', '/clientes-busqueda', '/cuentas'],
+    CAJERO: ['/', '/clientes-busqueda', '/cuentas', '/bovedas'],
     SUPERVISOR: ['/', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas', '/bovedas', '/auditoria', '/auditoria/integridad'],
     APROBADOR_CREDITO: ['/', '/productos'],
     CONTADOR: ['/', '/productos', '/bovedas', '/contabilidad', '/contabilidad/cuentas-producto', '/contabilidad/asientos', '/contabilidad/fecha-contable'],

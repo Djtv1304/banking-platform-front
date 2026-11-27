@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
 import { ArrowLeft, ArrowRight, ArrowRightLeft, CircleCheck, ClipboardCheck, ClipboardList, History, RefreshCw, Vault, X } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
 import { Aviso, Badge, Button, Cargando } from '@/shared/ui'
-import { useAuthStore } from '@/features/auth'
+import { obtenerContextoAgencias, useAuthStore } from '@/features/auth'
 import { useAgencias, useDenominaciones } from '@/features/catalogos'
 import { esBovedaInexistente, mensajeErrorBoveda } from '@/features/boveda/api/bovedas.api'
 import type { Arqueo, Boveda, SolicitudMovimiento } from '@/features/boveda/api/bovedas.contract'
@@ -14,6 +15,7 @@ import { Denominaciones } from '@/features/boveda/components/Denominaciones'
 import { MovimientosBoveda } from '@/features/boveda/components/MovimientosBoveda'
 import { AprobarArqueoDialog } from '@/features/boveda/components/operaciones/AprobarArqueoDialog'
 import { RegistrarArqueoDialog } from '@/features/boveda/components/operaciones/RegistrarArqueoDialog'
+import { ResolverNovedadDialog } from '@/features/boveda/components/operaciones/ResolverNovedadDialog'
 import { SolicitarMovimientoDialog } from '@/features/boveda/components/operaciones/SolicitarMovimientoDialog'
 import { PanelPestana, Pestanas, type Pestana } from '@/features/boveda/components/Pestanas'
 import { useBoveda, useBovedas } from '@/features/boveda/hooks/useBovedas'
@@ -29,7 +31,7 @@ import {
   nombreAgencia,
   valoresPorDenominacion,
 } from '@/features/boveda/lib/formato'
-import { arqueoPendiente, textoDiferencia } from '@/features/boveda/lib/operaciones'
+import { textoDiferencia } from '@/features/boveda/lib/operaciones'
 
 const SIN_FILTROS = {}
 
@@ -37,16 +39,14 @@ type Dialogo = 'movimiento' | 'arqueo' | 'aprobar' | null
 
 type Historial = 'movimientos' | 'arqueos'
 
-/** Aviso tras una operación; un arqueo pendiente ofrece aprobarlo y una solicitud, revisarla */
 interface Confirmacion {
   mensaje: string
-  arqueo?: Arqueo
   solicitud?: SolicitudMovimiento
 }
 
 const NOTAS_HISTORIAL: Record<Historial, string> = {
   movimientos: 'Ingresos y egresos de efectivo ya ejecutados, del más reciente al más antiguo.',
-  arqueos: 'Conteos físicos de la bóveda frente al saldo del sistema. Los pendientes se aprueban desde su fila.',
+  arqueos: 'Conteos físicos y novedades de la bóveda.',
 }
 
 /** BOV-02 (saldo y denominaciones), BOV-03 (movimientos) y BOV-07 (arqueos) de una bóveda; cada bloque según el rol */
@@ -55,6 +55,7 @@ export function DetalleBovedaPage() {
   const idBoveda = leerIdBoveda(param)
   const roles = useAuthStore((state) => state.user?.roles)
   const acceso = accesoBoveda(roles ?? [])
+  const contexto = useQuery({ queryKey: ['auth', 'agencias'], queryFn: ({ signal }) => obtenerContextoAgencias(signal), retry: false })
   const boveda = useBoveda(idBoveda, acceso.consultar)
   // Solo para nombrar la bóveda superior y las que dependen de esta; si falla, se muestran por ID
   const todas = useBovedas(SIN_FILTROS, acceso.listar && idBoveda !== null)
@@ -63,6 +64,7 @@ export function DetalleBovedaPage() {
 
   const [dialogo, setDialogo] = useState<Dialogo>(null)
   const [arqueoAprobar, setArqueoAprobar] = useState<Arqueo | null>(null)
+  const [arqueoNovedad, setArqueoNovedad] = useState<Arqueo | null>(null)
   const [confirmacion, setConfirmacion] = useState<Confirmacion | null>(null)
   const pestanasHistorial: Pestana<Historial>[] = [
     ...(acceso.movimientos ? [{ id: 'movimientos' as const, texto: 'Movimientos', Icono: History }] : []),
@@ -78,13 +80,14 @@ export function DetalleBovedaPage() {
 
   const inexistente = idBoveda === null || (boveda.isError && esBovedaInexistente(boveda.error))
   const valores = valoresPorDenominacion(boveda.data?.denominaciones ?? [], catalogo.data)
+  const agenciaPropia = Boolean(contexto.data?.idAgencia && contexto.data.idAgencia === boveda.data?.idAgencia)
+  const puedeEscribir = agenciaPropia && estaActiva(boveda.data?.estado ?? '')
 
   const saldo = (() => {
     if (!acceso.consultar) {
       return (
         <Aviso>
-          Tu rol consulta los movimientos de la bóveda. El saldo y las denominaciones los ven Supervisor, Contador y
-          Administrador.
+          Tu rol puede consultar el historial de la bóveda.
         </Aviso>
       )
     }
@@ -147,8 +150,8 @@ export function DetalleBovedaPage() {
               )}
             </div>
             <Acciones
-              puedeMovimiento={acceso.solicitarMovimiento && !!boveda.data}
-              puedeArqueo={acceso.registrarArqueo}
+              puedeMovimiento={acceso.solicitarMovimiento && puedeEscribir}
+              puedeArqueo={acceso.registrarArqueo && puedeEscribir}
               onAbrir={setDialogo}
             />
           </header>
@@ -158,18 +161,6 @@ export function DetalleBovedaPage() {
               <CircleCheck aria-hidden className="mt-0.5 size-5 shrink-0 text-link" />
               <p className="flex-1">
                 {confirmacion.mensaje}
-                {confirmacion.arqueo && acceso.aprobarArqueo && arqueoPendiente(confirmacion.arqueo) && (
-                  <>
-                    {' '}
-                    <button
-                      type="button"
-                      onClick={() => abrirAprobacion(confirmacion.arqueo ?? null)}
-                      className="rounded-sm font-semibold text-link underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      Aprobarlo ahora
-                    </button>
-                  </>
-                )}
                 {confirmacion.solicitud && (
                   <>
                     {' '}
@@ -211,7 +202,10 @@ export function DetalleBovedaPage() {
                 {historial === 'movimientos' ? (
                   <MovimientosBoveda key={idBoveda} idBoveda={idBoveda} valores={valores} />
                 ) : (
-                  <ArqueosBoveda key={idBoveda} idBoveda={idBoveda} puedeAprobar={acceso.aprobarArqueo} onAprobar={abrirAprobacion} />
+                  <ArqueosBoveda key={idBoveda} idBoveda={idBoveda}
+                    puedeAprobar={acceso.aprobarArqueo && puedeEscribir} onAprobar={abrirAprobacion}
+                    puedeResolver={acceso.resolverNovedad && puedeEscribir} onResolver={setArqueoNovedad}
+                  />
                 )}
               </PanelPestana>
             </Bloque>
@@ -221,12 +215,11 @@ export function DetalleBovedaPage() {
             <SolicitarMovimientoDialog
               boveda={boveda.data}
               open={dialogo === 'movimiento'}
-              puedeListar={acceso.listar}
               onCerrar={() => setDialogo(null)}
               onCreada={(solicitud) => {
                 setDialogo(null)
                 setConfirmacion({
-                  mensaje: `Enviamos la solicitud N.º ${solicitud.idSolicitudMovimiento}: ${etiquetaMovimiento(solicitud.tipoMovimiento).toLowerCase()} por ${formatearMonto(solicitud.monto)}. El saldo cambiará cuando se apruebe.`,
+                  mensaje: `Registramos la solicitud N.º ${solicitud.idSolicitudMovimiento} de ${etiquetaMovimiento(solicitud.tipoMovimiento).toLowerCase()} por ${formatearMonto(solicitud.monto)}.`,
                   solicitud,
                 })
               }}
@@ -237,17 +230,22 @@ export function DetalleBovedaPage() {
               idBoveda={idBoveda}
               codigoBoveda={boveda.data?.codigoBoveda ?? `la bóveda ${idBoveda}`}
               open={dialogo === 'arqueo'}
-              puedeAprobar={acceso.aprobarArqueo}
               onCerrar={() => setDialogo(null)}
-              onRegistrado={(arqueo) =>
+              onRegistrado={(arqueo) => {
+                setHistorial('arqueos')
                 setConfirmacion({
-                  mensaje: `Registramos el arqueo N.º ${arqueo.idArqueoBoveda}: ${textoDiferencia(arqueo).toLowerCase()}.${
-                    arqueoPendiente(arqueo) ? ' Queda pendiente de aprobación.' : ''
-                  }`,
-                  arqueo,
+                  mensaje: `Cerramos el arqueo N.º ${arqueo.idArqueoBoveda}. ${textoDiferencia(arqueo)}.`,
                 })
-              }
-              onAprobar={abrirAprobacion}
+              }}
+            />
+          )}
+          {arqueoNovedad?.novedad && acceso.resolverNovedad && puedeEscribir && (
+            <ResolverNovedadDialog idArqueo={arqueoNovedad.idArqueoBoveda} novedad={arqueoNovedad.novedad}
+              onCerrar={() => setArqueoNovedad(null)}
+              onResuelta={() => {
+                setConfirmacion({ mensaje: `Novedad N.º ${arqueoNovedad.novedad?.idNovedad} resuelta.` })
+                setArqueoNovedad(null)
+              }}
             />
           )}
           {acceso.aprobarArqueo && (
@@ -275,7 +273,6 @@ export function DetalleBovedaPage() {
   )
 }
 
-/** Operaciones que el rol puede iniciar sobre la bóveda (SMV-01 y BOV-05); los arqueos se aprueban desde su historial */
 function Acciones({
   puedeMovimiento,
   puedeArqueo,
@@ -291,7 +288,7 @@ function Acciones({
       {puedeArqueo && (
         <Button variant="outline" size="lg" onClick={() => onAbrir('arqueo')} className="h-11 rounded-xl px-4 font-semibold">
           <ClipboardCheck />
-          Registrar arqueo
+          Cerrar arqueo
         </Button>
       )}
       {puedeMovimiento && (

@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router'
 import { useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { funcionesDeRuta } from '@/app/router/funciones-ruta'
 import { actualizarAccesosPorActividad } from '@/features/auth/session'
 
 import { Aviso } from '@/shared/ui'
-import { canAccess, hasAnyRole, hasPermission, permiteSeccion, rutaLoginConRetorno, sanitizeReturnTo, useAccessProfile, useAuthStatus, useAuthStore, usePermisos, type AccessProfile, type Permiso } from '@/features/auth'
+import { canAccess, hasAnyRole, hasPermission, obtenerContextoAgencias, permiteSeccion, rutaLoginConRetorno, sanitizeReturnTo, useAccessProfile, useAuthStatus, useAuthStore, usePermisos, type AccessProfile, type Permiso } from '@/features/auth'
 
 // Pantalla vacía mientras GET /api/v1/auth/me responde
 function SessionRestoring() {
@@ -57,6 +58,14 @@ export function RequireProfile({ allowed }: { allowed: readonly AccessProfile[] 
 
   if (!profile || !canAccess(profile, allowed)) return <Navigate to="/" replace />
   return <Outlet />
+}
+
+export function RequireMatriz() {
+  const contexto = useQuery({ queryKey: ['auth', 'agencias'], queryFn: ({ signal }) => obtenerContextoAgencias(signal), retry: false })
+  if (contexto.isPending) return <div aria-busy="true" />
+  return contexto.data?.agenciaEsMatriz
+    ? <Outlet />
+    : <Aviso tono="error">Selecciona la agencia matriz para acceder a esta sección.</Aviso>
 }
 
 /** Dentro de RequireAuth: la URL directa respeta los mismos roles que el menú. */

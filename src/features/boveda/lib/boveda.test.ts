@@ -88,13 +88,14 @@ describe('contrato', () => {
 })
 
 describe('accesoBoveda', () => {
-  it('el AUDITOR consulta movimientos, arqueos y solicitudes y registra arqueos, pero no lista, no ve saldos ni resuelve', () => {
+  it('el AUDITOR tiene acceso de lectura al historial y las solicitudes', () => {
     expect(accesoBoveda(['AUDITOR'])).toEqual({
       listar: false,
       consultar: false,
       movimientos: true,
-      registrarArqueo: true,
+      registrarArqueo: false,
       aprobarArqueo: false,
+      resolverNovedad: false,
       arqueos: true,
       solicitarMovimiento: false,
       solicitudes: true,
@@ -103,7 +104,7 @@ describe('accesoBoveda', () => {
     })
   })
 
-  it('el CONTADOR solo consulta; ADMIN y SUPERVISOR entran a todo', () => {
+  it('el cajero solicita y el jefe supervisa las confirmaciones y novedades', () => {
     expect(accesoBoveda(['contador'])).toMatchObject({
       listar: true,
       movimientos: true,
@@ -112,10 +113,12 @@ describe('accesoBoveda', () => {
       resolverSolicitud: false,
       cancelarSolicitud: false,
     })
-    for (const rol of ['ADMIN', 'SUPERVISOR']) {
-      expect(Object.values(accesoBoveda([rol])).every(Boolean)).toBe(true)
-    }
-    expect(Object.values(accesoBoveda(['CAJERO'])).some(Boolean)).toBe(false)
+    expect(Object.values(accesoBoveda(['SUPERVISOR'])).every(Boolean)).toBe(true)
+    expect(accesoBoveda(['ADMIN'])).toMatchObject({ listar: true, resolverSolicitud: false, registrarArqueo: false })
+    expect(accesoBoveda(['CAJERO'])).toMatchObject({
+      listar: true, consultar: true, solicitarMovimiento: true, cancelarSolicitud: true,
+      resolverSolicitud: false, registrarArqueo: false, resolverNovedad: false,
+    })
   })
 })
 

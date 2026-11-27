@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  accionesSolicitudSchema,
   arqueoSchema,
   crearSolicitudMovimientoSchema,
   IDEMPOTENCY_KEY_REGEX,
   motivoResolucionSchema,
   movimientoBovedaSchema,
-  movimientosEjecutadosSchema,
   paginaArqueosSchema,
   solicitudMovimientoSchema,
 } from '@/features/boveda/api/bovedas.contract'
@@ -33,6 +33,8 @@ describe('cantidades', () => {
     expect(leerCantidad('')).toBe(0)
     expect(leerCantidad(' 1.250 ')).toBe(1250)
     expect(leerCantidad('12,5')).toBeNull()
+    expect(leerCantidad('1.2')).toBeNull()
+    expect(leerCantidad('1.250.000')).toBe(1250000)
     expect(leerCantidad('-3')).toBeNull()
     expect(leerCantidad('9999999999')).toBeNull()
   })
@@ -77,8 +79,8 @@ describe('formulario de solicitud de movimiento (SMV-01)', () => {
   const schema = movimientoFormSchema(1)
 
   it('arma el body sin contraparte, autorizador ni observaciones vacías', () => {
-    const body = schema.parse({ ...MOVIMIENTO_VACIO, tipoMovimiento: 'DotacionCaja', observaciones: '  ', cantidades: { d4: '50' } })
-    expect(body).toEqual({ desglose: [{ idDenominacion: 4, cantidad: 50 }], tipoMovimiento: 'DotacionCaja' })
+    const body = schema.parse({ ...MOVIMIENTO_VACIO, tipoMovimiento: 'EnvioExcedente', observaciones: '  ', cantidades: { d4: '50' } })
+    expect(body).toEqual({ desglose: [{ idDenominacion: 4, cantidad: 50 }], tipoMovimiento: 'EnvioExcedente' })
     expect(crearSolicitudMovimientoSchema.safeParse(body).success).toBe(true)
     expect(crearSolicitudMovimientoSchema.safeParse({ ...body, autorizadoPor: 2 }).success).toBe(false)
   })
@@ -96,22 +98,23 @@ describe('formulario de solicitud de movimiento (SMV-01)', () => {
     const rutas = result.error?.issues.map((issue) => issue.path.join('.'))
     expect(rutas).toEqual(['tipoMovimiento', 'cantidades'])
     expect(
-      schema.safeParse({ ...MOVIMIENTO_VACIO, tipoMovimiento: 'DotacionCaja', cantidades: { d4: 'x' } }).error?.issues[0].path,
+      schema.safeParse({ ...MOVIMIENTO_VACIO, tipoMovimiento: 'EnvioExcedente', cantidades: { d4: 'x' } }).error?.issues[0].path,
     ).toEqual(['cantidades', 'd4'])
   })
 })
 
 describe('formulario de arqueo (BOV-05)', () => {
-  it('arma el body con el testigo y el conteo', () => {
-    expect(arqueoFormSchema.parse({ ...ARQUEO_VACIO, idUsuarioTestigo: 3, cantidades: { d1: '8', d10: '1' } })).toEqual({
+  it('arma el body con el cajero responsable y permite un conteo de cero', () => {
+    expect(arqueoFormSchema.parse({ ...ARQUEO_VACIO, idUsuarioResponsable: '3', cantidades: { d1: '8', d10: '1' } })).toEqual({
       desglose: [
         { idDenominacion: 1, cantidad: 8 },
         { idDenominacion: 10, cantidad: 1 },
       ],
       tipoArqueo: 'Sorpresivo',
-      idUsuarioTestigo: 3,
+      idUsuarioResponsable: 3,
     })
-    expect(arqueoFormSchema.safeParse(ARQUEO_VACIO).success).toBe(false)
+    expect(arqueoFormSchema.parse(ARQUEO_VACIO)).toEqual({ tipoArqueo: 'Sorpresivo', desglose: [] })
+    expect(arqueoFormSchema.safeParse({ ...ARQUEO_VACIO, idUsuarioResponsable: '0' }).success).toBe(false)
   })
 })
 
@@ -133,9 +136,12 @@ describe('respuestas', () => {
     expect(movimientoBovedaSchema.parse(movimiento).idSolicitudMovimiento).toBeUndefined()
   })
 
-  it('SMV-04 acepta la lista (y un objeto suelto) y siempre devuelve una lista', () => {
-    expect(movimientosEjecutadosSchema.parse([movimiento, { ...movimiento, idMovimiento: 501, idBoveda: 2, naturaleza: 'I' }])).toHaveLength(2)
-    expect(movimientosEjecutadosSchema.parse(movimiento)).toHaveLength(1)
+  it('envía el conteo real y exige el acta de un retorno', () => {
+    expect(accionesSolicitudSchema.parse({ accion: 'recepcion', datos: { desglose: [], actaNovedad: 'ACTA-123' } })).toEqual({
+      accion: 'recepcion', datos: { desglose: [], actaNovedad: 'ACTA-123' },
+    })
+    expect(accionesSolicitudSchema.safeParse({ accion: 'devolucion', datos: { desglose: [] } }).success).toBe(false)
+    expect(accionesSolicitudSchema.safeParse({ accion: 'aprobacion', datos: { monto: 12 } }).success).toBe(false)
   })
 
   it('lee la solicitud con nulos y desglose con valor unitario', () => {
@@ -216,7 +222,7 @@ describe('Idempotency-Key', () => {
   })
 
   it('se reutiliza para el mismo body y cambia si cambia la solicitud', () => {
-    const body = { desglose: [{ idDenominacion: 4, cantidad: 50 }], tipoMovimiento: 'DotacionCaja' as const }
+    const body = { desglose: [{ idDenominacion: 4, cantidad: 50 }], tipoMovimiento: 'EnvioExcedente' as const }
     const primero = claveParaEnvio(null, body)
     expect(claveParaEnvio(primero, { ...body })).toBe(primero)
     expect(claveParaEnvio(primero, { ...body, observaciones: 'Caja 3' }).clave).not.toBe(primero.clave)

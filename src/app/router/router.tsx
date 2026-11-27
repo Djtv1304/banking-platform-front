@@ -30,7 +30,7 @@ import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuent
 import { AbrirCuentaPage } from '@/features/cuenta'
 import { AsientosPage, CONTABILIDAD_ROLES, CuentasProductoPage, FechaContablePage, NuevoAsientoPage, PlanCuentasPage } from '@/features/contabilidad'
 import { BitacoraPage, DetalleEventoPage, IntegridadPage } from '@/features/auditoria'
-import { GuestOnly, RequireAuth, RequirePermiso, RequireProfile, RequireRoles } from '@/app/router/guards'
+import { GuestOnly, RequireAuth, RequireMatriz, RequirePermiso, RequireProfile, RequireRoles } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { Aviso, ModuloEnPreparacion } from '@/shared/ui'
 
@@ -52,17 +52,17 @@ export const router = createBrowserRouter([
             { path: '/parametros/comisiones', element: <Navigate to="/catalogos?catalogo=comisiones" replace /> },
           ] },
           { element: <RequirePermiso permiso={PERMISOS.plantillasEditar} />, children: [
-            { path: '/contabilidad/plantillas', element: <PlantillasPage /> },
+            { element: <RequireMatriz />, children: [{ path: '/contabilidad/plantillas', element: <PlantillasPage /> }] },
           ] },
           { path: '/aprobaciones', element: <AprobacionesPage /> },
           { path: '/aprobaciones/:idSolicitud', element: <DetalleAprobacionPage /> },
           {
             element: <RequireRoles allowed={AUDITORIA_ROLES} />,
-            children: [
+            children: [{ element: <RequireMatriz />, children: [
               { path: '/auditoria', element: <BitacoraPage /> },
               { path: '/auditoria/eventos/:idEvento', element: <DetalleEventoPage /> },
               { path: '/auditoria/integridad', element: <IntegridadPage /> },
-            ],
+            ] }],
           },
           {
             element: <RequireRoles allowed={ORGANIZACION_ROLES.entidad} />,
@@ -148,7 +148,7 @@ export const router = createBrowserRouter([
           },
           {
             element: <RequireProfile allowed={ROUTE_ACCESS.cuentasContables} />,
-            children: [
+            children: [{ element: <RequireMatriz />, children: [
               {
                 // CON-03: CONTADOR, AUDITOR y ADMIN (las acciones se deciden por rol dentro de la página)
                 element: <RequireRoles allowed={CONTABILIDAD_ROLES.consultar} />,
@@ -171,7 +171,7 @@ export const router = createBrowserRouter([
                   { path: '/contabilidad/fecha-contable', element: <FechaContablePage /> },
                 ],
               },
-            ],
+            ] }],
           },
           {
             element: <RequireRoles allowed={ROLES_GESTION_USUARIOS} />,
