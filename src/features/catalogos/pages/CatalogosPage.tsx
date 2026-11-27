@@ -1,3 +1,4 @@
+import { TiposDocumentoCatalogo } from '@/features/catalogos/components/TiposDocumentoCatalogo'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { Eye, Pencil, Plus, Power, Search, Trash2 } from 'lucide-react'
@@ -70,6 +71,7 @@ export function CatalogosPage() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
           <nav aria-label="Catálogos" className="flex gap-2 overflow-x-auto lg:flex-col">
+            <Button variant="ghost" type="button" onClick={() => elegir('tipos-documento')}>Tipos de documento</Button>
             {catalogos.data.map((c) => (
               <button
                 key={c.clave}
@@ -90,6 +92,7 @@ export function CatalogosPage() {
               <Aviso>{confirmacion}</Aviso>
             </div>
           )}
+          {clave === 'tipos-documento' && <TiposDocumentoCatalogo crear={crear} editar={editar} />}
           {catalogo && (
             <TablaCatalogo
               key={catalogo.clave}
