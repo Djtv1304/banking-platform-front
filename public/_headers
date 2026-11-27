@@ -9,7 +9,7 @@
 # scripts de terceros (las fuentes son self-hosted); connect-src 'self' impide exfiltrar datos a otros
 # orígenes; object-src 'none' y base-uri 'self' cierran los vectores de inyección restantes.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-7+uaySwa5c9OBGkRaz3NHMfR33FW415fCm3BM99TgYY='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-7+uaySwa5c9OBGkRaz3NHMfR33FW415fCm3BM99TgYY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer

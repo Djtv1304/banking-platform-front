@@ -22,6 +22,10 @@ export function motivoHabilitacion(codigo: string): string | null {
     case 'CLIENTE_NO_ACTIVO': return 'El cliente debe estar activo.'
     case 'CONSENTIMIENTO_NO_VIGENTE': return 'Falta un consentimiento vigente.'
     case 'RIESGO_NO_APROBADO_VIGENTE': return 'Falta una evaluación de riesgo aprobada y vigente.'
+    case 'FECHA_NACIMIENTO_PENDIENTE': return 'Falta la fecha de nacimiento para verificar si el cliente requiere tutor.'
+    case 'TUTOR_VIGENTE_REQUERIDO': return 'El menor necesita un tutor vigente.'
+    case 'ARCHIVO_OBLIGATORIO_FALTANTE:PASAPORTE_DATOS': return 'Falta la página de datos del pasaporte.'
+    case 'ARCHIVO_OBLIGATORIO_FALTANTE:RESPALDO_TUTOR': return 'Falta el respaldo digital aprobado del tutor vigente.'
     default: return codigo.startsWith('ARCHIVO_OBLIGATORIO_FALTANTE:')
       ? `Falta el archivo obligatorio ${codigo.split(':')[1]}.`
       : 'Hay un requisito pendiente; revísalo con un supervisor.'

@@ -5,6 +5,7 @@ import { ArrowLeft, CircleAlert, LoaderCircle, UserRoundX } from 'lucide-react'
 
 import { ApiError } from '@/shared/api'
 import { GestionDirecciones } from '@/features/clientes/components/GestionDirecciones'
+import { ArchivosCliente } from '@/features/clientes/components/ArchivosCliente'
 import { FirmantesCliente } from '@/features/clientes/components/FirmantesCliente'
 import { puedeGestionarDirecciones } from '@/features/clientes/lib/direcciones'
 import { Badge, Button } from '@/shared/ui'
@@ -112,15 +113,18 @@ function ClienteNoEncontrado() {
 }
 
 function Ficha({ cliente, editarFirmantes }: { cliente: Cliente; editarFirmantes: boolean }) {
-  const gestion = usePuedeFuncion('clientes.direcciones.gestionar', puedeGestionarDirecciones(usePermisos()))
+  const permisos = usePermisos()
+  const gestion = usePuedeFuncion('clientes.direcciones.gestionar', puedeGestionarDirecciones(permisos))
   const verDirecciones = usePuedeFuncion('clientes.direcciones.consultar', gestion)
   const roles = useAuthStore((estado) => estado.user?.roles)
+  const verRiesgo = usePuedeFuncion('clientes.riesgo.consultar', accesoRiesgo(roles ?? [], permisos).historial)
+  const verArchivos = usePuedeFuncion('clientes.archivos.consultar', permisos.includes('clientesArchivosConsultar'))
+  const subirArchivos = usePuedeFuncion('clientes.archivos.gestionar', permisos.includes('clientesArchivosGestionar'))
+  const mostrarArchivos = cliente.estado !== 'Eliminado' && (verArchivos || subirArchivos)
   const editarDocumentos = usePuedeFuncion('clientes.editar', gestion)
   const verDocumentos = usePuedeFuncion(
     'clientes.consultar', (roles ?? []).some((rol) => ['ASESOR', 'CAJERO', 'SUPERVISOR', 'ADMIN'].includes(rol.toUpperCase())),
   )
-
-  const verRiesgo = usePuedeFuncion('clientes.riesgo.consultar', accesoRiesgo(roles ?? [], usePermisos()).historial)
   // Mismos roles que GET /clientes/{id}/habilitacion: el cajero no la consulta (ficha reducida).
   const verHabilitacion = (roles ?? []).some((rol) => ROLES_HABILITACION.includes(rol.trim().toUpperCase()))
   const agencias = useAgencias()
@@ -133,6 +137,7 @@ function Ficha({ cliente, editarFirmantes }: { cliente: Cliente; editarFirmantes
     { id: 'ficha-contacto', titulo: 'Contacto' },
     ...(fichaCompleta ? [{ id: 'ficha-relacionados', titulo: 'Relacionados' }] : []),
     ...(verDirecciones ? [{ id: 'ficha-direcciones', titulo: 'Direcciones' }] : []),
+    ...(mostrarArchivos ? [{ id: 'ficha-archivos', titulo: 'Archivos' }] : []),
     ...(verRiesgo ? [{ id: 'riesgo-titulo', titulo: 'Riesgo' }] : []),
     { id: 'ficha-productos', titulo: 'Productos' },
   ]
@@ -207,6 +212,13 @@ function Ficha({ cliente, editarFirmantes }: { cliente: Cliente; editarFirmantes
       </Seccion>}
 
       {verRiesgo && <GestionRiesgo key={`riesgo-${id}`} id={id} nombre={nombreVisible(cliente)} estado={cliente.estado} />}
+
+      {mostrarArchivos && (
+        <Seccion id="ficha-archivos" titulo="Archivos">
+          <ArchivosCliente key={`${id}-${verArchivos}-${subirArchivos}`} idCliente={id}
+            puedeVer={verArchivos} puedeSubir={subirArchivos} />
+        </Seccion>
+      )}
 
       {verHabilitacion && (
         <Seccion id="ficha-productos" titulo="Productos">
