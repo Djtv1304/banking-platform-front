@@ -2,20 +2,24 @@ import type { z } from 'zod'
 
 import { ApiError, apiClient, toApiError } from '@/shared/api'
 import {
+  accionesSolicitudSchema,
   arqueoSchema,
   BOVEDAS_ENDPOINTS,
   bovedaSchema,
   crearSolicitudMovimientoSchema,
   IDEMPOTENCY_KEY_REGEX,
   motivoResolucionSchema,
-  movimientosEjecutadosSchema,
+  destinoBovedaSchema,
   paginaArqueosSchema,
   paginaMovimientosBovedaSchema,
   paginaSolicitudesMovimientoSchema,
   registrarArqueoSchema,
+  resolverNovedadArqueoSchema,
   solicitudMovimientoSchema,
   type CrearSolicitudMovimiento,
+  type ConfirmacionSolicitud,
   type RegistrarArqueo,
+  type ResolverNovedadArqueo,
 } from '@/features/boveda/api/bovedas.contract'
 
 const RESPUESTA_INVALIDA = 'No pudimos leer la respuesta del servidor. Inténtalo más tarde.'
@@ -30,6 +34,11 @@ function validar<T extends z.ZodType>(schema: T, data: unknown, status: number):
 export async function listarBovedas(params: Record<string, string>, signal?: AbortSignal) {
   const { data, status } = await apiClient.get<unknown>(BOVEDAS_ENDPOINTS.listar, { params, signal })
   return validar(bovedaSchema.array(), data, status)
+}
+
+export async function listarDestinos(idBoveda: number, signal?: AbortSignal) {
+  const { data, status } = await apiClient.get<unknown>(BOVEDAS_ENDPOINTS.destinos(idBoveda), { signal })
+  return validar(destinoBovedaSchema.array(), data, status)
 }
 
 /** BOV-02 · Saldo y denominaciones. Bóveda inexistente → 404 */
@@ -101,10 +110,13 @@ export async function crearSolicitudMovimiento(idBoveda: number, solicitud: Crea
   return creada
 }
 
-/** SMV-04 · Body `{}`. Ejecuta el movimiento: responde los movimientos registrados en cada bóveda */
-export async function aprobarSolicitudMovimiento(idSolicitud: number) {
-  const { data, status } = await apiClient.post<unknown>(BOVEDAS_ENDPOINTS.aprobarSolicitud(idSolicitud), {})
-  return confirmar(movimientosEjecutadosSchema, data, status, 'No pudimos confirmar la aprobación de la solicitud.')
+export async function avanzarSolicitudMovimiento(idSolicitud: number, confirmacion: ConfirmacionSolicitud) {
+  const { accion, datos } = accionesSolicitudSchema.parse(confirmacion)
+  const { data, status } = await apiClient.post<unknown>(BOVEDAS_ENDPOINTS.avanzarSolicitud(idSolicitud, accion), datos)
+  const mensaje = 'No pudimos confirmar el cambio de estado de la solicitud.'
+  const solicitud = confirmar(solicitudMovimientoSchema, data, status, mensaje)
+  if (solicitud.idSolicitudMovimiento !== idSolicitud) throw new ApiError(mensaje, status, SIN_CONFIRMAR)
+  return solicitud
 }
 
 async function resolverSolicitud(url: string, idSolicitud: number, motivo: string, mensaje: string) {
@@ -132,13 +144,22 @@ export async function registrarArqueo(idBoveda: number, arqueo: RegistrarArqueo)
   return registrado
 }
 
-/** BOV-06 · Sin body. Aprobar genera los movimientos de ajuste de la diferencia */
+export async function resolverNovedadArqueo(idArqueoBoveda: number, resolucion: ResolverNovedadArqueo) {
+  const body = resolverNovedadArqueoSchema.parse(resolucion)
+  const { data, status } = await apiClient.post<unknown>(BOVEDAS_ENDPOINTS.resolverNovedad(idArqueoBoveda), body)
+  const mensaje = 'No pudimos confirmar la resolución de la novedad.'
+  const arqueo = confirmar(arqueoSchema, data, status, mensaje)
+  if (arqueo.idArqueoBoveda !== idArqueoBoveda) {
+    throw new ApiError(mensaje, status, SIN_CONFIRMAR)
+  }
+  return arqueo
+}
+
 export async function aprobarArqueo(idArqueoBoveda: number) {
   const { data, status } = await apiClient.post<unknown>(BOVEDAS_ENDPOINTS.aprobacion(idArqueoBoveda))
-  const arqueo = confirmar(arqueoSchema, data, status, 'No pudimos confirmar la aprobación del arqueo.')
-  if (arqueo.idArqueoBoveda !== idArqueoBoveda) {
-    throw new ApiError('No pudimos confirmar la aprobación del arqueo.', status, SIN_CONFIRMAR)
-  }
+  const mensaje = 'No pudimos confirmar la aprobación del arqueo.'
+  const arqueo = confirmar(arqueoSchema, data, status, mensaje)
+  if (arqueo.idArqueoBoveda !== idArqueoBoveda) throw new ApiError(mensaje, status, SIN_CONFIRMAR)
   return arqueo
 }
 

@@ -54,7 +54,8 @@ export function DashboardLayout() {
   // Si la configuración no llega (error o tabla sin crear) se usa el menú por defecto
   const pestanas = usePestanas(Boolean(roles?.length) && !autorizacion?.activa).data
   const aprobaciones = useAccesosAprobaciones()
-  const sections = getVisibleSections(useAccessProfile(), roles ?? [], permisos, pestanas && Object.fromEntries(pestanas.map((p) => [p.pestana, p.roles])), accesos, { aprobaciones: aprobaciones.data?.puedeVer ?? false }, autorizacion)
+  const contexto = useQuery({ queryKey: ['auth', 'agencias'], queryFn: ({ signal }) => obtenerContextoAgencias(signal), retry: false })
+  const sections = getVisibleSections(useAccessProfile(), roles ?? [], permisos, pestanas && Object.fromEntries(pestanas.map((p) => [p.pestana, p.roles])), accesos, { aprobaciones: aprobaciones.data?.puedeVer ?? false, matriz: contexto.data?.agenciaEsMatriz ?? false }, autorizacion)
   const currentPage = sections
     .flatMap((section) => section.items.map((item) => ({ ...item, sectionTitle: section.title })))
     .filter(({ to, end }) => (end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)))

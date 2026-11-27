@@ -30,6 +30,7 @@ vi.mock('@/features/organizacion/hooks/useProductosAdmin', () => ({
   useActualizarSubProducto: () => ({ isPending: false, mutate: vi.fn() }),
   useEliminarProducto: () => ({ isPending: false, mutate: vi.fn() }),
 }))
+vi.mock('@/features/auditoria', () => ({ PestanaHistorial: () => null }))
 vi.mock('@/features/organizacion/components/ProductoFormDialog', () => ({ ProductoFormDialog: () => null }))
 vi.mock('@/features/organizacion/components/SubProductoFormDialog', () => ({ SubProductoFormDialog: () => null }))
 vi.mock('@/features/organizacion/components/ParametrosSubProductoDialog', () => ({

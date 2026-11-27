@@ -79,7 +79,7 @@ export const direccionSchema = z.object({
 
 /** CLI-04 · Ficha del cliente */
 export const clienteSchema = clienteResumenSchema.extend({
-  tipoDocumento: z.enum(['C', 'R', 'P']),
+  tipoDocumento: z.string().min(1).max(10),
   email: z.string(),
   telefonoCelular: z.string(),
   telefonoConvencional: z.string().nullish(),

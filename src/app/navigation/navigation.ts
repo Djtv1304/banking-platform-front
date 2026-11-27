@@ -1,6 +1,6 @@
-import { SlidersHorizontal, ClipboardCheck, Building2, BookOpenText, Calculator, CalendarDays, CreditCard, FilePlus, Files, HandCoins, House, Landmark, Library, Package, ShieldCheck, Store, UserPlus, UserSearch, Vault, WalletCards, type LucideIcon } from 'lucide-react'
+import { SlidersHorizontal, ClipboardCheck, Building2, BookOpenText, Calculator, CalendarDays, CreditCard, FilePlus, Files, HandCoins, House, Landmark, Library, Package, ScrollText, ShieldCheck, Store, UserPlus, UserSearch, Vault, WalletCards, type LucideIcon } from 'lucide-react'
 
-import { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
+import { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, AUDITORIA_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
 import { ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
 import { CATALOGOS_ROLES } from '@/features/catalogos'
 import { CONTABILIDAD_ROLES } from '@/features/contabilidad'
@@ -153,6 +153,14 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
       { to: '/seguridad/roles', label: 'Roles y accesos', Icon: ShieldCheck, roles: ROLES_CONSULTA_ROLES },
     ],
   },
+  {
+    // E8-01: la API valida los mismos roles; exportar exige además org-exportar
+    title: 'Auditoría',
+    items: [
+      { to: '/auditoria', label: 'Bitácora de auditoría', Icon: ScrollText, roles: AUDITORIA_ROLES, end: true },
+      { to: '/auditoria/integridad', label: 'Integridad de la bitácora', Icon: ShieldCheck, roles: AUDITORIA_ROLES },
+    ],
+  },
 ]
 
 /** Roles por pestaña que configuró un ADMIN en «Pestañas por rol» (SEG07). Sin entrada = menú por defecto. */
@@ -175,13 +183,14 @@ function rolPuedeVer(item: NavItem, roles: readonly string[], pestanas?: Pestana
  * (vista de un rol en «Roles y accesos») no se filtra por permiso: eso se configura en WorkOS.
  * Solo decide qué se muestra: cada API valida su propio rol o permiso.
  */
-export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[], pestanas?: PestanasPorRol, accesos?: MeResponse['accesosSecciones'], capacidades: { aprobaciones?: boolean } = {}, autorizacion?: MeResponse['autorizacion']) {
+export function getVisibleSections(profile: AccessProfile | null, roles: readonly string[], permisos?: readonly string[], pestanas?: PestanasPorRol, accesos?: MeResponse['accesosSecciones'], capacidades: { aprobaciones?: boolean; matriz?: boolean } = {}, autorizacion?: MeResponse['autorizacion']) {
   if (!profile) return []
   return NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter(
       (item) => {
         if (item.capacidad && !capacidades[item.capacidad]) return false
+        if (capacidades.matriz === false && /^\/(contabilidad|auditoria)(\/|$)/.test(item.to)) return false
         const funciones = funcionesDeRuta(item.to)
         if (autorizacion?.activa && funciones) return funciones.some((f) => autorizacion.funciones.includes(f))
         return (

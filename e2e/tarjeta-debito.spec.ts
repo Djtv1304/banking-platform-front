@@ -165,3 +165,81 @@ test('E6-10 exige agencia y resuelve las solicitudes de débito desde Aprobacion
   await expect(envio).toContainText('Entregado')
   await expect(page.getByText('Activa', { exact: true }).first()).toBeVisible()
 })
+
+test('E6-10 solicita en otra agencia y E6-11 renueva desde el listado', async ({ page }, info) => {
+  const agencia = '002'
+  const anterior = {
+    idTarjeta: 400, idCuenta: 11, idCliente: 2, idProducto: 4, tipoTarjeta: 'Debito',
+    nombreTarjeta: 'CLIENTE PRUEBA', numeroEnmascarado: '5000 00** **** 4444', estadoActual: 'Activa',
+    esExtension: false, idTarjetaTitular: null, pinAsignado: true, fechaEmision: '2022-11-25',
+    fechaSolicitud: '2022-11-25', fechaResolucion: '2022-11-25T00:00:00Z', fechaExpiracion: '2026-12-02', renovable: true,
+  }
+  const envios: unknown[] = []
+
+  await page.route('**/api/v1/**', async (route) => {
+    const req = route.request()
+    const url = new URL(req.url())
+    const json = (datos: unknown) => route.fulfill({ json: datos })
+    if (url.pathname.endsWith('/auth/me')) return json({
+      idUsuario: 'user_asesor', nombre: 'Asesor QA', email: 'e611@example.invalid', idOrganizacion: 'org_e611',
+      roles: ['ASESOR'], permisos: [], idAgencia: agencia,
+      autorizacion: { version: 'a'.repeat(64), activa: true, funciones: ['tarjetas.emitir', 'tarjetas.consultar', 'clientes.consultar', 'cuentas.consultar'], rutas: ['/solicitar-tarjeta', '/tarjetas'] },
+    })
+    if (url.pathname.endsWith('/auth/agencias')) return json({ idAgencia: agencia, agenciasAsignadas: [], agenciasPermitidas: [], requiereSeleccionAgencia: false, alcanceGlobal: false, accesoTodasAgencias: false })
+    if (url.pathname.endsWith('/institucion')) return json({ nombre: 'Cooperativa QA', sitioWeb: null, logoUrl: null, origen: 'ENTIDAD' })
+    if (url.pathname.endsWith('/aprobaciones/accesos')) return json({ puedeVer: true, puedeSolicitar: true, pendientesParaMi: 0, diasResaltar: 30 })
+    if (url.pathname.endsWith('/clientes/busqueda')) {
+      expect(url.search).toBe('')
+      expect(req.postDataJSON()).toMatchObject({ identificacion: '0000000001' })
+      return json({ items: [{ idCliente: 2, identificacion: '0000000001', tipoCliente: 'Natural', nombres: 'Cliente', apellidos: 'Prueba', estado: 'Activo' }], total: 1 })
+    }
+    if (url.pathname.endsWith('/cuentas')) return json({ items: [
+      { idCuenta: 10, numeroCuenta: 'AH-QA-001', idProducto: 1, idAgencia: '001', tipoCuenta: 'Ahorros', estado: 'Activa' },
+      { idCuenta: 11, numeroCuenta: 'AH-QA-002', idProducto: 1, idAgencia: '002', tipoCuenta: 'Ahorros', estado: 'Activa' },
+    ], total: 2 })
+    if (url.pathname.endsWith('/catalogos/productos')) return json([{
+      idProducto: 4, codigoProducto: 'TAR001', nombreProducto: 'Tarjetas', tipoProducto: 'Tarjeta',
+      montoAperturaMinimo: null, idTipoCredito: null, idRed: 1, tipoCuenta: null, permiteOperacionesPresenciales: true,
+      subproductos: [{ idSubProducto: 3, codigoSubProducto: 'TDB001-MC', nombreSubProducto: 'Débito QA', tipoTarjeta: 'Debito' }],
+    }])
+    if (url.pathname.endsWith('/tarjetas/por-renovar')) return json({ items: [anterior], total: 1 })
+    if (url.pathname.endsWith('/tarjetas/400')) return json(anterior)
+    if (url.pathname.endsWith('/tarjetas') && req.method() === 'POST') {
+      const cuerpo = req.postDataJSON()
+      envios.push(cuerpo)
+      return json({ ...anterior, idTarjeta: 501 + envios.length, idCuenta: cuerpo.idCuenta, idTarjetaReemplazada: cuerpo.idTarjetaReemplazada, estadoActual: 'Solicitada', pinAsignado: false, idSolicitudAprobacion: 61 + envios.length })
+    }
+    if (url.pathname.endsWith('/tarjetas') || url.pathname.endsWith('/notificaciones')) return json({ items: [], total: 0 })
+    return route.fulfill({ status: 404, json: { code: 'FUERA_DEL_ESCENARIO' } })
+  })
+
+  const buscar = async () => {
+    await page.getByLabel('Identificación del cliente').fill('0000000001')
+    await page.getByRole('button', { name: 'Buscar', exact: true }).click()
+  }
+  const solicitar = async () => {
+    await page.getByRole('radiogroup', { name: 'Producto de tarjeta' }).getByText('Débito QA').click()
+    await page.getByRole('button', { name: 'Solicitar tarjeta' }).click()
+    await expect(page.getByRole('heading', { name: 'Solicitud registrada' })).toBeVisible()
+  }
+
+  await page.goto('/solicitar-tarjeta')
+  await buscar()
+  await page.getByRole('radiogroup', { name: 'Cuenta', exact: true }).getByText('AH-QA-001').click()
+  await expect(page.getByText('La solicitud se tramitará en la agencia 002.', { exact: false })).toBeVisible()
+  await solicitar()
+  expect(envios[0]).toMatchObject({ idCuenta: 10 })
+  expect(envios[0]).not.toHaveProperty('idAgencia')
+
+  await page.goto('/tarjetas')
+  await page.getByRole('button', { name: 'Por renovar' }).click()
+  await expect(page.getByRole('columnheader', { name: 'Vencimiento' })).toBeVisible()
+  await expect(page.getByRole('link', { name: anterior.numeroEnmascarado })).toBeVisible()
+  await page.screenshot({ path: info.outputPath('tarjetas-por-renovar.png') })
+  await page.getByRole('link', { name: anterior.numeroEnmascarado }).click()
+  await page.getByRole('link', { name: 'Renovar tarjeta' }).click()
+  await expect(page.getByText('Identifica a su titular para tramitar la reemisión.', { exact: false })).toBeVisible()
+  await buscar()
+  await solicitar()
+  expect(envios[1]).toMatchObject({ idCuenta: 11, idTarjetaReemplazada: 400 })
+})

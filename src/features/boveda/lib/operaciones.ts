@@ -3,47 +3,27 @@ import { z } from 'zod'
 import {
   INT_MAX,
   OBSERVACIONES_MAX,
+  OBSERVACIONES_SOLICITUD_MAX,
   TIPOS_ARQUEO,
-  TIPOS_MOVIMIENTO,
+  TIPOS_SOLICITUD,
   type Arqueo,
   type CrearSolicitudMovimiento,
   type DenominacionBoveda,
   type PiezaDesglose,
   type RegistrarArqueo,
-  type TipoMovimientoBoveda,
+  type ResolverNovedadArqueo,
 } from '@/features/boveda/api/bovedas.contract'
 import { formatearMonto } from '@/features/boveda/lib/formato'
 
-/* Reglas de los formularios de SMV-01, BOV-05 y BOV-06, sin UI para poder probarlas aparte */
-
 export type Naturaleza = 'I' | 'E'
+type TipoSolicitud = (typeof TIPOS_SOLICITUD)[number]
 
-/**
- * Si el efectivo entra (I) o sale (E) de la bóveda en que se registra. Coincide con lo que devuelve
- * BOV-03 para cajas y ATM. TODO(API): confirmar el traslado (se asume que sale hacia la contraparte)
- * y los ajustes.
- */
-export const NATURALEZA_MOVIMIENTO: Record<TipoMovimientoBoveda, Naturaleza> = {
+export const NATURALEZA_MOVIMIENTO: Record<TipoSolicitud, Naturaleza> = {
   ProvisionExterna: 'I',
-  DevolucionCaja: 'I',
-  RemanenteATM: 'I',
-  AjusteSobrante: 'I',
   Traslado: 'E',
   EnvioExcedente: 'E',
-  DotacionCaja: 'E',
-  AbastecimientoATM: 'E',
-  AjusteFaltante: 'E',
 }
 
-/** Opciones del tipo de movimiento agrupadas como las piensa quien opera */
-export const GRUPOS_MOVIMIENTO: { titulo: string; tipos: TipoMovimientoBoveda[] }[] = [
-  { titulo: 'Ingresa efectivo', tipos: ['ProvisionExterna', 'DevolucionCaja', 'RemanenteATM'] },
-  { titulo: 'Sale efectivo', tipos: ['DotacionCaja', 'AbastecimientoATM', 'EnvioExcedente'] },
-  { titulo: 'Entre bóvedas', tipos: ['Traslado'] },
-  { titulo: 'Ajustes', tipos: ['AjusteSobrante', 'AjusteFaltante'] },
-]
-
-/** Solo el traslado pide la bóveda contraparte. TODO(API): confirmar si el envío de excedente también */
 export const pideContraparte = (tipo: string) => tipo === 'Traslado'
 
 /* ── Cantidades por denominación ─────────────────────────────────────── */
@@ -55,10 +35,10 @@ export type Cantidades = Record<string, string>
 
 /** «1.250» o «1250» → 1250; vacío → 0; cualquier otra cosa → null */
 export function leerCantidad(texto: string | undefined) {
-  const limpio = (texto ?? '').trim().replace(/[.\s]/g, '')
+  const limpio = (texto ?? '').trim()
   if (limpio === '') return 0
-  if (!/^\d+$/.test(limpio)) return null
-  const cantidad = Number(limpio)
+  if (!/^(?:\d+|\d{1,3}(?:\.\d{3})+|\d{1,3}(?: \d{3})+)$/.test(limpio)) return null
+  const cantidad = Number(limpio.replace(/[. ]/g, ''))
   return cantidad <= INT_MAX ? cantidad : null
 }
 
@@ -87,14 +67,13 @@ export function piezasInsuficientes(desglose: readonly PiezaDesglose[], enBoveda
   })
 }
 
-/** Saldo de la bóveda después del movimiento (o cuando se apruebe la solicitud) */
+/** Saldo de la bóveda después de registrar el movimiento físico */
 export const saldoResultante = (saldo: number, total: number, naturaleza: Naturaleza) =>
   Math.round((naturaleza === 'I' ? saldo + total : saldo - total) * 100) / 100
 
-const cantidadesSchema = z.record(z.string(), z.string())
+export const cantidadesSchema = z.record(z.string(), z.string())
 
-/** Errores de las cantidades: una mal escrita o ninguna con piezas */
-function validarCantidades(cantidades: Cantidades, ctx: z.RefinementCtx, vacio: string) {
+export function validarCantidades(cantidades: Cantidades, ctx: z.RefinementCtx, vacio?: string) {
   let invalida = false
   for (const [clave, texto] of Object.entries(cantidades)) {
     if (leerCantidad(texto) === null) {
@@ -102,21 +81,26 @@ function validarCantidades(cantidades: Cantidades, ctx: z.RefinementCtx, vacio: 
       ctx.addIssue({ code: 'custom', path: ['cantidades', clave], message: 'Solo números enteros.' })
     }
   }
-  if (!invalida && armarDesglose(cantidades).length === 0) {
+  if (vacio && !invalida && armarDesglose(cantidades).length === 0) {
     ctx.addIssue({ code: 'custom', path: ['cantidades'], message: vacio })
   }
 }
 
-const observaciones = z
-  .string()
-  .trim()
-  .max(OBSERVACIONES_MAX, `Usa hasta ${OBSERVACIONES_MAX} caracteres.`)
-  .transform((valor) => valor || undefined)
+export function erroresPorDenominacion(errores: object = {}): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(errores).flatMap(([clave, error]) =>
+      error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? [[clave, error.message]] : [],
+    ),
+  )
+}
+
+const observacionesOpcionales = (maximo: number) =>
+  z.string().trim().max(maximo, `Usa hasta ${maximo} caracteres.`).transform((valor) => valor || undefined)
 
 /* ── SMV-01 · Solicitar movimiento ───────────────────────────────────── */
 
 export interface MovimientoForm {
-  tipoMovimiento: '' | TipoMovimientoBoveda
+  tipoMovimiento: '' | TipoSolicitud
   idBovedaContraparte: string
   observaciones: string
   cantidades: Cantidades
@@ -133,9 +117,9 @@ export const MOVIMIENTO_VACIO: MovimientoForm = {
 export const movimientoFormSchema = (idBoveda: number) =>
   z
     .object({
-      tipoMovimiento: z.union([z.literal(''), z.enum(TIPOS_MOVIMIENTO)]),
+      tipoMovimiento: z.union([z.literal(''), z.enum(TIPOS_SOLICITUD)]),
       idBovedaContraparte: z.string(),
-      observaciones,
+      observaciones: observacionesOpcionales(OBSERVACIONES_SOLICITUD_MAX),
       cantidades: cantidadesSchema,
     })
     .superRefine((valor, ctx) => {
@@ -153,8 +137,8 @@ export const movimientoFormSchema = (idBoveda: number) =>
     .transform(
       (valor): CrearSolicitudMovimiento => ({
         desglose: armarDesglose(valor.cantidades),
-        tipoMovimiento: valor.tipoMovimiento as TipoMovimientoBoveda,
-        ...(pideContraparte(valor.tipoMovimiento) ? { idBovedaContraparte: Number(valor.idBovedaContraparte) } : {}),
+        tipoMovimiento: valor.tipoMovimiento as TipoSolicitud,
+        ...(pideContraparte(valor.tipoMovimiento) ? { idBovedaContraparte: leerCantidad(valor.idBovedaContraparte) as number } : {}),
         ...(valor.observaciones ? { observaciones: valor.observaciones } : {}),
       }),
     )
@@ -163,31 +147,31 @@ export const movimientoFormSchema = (idBoveda: number) =>
 
 export interface ArqueoForm {
   tipoArqueo: (typeof TIPOS_ARQUEO)[number]
-  idUsuarioTestigo: number | null
+  idUsuarioResponsable: string
   observaciones: string
   cantidades: Cantidades
 }
 
-export const ARQUEO_VACIO: ArqueoForm = { tipoArqueo: 'Sorpresivo', idUsuarioTestigo: null, observaciones: '', cantidades: {} }
+export const ARQUEO_VACIO: ArqueoForm = { tipoArqueo: 'Sorpresivo', idUsuarioResponsable: '', observaciones: '', cantidades: {} }
 
 export const arqueoFormSchema = z
   .object({
     tipoArqueo: z.enum(TIPOS_ARQUEO),
-    idUsuarioTestigo: z.number().nullable(),
-    observaciones,
+    idUsuarioResponsable: z.string().trim().refine(
+      (valor) => valor === '' || (/^\d+$/.test(valor) && Number(valor) > 0 && Number(valor) <= INT_MAX),
+      'Ingresa un número de usuario válido.',
+    ),
+    observaciones: observacionesOpcionales(OBSERVACIONES_MAX),
     cantidades: cantidadesSchema,
   })
   .superRefine((valor, ctx) => {
-    if (valor.idUsuarioTestigo === null) {
-      ctx.addIssue({ code: 'custom', path: ['idUsuarioTestigo'], message: 'Elige quién presencia el conteo.' })
-    }
-    validarCantidades(valor.cantidades, ctx, 'Registra las piezas que contaste de cada denominación.')
+    validarCantidades(valor.cantidades, ctx)
   })
   .transform(
     (valor): RegistrarArqueo => ({
       desglose: armarDesglose(valor.cantidades),
       tipoArqueo: valor.tipoArqueo,
-      idUsuarioTestigo: valor.idUsuarioTestigo as number,
+      ...(valor.idUsuarioResponsable ? { idUsuarioResponsable: Number(valor.idUsuarioResponsable) } : {}),
       ...(valor.observaciones ? { observaciones: valor.observaciones } : {}),
     }),
   )
@@ -200,7 +184,10 @@ export const DESCRIPCION_ARQUEO: Record<(typeof TIPOS_ARQUEO)[number], string> =
 /* ── Arqueo registrado ───────────────────────────────────────────────── */
 
 const ESTADOS_ARQUEO: Record<string, string> = {
-  REGISTRADO: 'Pendiente de aprobación',
+  CUADRADO: 'Cuadrado',
+  FALTANTE: 'Cerrado con faltante',
+  SOBRANTE: 'Cerrado con sobrante',
+  REGISTRADO: 'Registrado',
   APROBADO: 'Aprobado',
   ANULADO: 'Anulado',
 }
@@ -208,6 +195,12 @@ const ESTADOS_ARQUEO: Record<string, string> = {
 export const etiquetaEstadoArqueo = (estado: string) => ESTADOS_ARQUEO[estado.trim().toUpperCase()] ?? estado
 
 export const arqueoPendiente = (arqueo: Pick<Arqueo, 'estado'>) => arqueo.estado.trim().toUpperCase() === 'REGISTRADO'
+
+export const ETIQUETAS_RESOLUCION_NOVEDAD = {
+  JUSTIFICACION: 'Justificación',
+  REPOSICION: 'Reposición en efectivo',
+  DESCUENTO_ROL: 'Descuento de rol',
+} satisfies Record<ResolverNovedadArqueo['tipoResolucion'], string>
 
 /** `sin-dato`: arqueos históricos que no guardaron saldos ni diferencia (llegan en null) */
 export type ResultadoArqueo = 'cuadra' | 'faltante' | 'sobrante' | 'sin-dato'

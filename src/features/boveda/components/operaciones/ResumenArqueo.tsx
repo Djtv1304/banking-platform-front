@@ -3,6 +3,7 @@ import { CircleCheck, CircleHelp, TriangleAlert } from 'lucide-react'
 import { cn } from '@/shared/lib'
 import { Badge } from '@/shared/ui'
 import type { Arqueo } from '@/features/boveda/api/bovedas.contract'
+import { NovedadArqueo } from '@/features/boveda/components/operaciones/NovedadArqueo'
 import { etiquetaValor, formatearFechaHora } from '@/features/boveda/lib/formato'
 import {
   arqueoPendiente,
@@ -35,7 +36,7 @@ export function ResumenArqueo({ arqueo, valores }: { arqueo: Arqueo; valores: Re
         <Badge
           className={cn(
             'h-6 px-2.5',
-            estado === 'APROBADO' && 'bg-primary/15 text-foreground',
+            (estado === 'APROBADO' || estado === 'CUADRADO') && 'bg-primary/15 text-foreground',
             estado === 'REGISTRADO' && 'bg-info/30 text-foreground',
             estado === 'ANULADO' && 'bg-muted text-muted-foreground',
           )}
@@ -89,6 +90,8 @@ export function ResumenArqueo({ arqueo, valores }: { arqueo: Arqueo; valores: Re
           </div>
         )}
       </dl>
+
+      {arqueo.novedad && <NovedadArqueo novedad={arqueo.novedad} />}
 
       {diferencias.length > 0 && (
         <div className="flex flex-col gap-2">

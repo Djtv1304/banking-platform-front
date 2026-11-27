@@ -9,6 +9,7 @@ import { mensajeErrorBoveda } from '@/features/boveda/api/bovedas.api'
 import { ESTADOS_ARQUEO, TIPOS_ARQUEO, type Arqueo } from '@/features/boveda/api/bovedas.contract'
 import { Campo } from '@/features/boveda/components/Campo'
 import { EstadoBadge } from '@/features/boveda/components/EstadoBadge'
+import { NovedadArqueo } from '@/features/boveda/components/operaciones/NovedadArqueo'
 import { UsuarioOperacion } from '@/features/boveda/components/UsuarioOperacion'
 import { useArqueosBoveda } from '@/features/boveda/hooks/useBovedas'
 import { campoClassName, selectClassName } from '@/features/boveda/lib/campos'
@@ -25,7 +26,9 @@ import { formatearFechaHora, formatearMonto } from '@/features/boveda/lib/format
 import { arqueoPendiente, etiquetaEstadoArqueo, montoArqueo, resultadoArqueo } from '@/features/boveda/lib/operaciones'
 import type { TonoEstado } from '@/features/boveda/lib/solicitudes'
 
-const TONO_ARQUEO: Record<string, TonoEstado> = { REGISTRADO: 'pendiente', APROBADO: 'exito', ANULADO: 'neutro' }
+const TONO_ARQUEO: Record<string, TonoEstado> = {
+  REGISTRADO: 'pendiente', APROBADO: 'exito', ANULADO: 'neutro', CUADRADO: 'exito', FALTANTE: 'rechazo', SOBRANTE: 'pendiente',
+}
 const tonoArqueo = (estado: string) => TONO_ARQUEO[estado.trim().toUpperCase()] ?? 'neutro'
 
 interface ArqueosBovedaProps {
@@ -33,10 +36,11 @@ interface ArqueosBovedaProps {
   /** Muestra «Aprobar» en los arqueos pendientes (BOV-06) */
   puedeAprobar: boolean
   onAprobar: (arqueo: Arqueo) => void
+  puedeResolver: boolean
+  onResolver: (arqueo: Arqueo) => void
 }
 
-/** BOV-07 · Historial de arqueos con filtros; los pendientes se aprueban desde su fila */
-export function ArqueosBoveda({ idBoveda, puedeAprobar, onAprobar }: ArqueosBovedaProps) {
+export function ArqueosBoveda({ idBoveda, ...acciones }: ArqueosBovedaProps) {
   const [filtros, setFiltros] = useState<FiltrosArqueos>(FILTROS_ARQUEOS_VACIOS)
   const [page, setPage] = useState(1)
   const arqueos = useArqueosBoveda(idBoveda, armarParametrosArqueos(filtros, page), true)
@@ -64,7 +68,7 @@ export function ArqueosBoveda({ idBoveda, puedeAprobar, onAprobar }: ArqueosBove
     return (
       <div className="flex flex-col gap-4">
         {mensajeError && <Aviso tono="error">{mensajeError}</Aviso>}
-        <TablaArqueos arqueos={items} ocupado={arqueos.isFetching} puedeAprobar={puedeAprobar} onAprobar={onAprobar} />
+        <TablaArqueos arqueos={items} ocupado={arqueos.isFetching} {...acciones} />
         <Paginacion
           resumen={resumenPaginacion(page, total, pageSize, ['arqueo', 'arqueos'])}
           page={page}
@@ -161,14 +165,12 @@ function Filtros({ consultando, aplicados, onConsultar }: { consultando: boolean
   )
 }
 
-interface TablaArqueosProps {
+interface TablaArqueosProps extends Omit<ArqueosBovedaProps, 'idBoveda'> {
   arqueos: Arqueo[]
   ocupado: boolean
-  puedeAprobar: boolean
-  onAprobar: (arqueo: Arqueo) => void
 }
 
-function TablaArqueos({ arqueos, ocupado, puedeAprobar, onAprobar }: TablaArqueosProps) {
+function TablaArqueos({ arqueos, ocupado, puedeAprobar, onAprobar, puedeResolver, onResolver }: TablaArqueosProps) {
   const [abierto, setAbierto] = useState<number | null>(null)
 
   return (
@@ -230,6 +232,11 @@ function TablaArqueos({ arqueos, ocupado, puedeAprobar, onAprobar }: TablaArqueo
                           Aprobar
                         </Button>
                       )}
+                      {puedeResolver && arqueo.novedad && arqueo.novedad.estado !== 'RESUELTA' && (
+                        <Button size="sm" variant="outline" onClick={() => onResolver(arqueo)} className="rounded-lg font-semibold">
+                          Resolver novedad
+                        </Button>
+                      )}
                       <button
                         type="button"
                         aria-expanded={expandido}
@@ -267,21 +274,20 @@ function DetalleArqueo({ arqueo }: { arqueo: Arqueo }) {
         <Dato label="Contó">
           <UsuarioOperacion idUsuario={arqueo.idUsuarioArqueador} />
         </Dato>
-        <Dato label="Testigo">
-          <UsuarioOperacion idUsuario={arqueo.idUsuarioTestigo} />
-        </Dato>
-        <Dato label="Aprobado por">
-          {arqueo.idUsuarioAprobador == null ? <span className="font-normal text-muted-foreground">Sin aprobar</span> : <UsuarioOperacion idUsuario={arqueo.idUsuarioAprobador} />}
-        </Dato>
-        <Dato label="Fecha de aprobación">
-          {arqueo.fechaHoraAprobacion ? formatearFechaHora(arqueo.fechaHoraAprobacion) : <span className="font-normal text-muted-foreground">—</span>}
-        </Dato>
+        {arqueo.idUsuarioTestigo != null && <Dato label="Testigo"><UsuarioOperacion idUsuario={arqueo.idUsuarioTestigo} /></Dato>}
+        {arqueo.idUsuarioAprobador != null && (
+          <Dato label={arqueo.idUsuarioTestigo == null ? 'Cerrado por' : 'Aprobado por'}><UsuarioOperacion idUsuario={arqueo.idUsuarioAprobador} /></Dato>
+        )}
+        {arqueo.fechaHoraAprobacion && (
+          <Dato label={arqueo.idUsuarioTestigo == null ? 'Fecha de cierre' : 'Fecha de aprobación'}>{formatearFechaHora(arqueo.fechaHoraAprobacion)}</Dato>
+        )}
         {arqueo.idsMovimientosAjuste.length > 0 && (
           <Dato label="Movimientos de ajuste" className="sm:col-span-2 lg:col-span-4">
             {arqueo.idsMovimientosAjuste.map((id) => `N.º ${id}`).join(', ')}
           </Dato>
         )}
       </dl>
+      {arqueo.novedad && <NovedadArqueo novedad={arqueo.novedad} />}
     </div>
   )
 }

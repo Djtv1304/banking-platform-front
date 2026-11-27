@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -17,6 +18,7 @@ vi.mock('@/features/catalogos', () => ({ useAgencias: () => ({ data: [{ idAgenci
 vi.mock('@/features/clientes/components/GestionCliente', () => ({ GestionCliente: () => <p>acciones</p> }))
 vi.mock('@/features/clientes/components/GestionRiesgo', () => ({ GestionRiesgo: () => <p>seccion-riesgo</p> }))
 vi.mock('@/features/clientes/components/GestionDirecciones', () => ({ GestionDirecciones: () => <p>seccion-direcciones</p> }))
+vi.mock('@/features/clientes/components/FirmantesCliente', () => ({ FirmantesCliente: () => <p>historial-firmantes</p> }))
 vi.mock('@/features/clientes/components/HistorialCliente', () => ({ HistorialCliente: () => null }))
 vi.mock('@/features/clientes/components/IndicadorHabilitacion', () => ({ IndicadorHabilitacion: () => <p>habilitacion</p> }))
 vi.mock('@/features/clientes/components/CampoEnmascarado', () => ({
@@ -34,9 +36,11 @@ vi.mock('@/features/clientes/hooks/useConsultaClientes', () => ({
 }))
 
 const render = () => renderToStaticMarkup(
+  <QueryClientProvider client={new QueryClient()}>
   <MemoryRouter initialEntries={['/clientes-busqueda/42']}>
     <Routes><Route path="/clientes-busqueda/:idCliente" element={<FichaClientePage />} /></Routes>
-  </MemoryRouter>,
+  </MemoryRouter>
+  </QueryClientProvider>,
 )
 
 beforeEach(() => { h.funciones = ['clientes.consultar']; h.roles = ['ASESOR'] })
@@ -49,6 +53,7 @@ describe('E5-05 · ficha con datos enmascarados por sección', () => {
     expect(html).toContain('habilitacion')
     expect(html).toContain('Identidad')
     expect(html).toContain('Contacto')
+    expect(html).toContain('historial-firmantes')
   })
 
   it('el cajero (solo consulta) ve la ficha reducida: sin direcciones, riesgo ni habilitación', () => {
@@ -56,6 +61,7 @@ describe('E5-05 · ficha con datos enmascarados por sección', () => {
     const html = render()
     expect(html).not.toContain('habilitacion')
     expect(html).not.toContain('seccion-direcciones')
+    expect(html).not.toContain('historial-firmantes')
     expect(html).not.toContain('href="#ficha-direcciones"')
     expect(html).not.toContain('href="#riesgo-titulo"')
   })
