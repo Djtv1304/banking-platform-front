@@ -53,8 +53,8 @@ export function BitacoraPage() {
   const exportacion = useMutation({ mutationFn: (formato: 'csv' | 'pdf') => exportarEventos({ ...filtros!, formato }) })
 
   const modulo = useWatch({ control, name: 'modulo' })
-  const modulos = [...new Set((tipos.data ?? []).map((t) => t.modulo))].sort()
-  const codigos = (tipos.data ?? []).filter((t) => !modulo || t.modulo === modulo).map((t) => t.codigo).sort()
+  const modulos = [...new Set((tipos.data ?? []).map((t) => t.modulo))].sort((x, y) => x.localeCompare(y, 'es'))
+  const codigos = (tipos.data ?? []).filter((t) => !modulo || t.modulo === modulo).map((t) => t.codigo).sort((x, y) => x.localeCompare(y, 'es'))
   const totalPaginas = busqueda.data ? Math.max(1, Math.ceil(busqueda.data.total / PAGE_SIZE)) : 1
 
   const buscar = handleSubmit((form) => {
