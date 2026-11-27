@@ -24,6 +24,7 @@ import { DetalleUsuarioPage, UsuariosPage, ROLES_GESTION_USUARIOS, ROLES_USUARIO
 import { FuncionesRolPage, RolesAccesosPage, ROLES_CONSULTA_ROLES } from '@/features/seguridad'
 import { getRoleNavigation } from '@/app/navigation/navigation'
 import { BOVEDA_ROLES, BovedasPage, DetalleBovedaPage, DetalleSolicitudPage } from '@/features/boveda'
+import { CAJA_ROLES, VentanillaPage } from '@/features/caja'
 import { BuscarClientesPage, FichaClientePage, RegistrarClientePage } from '@/features/clientes'
 import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/features/tarjetas'
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
@@ -195,6 +196,11 @@ export const router = createBrowserRouter([
               { path: '/bovedas/:idBoveda', element: <DetalleBovedaPage /> },
               { path: '/bovedas/solicitudes/:idSolicitud', element: <DetalleSolicitudPage /> },
             ],
+          },
+          {
+            // E7-02 · CAJ-03 y CAJ-04: la jornada propia es solo del CAJERO
+            element: <RequireRoles allowed={CAJA_ROLES.ventanilla} />,
+            children: [{ path: '/caja', element: <VentanillaPage /> }],
           },
           {
             // Estática: React Router la prefiere a /cuentas/:idCuenta aunque se declare después
