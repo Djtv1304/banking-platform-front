@@ -17,6 +17,10 @@ vi.mock('@/features/catalogos', () => ({ useAgencias: () => ({ data: [{ idAgenci
 vi.mock('@/features/clientes/components/GestionCliente', () => ({ GestionCliente: () => <p>acciones</p> }))
 vi.mock('@/features/clientes/components/GestionRiesgo', () => ({ GestionRiesgo: () => <p>seccion-riesgo</p> }))
 vi.mock('@/features/clientes/components/GestionDirecciones', () => ({ GestionDirecciones: () => <p>seccion-direcciones</p> }))
+vi.mock('@/features/clientes/components/ArchivosCliente', () => ({
+  ArchivosCliente: ({ puedeVer, puedeSubir }: { puedeVer: boolean; puedeSubir: boolean }) =>
+    <p>{puedeVer && 'consulta-archivos'} {puedeSubir && 'subida-archivos'}</p>,
+}))
 vi.mock('@/features/clientes/components/HistorialCliente', () => ({ HistorialCliente: () => null }))
 vi.mock('@/features/clientes/components/IndicadorHabilitacion', () => ({ IndicadorHabilitacion: () => <p>habilitacion</p> }))
 vi.mock('@/features/clientes/components/CampoEnmascarado', () => ({
@@ -66,5 +70,15 @@ describe('E5-05 · ficha con datos enmascarados por sección', () => {
     expect(html).toContain('seccion-direcciones')
     expect(html).toContain('seccion-riesgo')
     expect(html).toContain('href="#riesgo-titulo"')
+  })
+
+  it('respeta los permisos independientes de consulta y carga de archivos', () => {
+    expect(render()).not.toContain('ficha-archivos')
+    h.funciones.push('clientes.archivos.consultar')
+    expect(render()).toContain('consulta-archivos')
+    expect(render()).not.toContain('subida-archivos')
+    h.funciones = ['clientes.consultar', 'clientes.archivos.gestionar']
+    expect(render()).toContain('subida-archivos')
+    expect(render()).not.toContain('consulta-archivos')
   })
 })
