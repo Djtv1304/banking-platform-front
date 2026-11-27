@@ -16,6 +16,10 @@ export const clienteCreateSchema = z.object({
   codigoPaisNacionalidad: z.string().length(3), telefonoCelular: z.string().min(7).max(15),
   telefonoConvencional: z.string().max(15).nullable(), email: z.email().max(150),
   idActividadEconomica: z.number().int().positive(), consentimientoDatos: z.literal(true),
+  tutor: z.object({
+    idClienteRelacionado: z.number().int().positive(), fechaEfectiva: z.iso.date(),
+    tipoRespaldo: z.string().trim().min(1).max(80), referenciaRespaldo: z.string().trim().min(1).max(250),
+  }).strict().optional(),
   direccion: z.object({
     tipoDireccion: z.enum(['Domicilio', 'Trabajo', 'Correspondencia', 'Otra']), codigoPais: z.string().length(3),
     idCiudad: z.number().int().positive(), sector: z.string().max(50).nullable(),
@@ -34,6 +38,7 @@ export function aClienteCreate(registro: RegistroClienteData) {
     ...cliente, tipoCliente: 'Natural', tipoDocumento: codigoCliente(codigoCatalogo(cliente.tipoDocumento)),
     identificacion: cliente.identificacion.toUpperCase(),
     estadoCivil: ESTADO_CIVIL[cliente.estadoCivil as keyof typeof ESTADO_CIVIL],
+    tutor: registro.tutor,
     direccion: { ...direccion, tipoDireccion: TIPO_DIRECCION[direccion.tipoDireccion as keyof typeof TIPO_DIRECCION] },
   })
 }
@@ -79,6 +84,9 @@ export function errorRegistro(error: unknown) {
     REINCORPORACION_PENDIENTE: 'Ya existe una solicitud de reincorporación pendiente para este cliente.',
     DOCUMENTO_INVALIDO: 'El backend rechazó el documento. Revisa la identificación del primer paso.',
     FECHA_NACIMIENTO_INVALIDA: 'La fecha de nacimiento debe ser anterior a hoy.',
+    MENOR_SIN_TUTOR: 'Selecciona al tutor y registra su respaldo en Datos del cliente.',
+    RELACIONADO_INVALIDO: 'El tutor debe ser una persona natural, adulta y activa.',
+    TUTOR_NO_APLICA: 'Revisa la fecha de nacimiento. El vínculo de tutor se registra para menores.',
     CONSENTIMIENTO_REQUERIDO: 'Confirma el consentimiento para registrar al cliente.',
     CATALOGO_INVALIDO: 'Algún país, ciudad o actividad no es válido. Revisa las selecciones del formulario.',
   }

@@ -43,3 +43,8 @@ export async function guardarTutor(id: number, datos: AltaTutor, anterior: numbe
     await apiClient.post(`${ruta(id)}/relevo`, { ...datos, idRelacionAnterior: anterior })
   }
 }
+
+export async function consultarRequisitosAlta(signal?: AbortSignal) {
+  const { data } = await apiClient.get('/api/v1/clientes/registro/requisitos', { signal })
+  return z.object({ edadMayoria: z.number().int().positive(), fechaActual: z.iso.date() }).parse(data)
+}

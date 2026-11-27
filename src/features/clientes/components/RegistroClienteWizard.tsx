@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CircleCheck, UserPlus } from 'lucide-react'
 
@@ -9,11 +9,13 @@ import { Aviso, AvisoRequiereAprobacion, Button } from '@/shared/ui'
 import { toApiError } from '@/shared/api'
 import { registrarCliente, reincorporarCliente, errorRegistro } from '@/features/clientes/api/registro-cliente'
 import { comprobarDocumento } from '@/features/clientes/api/documentos-identidad'
+import { consultarRequisitosAlta } from '@/features/clientes/api/tutores'
 import type { Cliente } from '@/features/clientes/api/clientes.contract'
 import { RegistroStepper, type Paso } from '@/features/clientes/components/RegistroStepper'
 import { DatosClienteStep } from '@/features/clientes/components/steps/DatosClienteStep'
 import { DireccionesStep } from '@/features/clientes/components/steps/DireccionesStep'
 import { ActividadEconomicaStep } from '@/features/clientes/components/steps/ActividadEconomicaStep'
+import { TutorAltaCliente, type BorradorTutor } from '@/features/clientes/components/steps/TutorAltaCliente'
 import { MENSAJE_CLIENTE_ELIMINADO } from '@/features/clientes/lib/reincorporacion'
 import {
   ACTIVIDAD_VACIA,
@@ -30,6 +32,10 @@ import {
   type DireccionesInput,
   type RegistroClienteData,
 } from '@/features/clientes/schemas/registro-cliente.schema'
+
+const TUTOR_VACIO: BorradorTutor = {
+  idClienteRelacionado: null, documento: '', fechaEfectiva: '', tipoRespaldo: '', referenciaRespaldo: '',
+}
 
 const PASOS = [
   { titulo: 'Documento', descripcion: 'Comprobación de identidad' },
@@ -59,6 +65,8 @@ export function RegistroClienteWizard({
   const [errorExterno, setErrorExterno] = useState<unknown>(initialError)
   const [idSolicitudReincorporacion, setIdSolicitudReincorporacion] = useState<number | null>(initialIdSolicitud)
   const [ultimoPayload, setUltimoPayload] = useState<RegistroClienteData | null>(initialPayload)
+  const [tutor, setTutor] = useState(TUTOR_VACIO)
+  const [errorTutor, setErrorTutor] = useState('')
 
   const consultaDocumento = useMutation({ mutationFn: comprobarDocumento, retry: false })
   const [modoReincorporacion, setModoReincorporacion] = useState(false)
@@ -101,6 +109,37 @@ export function RegistroClienteWizard({
     resolver: zodResolver(actividadSchema),
     defaultValues: ACTIVIDAD_VACIA,
   })
+  const [tipoCliente, fechaNacimiento] = useWatch({
+    control: datosForm.control, name: ['tipoCliente', 'fechaNacimiento'],
+  })
+  const requierePolitica = !modoReincorporacion && tipoCliente === 'NATURAL'
+  const requisitos = useQuery({
+    queryKey: ['clientes', 'requisitos-alta'],
+    queryFn: ({ signal }) => consultarRequisitosAlta(signal),
+    enabled: requierePolitica && paso >= 1 && !registro,
+  })
+  const politica = requisitos.data
+  const edad = politica && fechaNacimiento
+    ? Number(politica.fechaActual.slice(0, 4)) - Number(fechaNacimiento.slice(0, 4))
+      - Number(politica.fechaActual.slice(5) < fechaNacimiento.slice(5))
+    : null
+  const esMenor = requierePolitica && politica && edad !== null && edad < politica.edadMayoria
+  const datosTutor = esMenor && tutor.idClienteRelacionado !== null && tutor.fechaEfectiva
+    && tutor.fechaEfectiva >= fechaNacimiento && tutor.fechaEfectiva <= politica.fechaActual
+    && tutor.tipoRespaldo.trim() && tutor.referenciaRespaldo.trim()
+    ? {
+      idClienteRelacionado: tutor.idClienteRelacionado, fechaEfectiva: tutor.fechaEfectiva,
+      tipoRespaldo: tutor.tipoRespaldo.trim(), referenciaRespaldo: tutor.referenciaRespaldo.trim(),
+    }
+    : undefined
+  const validarTutor = () => {
+    if (requierePolitica && !politica) return false
+    if (esMenor && !datosTutor) {
+      setErrorTutor('Selecciona al tutor, indica su respaldo y usa una fecha entre el nacimiento del menor y hoy.')
+      return false
+    }
+    return true
+  }
 
   const irA = (indice: number) => {
     setPaso(indice)
@@ -109,6 +148,8 @@ export function RegistroClienteWizard({
   }
 
   const verificarDocumento = async (documento: Parameters<typeof comprobarDocumento>[0]) => {
+    setTutor(TUTOR_VACIO)
+    setErrorTutor('')
     setCoincidencia(null)
     setModoReincorporacion(false)
     setAvisosDocumento([])
@@ -131,11 +172,13 @@ export function RegistroClienteWizard({
     if (guardado.isPending || reincorporacion.isPending) return
     // Si se editó un paso anterior desde el indicador, se vuelve a validar antes de enviar
     if (!(await datosForm.trigger())) return irA(1)
+    if (!validarTutor()) return irA(1)
     if (!(await direccionesForm.trigger())) return irA(2)
 
     const solicitud: RegistroClienteData = {
       cliente: { ...datosClienteSchema.parse(datosForm.getValues()), ...actividad },
       direcciones: direccionesSchema.parse(direccionesForm.getValues()).direcciones,
+      ...(datosTutor ? { tutor: datosTutor } : {}),
     }
     setUltimoPayload(solicitud)
     setErrorExterno(null)
@@ -169,6 +212,8 @@ export function RegistroClienteWizard({
   }
 
   const nuevoRegistro = () => {
+    setTutor(TUTOR_VACIO)
+    setErrorTutor('')
     datosForm.reset(DATOS_CLIENTE_VACIOS)
     direccionesForm.reset(DIRECCIONES_VACIAS)
     actividadForm.reset(ACTIVIDAD_VACIA)
@@ -217,7 +262,20 @@ export function RegistroClienteWizard({
          {paso === 1 && (
           <>
             {avisosDocumento.length > 0 && <Aviso tono="info">{avisosDocumento.join(' ')}</Aviso>}
-            <DatosClienteStep form={datosForm} onNext={() => irA(2)} />
+            {requierePolitica && requisitos.isPending && <p role="status">Consultando requisitos del registro…</p>}
+            {requierePolitica && requisitos.isError && <Aviso tono="error">
+              No se pudo consultar la mayoría de edad.
+              <Button type="button" variant="outline" onClick={() => void requisitos.refetch()}>Reintentar</Button>
+            </Aviso>}
+            <DatosClienteStep form={datosForm} onNext={() => { if (validarTutor()) irA(2) }}
+              tutor={esMenor && politica && <>
+                <TutorAltaCliente datos={tutor} fechaActual={politica.fechaActual} cambiar={valor => {
+                  setTutor(valor)
+                  setErrorTutor('')
+                }} />
+                {errorTutor && <p role="alert" className="text-destructive">{errorTutor}</p>}
+              </>}
+            />
           </>
         )}
         {paso === 2 && <DireccionesStep form={direccionesForm} onBack={() => irA(1)} onNext={() => irA(3)} />}
