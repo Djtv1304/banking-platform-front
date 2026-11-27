@@ -19,6 +19,8 @@ describe('E5-05 · habilitación para recibir productos', () => {
   it('traduce los motivos y oculta los informativos', () => {
     expect(motivoHabilitacion('RIESGO_NO_APROBADO_VIGENTE')).toContain('evaluación de riesgo')
     expect(motivoHabilitacion('ARCHIVO_OBLIGATORIO_FALTANTE:Cedula')).toBe('Falta el archivo obligatorio Cedula.')
+    expect(motivoHabilitacion('ARCHIVO_OBLIGATORIO_FALTANTE:PASAPORTE_DATOS')).toBe('Falta la página de datos del pasaporte.')
+    expect(motivoHabilitacion('ARCHIVO_OBLIGATORIO_FALTANTE:RESPALDO_TUTOR')).toBe('Falta el respaldo digital aprobado del tutor vigente.')
     expect(motivoHabilitacion('ARCHIVOS_NO_EXIGIDOS')).toBeNull()
     expect(motivoHabilitacion('OTRO')).toContain('requisito pendiente')
   })

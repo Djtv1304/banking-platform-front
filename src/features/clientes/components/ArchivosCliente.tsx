@@ -6,6 +6,8 @@ import {
   consultarClasesArchivo, leerArchivo, listarArchivos, subirArchivo, type ArchivoCliente,
 } from '@/features/clientes/api/archivos'
 import { ApiError } from '@/shared/api'
+import { habilitacionKey } from '@/features/clientes/api/habilitacion'
+import { clienteDetalleKey } from '@/features/clientes/hooks/useConsultaClientes'
 import {
   Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, Label,
 } from '@/shared/ui'
@@ -63,7 +65,11 @@ export function ArchivosCliente({ idCliente, puedeVer, puedeSubir }: {
       setSeleccion(undefined)
       setAnterior(undefined)
       if (input.current) input.current.value = ''
-      await queryClient.invalidateQueries({ queryKey: listadoKey })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: listadoKey }),
+        queryClient.invalidateQueries({ queryKey: habilitacionKey(idCliente) }),
+        queryClient.invalidateQueries({ queryKey: clienteDetalleKey(idCliente) }),
+      ])
     },
     onError: (causa) => setError(mensaje(causa)),
     onSettled: () => setProgreso(0),

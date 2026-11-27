@@ -19,9 +19,11 @@ export const useBuscarClientes = (params: ParametrosBusqueda | null) =>
   })
 
 /** CLI-04 · Sin reintento: un 404 se muestra en cuanto llega */
+export const clienteDetalleKey = (idCliente: number | undefined) => ['clientes', 'detalle', idCliente] as const
+
 export const useCliente = (idCliente: number | undefined) =>
   useQuery({
-    queryKey: ['clientes', 'detalle', idCliente],
+    queryKey: clienteDetalleKey(idCliente),
     queryFn: ({ signal }) => getCliente(idCliente as number, signal),
     enabled: idCliente !== undefined,
     retry: false,
