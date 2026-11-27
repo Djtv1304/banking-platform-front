@@ -8,6 +8,7 @@ import { CircleCheck, UserPlus } from 'lucide-react'
 import { Aviso, AvisoRequiereAprobacion, Button } from '@/shared/ui'
 import { toApiError } from '@/shared/api'
 import { registrarCliente, reincorporarCliente, errorRegistro } from '@/features/clientes/api/registro-cliente'
+import { comprobarDocumento } from '@/features/clientes/api/documentos-identidad'
 import type { Cliente } from '@/features/clientes/api/clientes.contract'
 import { RegistroStepper, type Paso } from '@/features/clientes/components/RegistroStepper'
 import { DatosClienteStep } from '@/features/clientes/components/steps/DatosClienteStep'
@@ -31,6 +32,7 @@ import {
 } from '@/features/clientes/schemas/registro-cliente.schema'
 
 const PASOS = [
+  { titulo: 'Documento', descripcion: 'Comprobación de identidad' },
   { titulo: 'Datos del cliente', descripcion: 'Identificación y contacto' },
   { titulo: 'Direcciones', descripcion: 'Principal y adicionales' },
   { titulo: 'Actividad económica', descripcion: 'Actividad y consentimiento' },
@@ -57,6 +59,11 @@ export function RegistroClienteWizard({
   const [errorExterno, setErrorExterno] = useState<unknown>(initialError)
   const [idSolicitudReincorporacion, setIdSolicitudReincorporacion] = useState<number | null>(initialIdSolicitud)
   const [ultimoPayload, setUltimoPayload] = useState<RegistroClienteData | null>(initialPayload)
+
+  const consultaDocumento = useMutation({ mutationFn: comprobarDocumento, retry: false })
+  const [modoReincorporacion, setModoReincorporacion] = useState(false)
+  const [avisosDocumento, setAvisosDocumento] = useState<string[]>([])
+  const [coincidencia, setCoincidencia] = useState<Awaited<ReturnType<typeof comprobarDocumento>> | null>(null)
 
   const cache = useQueryClient()
   const guardado = useMutation({
@@ -101,11 +108,30 @@ export function RegistroClienteWizard({
     inicioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  const verificarDocumento = async (documento: Parameters<typeof comprobarDocumento>[0]) => {
+    setCoincidencia(null)
+    setModoReincorporacion(false)
+    setAvisosDocumento([])
+    try {
+      const resultado = await consultaDocumento.mutateAsync(documento)
+      if (resultado.existe || !resultado.valida) {
+        setAlcanzado(0)
+        setCoincidencia(resultado)
+      }
+      else {
+        setAvisosDocumento(resultado.advertencias)
+        irA(1)
+      }
+    } catch {
+      // Los datos permanecen en el formulario para reintentar.
+    }
+  }
+
   const registrar = async (actividad: ActividadData) => {
     if (guardado.isPending || reincorporacion.isPending) return
     // Si se editó un paso anterior desde el indicador, se vuelve a validar antes de enviar
-    if (!(await datosForm.trigger())) return irA(0)
-    if (!(await direccionesForm.trigger())) return irA(1)
+    if (!(await datosForm.trigger())) return irA(1)
+    if (!(await direccionesForm.trigger())) return irA(2)
 
     const solicitud: RegistroClienteData = {
       cliente: { ...datosClienteSchema.parse(datosForm.getValues()), ...actividad },
@@ -116,6 +142,10 @@ export function RegistroClienteWizard({
     setIdSolicitudReincorporacion(null)
     reincorporacion.reset()
     try {
+      if (modoReincorporacion) {
+        await reincorporacion.mutateAsync(solicitud)
+        return
+      }
       const cliente = await guardado.mutateAsync(solicitud)
       setRegistro(cliente)
       irA(PASOS.length)
@@ -148,21 +178,50 @@ export function RegistroClienteWizard({
     setErrorExterno(null)
     setIdSolicitudReincorporacion(null)
     setUltimoPayload(null)
+    setCoincidencia(null)
+    setModoReincorporacion(false)
+    consultaDocumento.reset()
     setAlcanzado(0)
     irA(0)
   }
 
-  const ocupado = guardado.isPending || reincorporacion.isPending
+  const ocupado = guardado.isPending || reincorporacion.isPending || consultaDocumento.isPending
 
   return (
     <div ref={inicioRef} className="flex scroll-mt-6 flex-col gap-8">
       <fieldset disabled={ocupado} className="flex min-w-0 flex-col gap-8" aria-busy={ocupado}>
-      <RegistroStepper pasos={PASOS} actual={paso} alcanzado={alcanzado} onSelect={irA} />
+      <RegistroStepper pasos={PASOS} actual={paso} alcanzado={paso === 0 ? 0 : alcanzado} onSelect={(indice) => { if (paso !== 0 || indice === 0) irA(indice) }} />
 
       <section className="rounded-3xl border border-border bg-card p-6 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-10">
-        {paso === 0 && <DatosClienteStep form={datosForm} onNext={() => irA(1)} />}
-        {paso === 1 && <DireccionesStep form={direccionesForm} onBack={() => irA(0)} onNext={() => irA(2)} />}
-        {paso === 2 && <ActividadEconomicaStep form={actividadForm} onBack={() => irA(1)} onSubmit={registrar} />}
+        {paso === 0 && (
+          <>
+            <DatosClienteStep form={datosForm} soloDocumento verificar={verificarDocumento} onNext={() => irA(2)} />
+            {consultaDocumento.isPending && <p role="status">Comprobando documento…</p>}
+            {consultaDocumento.isError && <Aviso tono="error">{toApiError(consultaDocumento.error).message}</Aviso>}
+            {coincidencia && (
+              <Aviso tono="info">
+                <p>{coincidencia.tipoCoincidencia === 'EQUIVALENCIA'
+                  ? 'Encontramos una ficha por la equivalencia entre cédula y RUC.'
+                  : coincidencia.mensaje}</p>
+                {coincidencia.reincorporable && coincidencia.tipoCoincidencia === 'EXACTA' && (
+                  <Button type="button" variant="outline" onClick={() => {
+                    setModoReincorporacion(true)
+                    irA(1)
+                  }}>Preparar reincorporación</Button>
+                )}
+                {coincidencia.idCliente && <Link className="text-link underline" to={'/clientes-busqueda/' + coincidencia.idCliente}>Abrir ficha existente</Link>}
+              </Aviso>
+            )}
+          </>
+        )}
+         {paso === 1 && (
+          <>
+            {avisosDocumento.length > 0 && <Aviso tono="info">{avisosDocumento.join(' ')}</Aviso>}
+            <DatosClienteStep form={datosForm} onNext={() => irA(2)} />
+          </>
+        )}
+        {paso === 2 && <DireccionesStep form={direccionesForm} onBack={() => irA(1)} onNext={() => irA(3)} />}
+        {paso === 3 && <ActividadEconomicaStep form={actividadForm} onBack={() => irA(2)} onSubmit={registrar} />}
         {guardado.isPending && <p role="status" className="mt-4 text-sm text-muted-foreground">Guardando cliente…</p>}
         {reincorporacion.isPending && <p role="status" className="mt-4 text-sm text-muted-foreground">Solicitando reincorporación…</p>}
 
@@ -217,7 +276,7 @@ function RegistroCompletado({ registro: cliente, onNuevo }: { registro: Cliente;
   const nombre = cliente.razonSocial ?? `${cliente.nombres} ${cliente.apellidos ?? ''}`
 
   const resumen = [
-    { label: cliente.tipoDocumento === 'P' ? 'Pasaporte' : cliente.tipoDocumento === 'R' ? 'RUC' : 'Cédula', valor: cliente.identificacion },
+    { label: cliente.tipoDocumento === 'P' ? 'Pasaporte' : cliente.tipoDocumento === 'C' ? 'Cédula' : cliente.tipoDocumento, valor: cliente.identificacion },
     { label: 'Tipo de cliente', valor: cliente.tipoCliente === 'Natural' ? 'Persona natural' : 'Persona jurídica' },
     { label: 'Estado', valor: cliente.estado },
     { label: 'Correo', valor: cliente.email },

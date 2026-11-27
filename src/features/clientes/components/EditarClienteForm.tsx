@@ -18,7 +18,6 @@ const ENMASCARADOS: Campo[] = ['identificacion', 'email', 'telefonoCelular', 'te
 const AYUDA_ENMASCARADO = 'Escribe el nuevo valor para cambiarlo'
 
 const estadosCiviles = ['Soltero', 'Casado', 'Divorciado', 'Viudo', 'Union Libre'] as const
-const tiposDocumento = [{ valor: 'C', label: 'Cédula' }, { valor: 'R', label: 'RUC' }, { valor: 'P', label: 'Pasaporte' }] as const
 /** Campos anulables: vacío se envía como null */
 const anulables: Campo[] = ['telefonoConvencional', 'nombreComercial']
 
@@ -34,7 +33,6 @@ const identidadJuridico: CampoTexto[] = [
   { campo: 'razonSocial', label: 'Razón social', max: 250, requerido: true },
 ]
 const identidadComun: CampoTexto[] = [
-  { campo: 'identificacion', label: 'Número de documento', min: 1, max: 13, requerido: false },
   { campo: 'fechaNacimiento', label: 'Fecha de nacimiento o constitución', type: 'date', requerido: true },
   { campo: 'email', label: 'Correo electrónico principal', type: 'email', min: 5, max: 150, requerido: false },
 ]
@@ -64,7 +62,7 @@ export function EditarClienteForm({ cliente, guardar, ocupado, error }: {
   const textosSensibles = [...(natural ? identidadNatural : identidadJuridico), ...identidadComun]
   const camposSeccion: Record<Seccion, Campo[]> = {
     ordinarios: [...textosOrdinarios.map((c) => c.campo), 'idActividadEconomica', ...(natural ? ['estadoCivil' as const] : [])],
-    sensibles: [...textosSensibles.map((c) => c.campo), 'tipoDocumento'],
+    sensibles: textosSensibles.map((c) => c.campo),
   }
   const cambiados = (seccion: Seccion) =>
     camposSeccion[seccion].filter((campo) => borrador[campo] !== undefined && borrador[campo].trim() !== original(campo))
@@ -133,17 +131,13 @@ export function EditarClienteForm({ cliente, guardar, ocupado, error }: {
       </SeccionEdicion>
 
       <SeccionEdicion titulo="Identidad y correo principal" etiqueta="Requiere aprobación"
-        descripcion="Otra persona debe aprobar estos cambios; mientras tanto el cliente conserva sus datos actuales. Un cambio de nombre o documento puede exigir un documento de respaldo."
+        descripcion="Otra persona debe aprobar estos cambios; mientras tanto el cliente conserva sus datos actuales. Un cambio de nombre puede exigir un documento de respaldo."
         ocupado={ocupado} hayCambios={cambiados('sensibles').length > 0} error={enviada === 'sensibles' ? error : null}
         boton="Enviar a aprobación" onSubmit={(event) => void enviar('sensibles', event)}>
-        {textos(textosSensibles.slice(0, 2))}
-        <Field id="editar-tipoDocumento" label="Tipo de documento">
-          <select id="editar-tipoDocumento" className={selector} required value={valor('tipoDocumento')}
-            onChange={(event) => cambiar('tipoDocumento', event.target.value)}>
-            {tiposDocumento.map((tipo) => <option key={tipo.valor} value={tipo.valor}>{tipo.label}</option>)}
-          </select>
-        </Field>
-        {textos(textosSensibles.slice(2))}
+        {textos(textosSensibles)}
+        <p className="text-sm text-muted-foreground sm:col-span-2">
+          Para corregir la identificación utiliza la sección Documentos de la ficha.
+        </p>
         <p className="text-sm text-muted-foreground sm:col-span-2">
           {cliente.emailVerificado ? 'El correo principal está verificado por el personal; si cambia, la marca se borra al aprobarse.' : 'El correo principal no está verificado.'}
         </p>

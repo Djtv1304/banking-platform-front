@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { CELULAR_PREFIJO } from '@/features/clientes/lib/celular'
-import { esCedulaValida, esPasaporteValido, esRucValido } from '@/features/clientes/lib/identificacion'
+import { esCedulaValida, esRucValido } from '@/features/clientes/lib/identificacion'
 
 /*
  * Registro de cliente en 3 pasos, un esquema por paso. Cada salida usa los nombres de columna
@@ -73,8 +73,10 @@ const texto = (max: number, mensajeMax: string) => z.string().trim().max(max, me
 export const datosClienteSchema = z
   .object({
     tipoCliente: z.enum(['NATURAL', 'JURIDICO'], { error: 'Selecciona el tipo de cliente' }),
-    tipoDocumento: z.enum(['CEDULA', 'PASAPORTE']),
-    identificacion: z.string().trim(),
+    tipoDocumento: z.string().min(1),
+    identificacion: z.string().trim().max(20),
+    codigoPaisEmision: z.string().optional(),
+    fechaVencimiento: z.string().optional(),
     // Persona natural
     nombres: texto(250, 'Los nombres no pueden superar 250 caracteres'),
     apellidos: texto(250, 'Los apellidos no pueden superar 250 caracteres'),
@@ -108,9 +110,11 @@ export const datosClienteSchema = z
         return
       }
 
-      if (datos.tipoDocumento === 'PASAPORTE') {
-        if (!esPasaporteValido(datos.identificacion)) error('identificacion', 'Ingresa un pasaporte de 5 a 13 letras o dígitos, sin espacios ni símbolos')
-      } else if (!esCedulaValida(datos.identificacion)) error('identificacion', 'Ingresa una cédula válida de 10 dígitos')
+      if (['PAS', 'PASAPORTE'].includes(datos.tipoDocumento) && !/^[A-Za-z0-9]{5,20}$/.test(datos.identificacion))
+        error('identificacion', 'Ingresa un pasaporte de 5 a 20 letras o dígitos, sin espacios ni símbolos')
+      if (!datos.identificacion) error('identificacion', 'Ingresa el número de documento')
+      if (['CEDULA', 'CED'].includes(datos.tipoDocumento) && !esCedulaValida(datos.identificacion))
+        error('identificacion', 'Ingresa una cédula válida de 10 dígitos')
       for (const campo of ['nombres', 'apellidos'] as const) {
         if (datos[campo].length < 2) error(campo, `Ingresa los ${campo}`)
         else if (!NOMBRE_REGEX.test(datos[campo])) error(campo, `Los ${campo} solo pueden contener letras y espacios`)
@@ -131,6 +135,8 @@ export const datosClienteSchema = z
       tipoCliente,
       tipoDocumento: natural ? datos.tipoDocumento : 'RUC',
       identificacion: datos.identificacion,
+      ...(datos.codigoPaisEmision ? { codigoPaisEmision: datos.codigoPaisEmision } : {}),
+      ...(datos.fechaVencimiento ? { fechaVencimiento: datos.fechaVencimiento } : {}),
       razonSocial: natural ? null : datos.razonSocial,
       nombreComercial: natural ? null : vacioANull(datos.nombreComercial),
       nombres: natural ? datos.nombres : null,
@@ -152,6 +158,8 @@ export const DATOS_CLIENTE_VACIOS: DatosClienteInput = {
   tipoCliente: 'NATURAL',
   tipoDocumento: 'CEDULA',
   identificacion: '',
+  codigoPaisEmision: '',
+  fechaVencimiento: '',
   nombres: '',
   apellidos: '',
   fechaNacimiento: '',

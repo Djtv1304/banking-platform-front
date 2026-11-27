@@ -1,4 +1,6 @@
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
+import { codigoCatalogo, useTiposIdentidad } from '@/features/clientes/api/documentos-identidad'
+import { usePaises } from '@/features/catalogos/hooks/useCatalogos'
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form'
 import { Building2, UserRound } from 'lucide-react'
 
@@ -15,7 +17,6 @@ import {
 } from '@/features/clientes/components/form-fields'
 import {
   ESTADOS_CIVILES,
-  DOCUMENTOS_NATURAL,
   GENEROS,
   TIPOS_CLIENTE,
   type DatosClienteData,
@@ -24,20 +25,16 @@ import {
 
 const ICONO_TIPO = { NATURAL: UserRound, JURIDICO: Building2 } as const
 
-const IDENTIFICACION_POR_TIPO = {
-  CEDULA: { label: 'Cédula', maxLength: 10, placeholder: '10 dígitos' },
-  PASAPORTE: { label: 'Pasaporte', maxLength: 13, placeholder: '5 a 13 letras o dígitos' },
-  RUC: { label: 'RUC', maxLength: 13, placeholder: '13 dígitos' },
-} as const
-
 const soloDigitos = (valor: string) => valor.replace(/\D/g, '')
 
 interface DatosClienteStepProps {
   form: UseFormReturn<DatosClienteInput, unknown, DatosClienteData>
   onNext: () => void
+  soloDocumento?: boolean
+  verificar?: (documento: { tipoDocumento: string; numero: string; codigoPaisEmision?: string }) => Promise<void>
 }
 
-export function DatosClienteStep({ form, onNext }: DatosClienteStepProps) {
+export function DatosClienteStep({ form, onNext, soloDocumento = false, verificar }: DatosClienteStepProps) {
   const {
     register,
     control,
@@ -60,9 +57,94 @@ export function DatosClienteStep({ form, onNext }: DatosClienteStepProps) {
   const tipoCliente = useWatch({ control, name: 'tipoCliente' })
   const tipoDocumento = useWatch({ control, name: 'tipoDocumento' })
   const natural = tipoCliente === 'NATURAL'
-  const pasaporte = natural && tipoDocumento === 'PASAPORTE'
-  const identificacion = IDENTIFICACION_POR_TIPO[natural ? tipoDocumento : 'RUC']
+  const tipos = useTiposIdentidad()
+  const paises = usePaises()
+  const opciones = (tipos.data ?? []).filter((tipo) => tipo.activo && tipo.permitePrincipal && tipo.aplicaNatural)
+  const regla = opciones.find((tipo) => tipo.codigo === codigoCatalogo(tipoDocumento))
   const continuar = handleSubmit(onNext)
+  const comprobar = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const datos = form.getValues()
+    if (!regla) {
+      form.setError('tipoDocumento', { message: 'Selecciona un tipo activo del catálogo.' })
+      return
+    }
+    const numero = datos.identificacion.trim()
+    if (!numero) {
+      form.setError('identificacion', { message: 'Ingresa el número de documento.' })
+      return
+    }
+    if (regla.requierePais && !datos.codigoPaisEmision) {
+      form.setError('codigoPaisEmision', { message: 'Selecciona el país emisor.' })
+      return
+    }
+    if (regla.requiereVencimiento && !/^\d{4}-\d{2}-\d{2}$/.test(datos.fechaVencimiento ?? '')) {
+      form.setError('fechaVencimiento', { message: 'Ingresa el vencimiento.' })
+      return
+    }
+    await verificar?.({
+      tipoDocumento: codigoCatalogo(datos.tipoDocumento), numero,
+      codigoPaisEmision: datos.codigoPaisEmision || undefined,
+    })
+  }
+
+  if (soloDocumento) return (
+    <form onSubmit={(evento) => void comprobar(evento)} noValidate className="flex flex-col gap-6">
+      <FormSection title="Documento de identidad">
+        <div className="grid gap-6 sm:grid-cols-2">
+          {natural && <Controller control={control} name="tipoDocumento" render={({ field, fieldState }) => (
+            <Field id="tipoDocumento" label="Tipo de documento" error={fieldState.error?.message}>
+              <SelectField id="tipoDocumento" value={codigoCatalogo(field.value)} onBlur={field.onBlur}
+                onChange={(valor) => {
+                  field.onChange(valor)
+                  setValue('identificacion', '', { shouldDirty: true })
+                  setValue('codigoPaisEmision', '')
+                  setValue('fechaVencimiento', '')
+                  clearErrors(['identificacion', 'codigoPaisEmision', 'fechaVencimiento'])
+                }}
+                options={opciones.map((tipo) => ({ value: tipo.codigo, label: tipo.nombre }))} placeholder="Selecciona el documento" error={fieldState.error?.message} />
+            </Field>
+          )} />}
+          <Field id="identificacion" label="Número de documento" error={errors.identificacion?.message}>
+            <Input
+              id="identificacion"
+              autoComplete="off"
+              inputMode={regla?.patronCaracteres === 'DIGITOS' ? 'numeric' : 'text'}
+              maxLength={regla?.longitudMaxima ?? 20}
+              className={fieldClassName}
+              {...a11y('identificacion', errors.identificacion?.message)}
+              {...register('identificacion')}
+            />
+          </Field>
+          {tipos.isError && (
+            <button type="button" className="text-link underline" onClick={() => void tipos.refetch()}>
+              Reintentar carga de tipos de documento
+            </button>
+          )}
+          {regla?.requierePais && (
+            <Controller control={control} name="codigoPaisEmision" render={({ field, fieldState }) => (
+              <Field id="codigoPaisEmision" label="País emisor" error={fieldState.error?.message}>
+                <SelectField id="codigoPaisEmision" value={field.value ?? ''} onChange={field.onChange}
+                  options={paises.data.map((pais) => ({ value: pais.codigoPais, label: pais.nombrePais }))}
+                  placeholder="Selecciona el país emisor" error={fieldState.error?.message} />
+              </Field>
+            )} />
+          )}
+          {regla?.requiereVencimiento && (
+            <Controller control={control} name="fechaVencimiento" render={({ field, fieldState }) => (
+              <div><FechaInput id="fechaVencimiento" label="Fecha de vencimiento" value={field.value ?? ''}
+                onChange={field.onChange} onBlur={field.onBlur} invalid={!!fieldState.error}
+                errorId={fieldState.error ? 'fecha-vencimiento-error' : undefined} />
+                {fieldState.error && <p role="alert" id="fecha-vencimiento-error">{fieldState.error.message}</p>}</div>
+            )} />
+          )}
+
+        </div>
+      </FormSection>
+      <StepActions submitLabel="Continuar" />
+    </form>
+  )
+
 
   return (
     <form onSubmit={continuar} noValidate className="flex flex-col gap-10">
@@ -109,27 +191,6 @@ export function DatosClienteStep({ form, onNext }: DatosClienteStepProps) {
 
       <FormSection title={natural ? 'Datos personales' : 'Datos de la empresa'}>
         <div className="grid gap-6 sm:grid-cols-2">
-          {natural && <Controller control={control} name="tipoDocumento" render={({ field, fieldState }) => (
-            <Field id="tipoDocumento" label="Tipo de documento" error={fieldState.error?.message}>
-              <SelectField id="tipoDocumento" value={field.value} onBlur={field.onBlur}
-                onChange={(valor) => { field.onChange(valor); setValue('identificacion', '', { shouldDirty: true }); clearErrors('identificacion') }}
-                options={DOCUMENTOS_NATURAL} placeholder="Selecciona el documento" error={fieldState.error?.message} />
-            </Field>
-          )} />}
-          <Field id="identificacion" label={identificacion.label} error={errors.identificacion?.message}>
-            <Input
-              id="identificacion"
-              autoComplete="off"
-              inputMode={pasaporte ? 'text' : 'numeric'}
-              maxLength={identificacion.maxLength}
-              placeholder={identificacion.placeholder}
-              className={fieldClassName}
-              {...a11y('identificacion', errors.identificacion?.message)}
-              {...(pasaporte ? register('identificacion') : registrarNumerico('identificacion'))}
-            />
-            {pasaporte && <p className="text-sm text-muted-foreground">Se valida el formato del documento; no su autenticidad ni vigencia.</p>}
-          </Field>
-
           {natural ? (
             <>
               <div className="flex flex-col gap-2.5">

@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -35,9 +36,11 @@ vi.mock('@/features/clientes/hooks/useConsultaClientes', () => ({
 }))
 
 const render = () => renderToStaticMarkup(
+  <QueryClientProvider client={new QueryClient()}>
   <MemoryRouter initialEntries={['/clientes-busqueda/42']}>
     <Routes><Route path="/clientes-busqueda/:idCliente" element={<FichaClientePage />} /></Routes>
-  </MemoryRouter>,
+  </MemoryRouter>
+  </QueryClientProvider>,
 )
 
 beforeEach(() => { h.funciones = ['clientes.consultar']; h.roles = ['ASESOR'] })
