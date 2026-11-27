@@ -7,11 +7,15 @@ import { formatearFecha, nombreVisible } from '@/features/clientes/lib/consulta'
 import { agregarFirmante, finalizarFirmante, listarFirmantes, type Firmante } from '@/features/clientes/api/firmantes'
 
 type Edicion = 'alta' | Firmante
-type Persona = { id: number; nombre: string }
+export type PersonaRelacionada = { id: number; nombre: string }
 
 const fechaEcuador = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Guayaquil' })
 
-function SelectorPersona({ titular, elegir }: { titular: number; elegir: (persona: Persona | null) => void }) {
+export function SelectorPersona({ titular, elegir, etiqueta = 'Persona firmante' }: {
+  titular: number
+  elegir: (persona: PersonaRelacionada | null) => void
+  etiqueta?: string
+}) {
   const [texto, setTexto] = useState('')
   const [nombre, setNombre] = useState('')
   useEffect(() => {
@@ -25,7 +29,7 @@ function SelectorPersona({ titular, elegir }: { titular: number; elegir: (person
     <label>Buscar persona por nombre<Input value={texto} maxLength={100} onChange={e => { setTexto(e.target.value); elegir(null) }} placeholder="Al menos tres caracteres" /></label>
     {mostrar && consulta.isPending && <p role="status">Buscando personas…</p>}
     {mostrar && consulta.isError && <p role="alert">No se pudo buscar. <Button type="button" variant="outline" onClick={() => void consulta.refetch()}>Reintentar</Button></p>}
-    {mostrar && consulta.isSuccess && (personas.length ? <label>Persona firmante
+    {mostrar && consulta.isSuccess && (personas.length ? <label>{etiqueta}
       <select defaultValue="" key={nombre} className="block w-full rounded-lg border border-border bg-field p-2" onChange={e => {
         const persona = personas.find(p => p.idCliente === Number(e.target.value))
         elegir(persona ? { id: persona.idCliente, nombre: nombreVisible(persona) } : null)
@@ -37,7 +41,7 @@ function SelectorPersona({ titular, elegir }: { titular: number; elegir: (person
 }
 
 function Formulario({ id, edicion, cerrar, guardado }: { id: number; edicion: Edicion; cerrar: () => void; guardado: () => void }) {
-  const [persona, elegir] = useState<Persona | null>(null)
+  const [persona, elegir] = useState<PersonaRelacionada | null>(null)
   const [alcance, setAlcance] = useState('')
   const [fecha, setFecha] = useState('')
   const [respaldo, setRespaldo] = useState('')

@@ -6,6 +6,7 @@ import { ArrowLeft, CircleAlert, LoaderCircle, UserRoundX } from 'lucide-react'
 import { ApiError } from '@/shared/api'
 import { GestionDirecciones } from '@/features/clientes/components/GestionDirecciones'
 import { FirmantesCliente } from '@/features/clientes/components/FirmantesCliente'
+import { TutorCliente } from '@/features/clientes/components/TutorCliente'
 import { puedeGestionarDirecciones } from '@/features/clientes/lib/direcciones'
 import { Badge, Button } from '@/shared/ui'
 import { usePuedeFuncion, useAuthStore, usePermisos } from '@/features/auth'
@@ -203,6 +204,10 @@ function Ficha({ cliente, editarFirmantes }: { cliente: Cliente; editarFirmantes
       )}
 
       {fichaCompleta && <Seccion id="ficha-relacionados" titulo="Relacionados">
+        {cliente.tipoCliente === 'Natural' && <TutorCliente
+          key={`tutor-${id}`} id={id} titular={nombreVisible(cliente)}
+          editable={editarFirmantes && cliente.estado !== 'Eliminado'}
+        />}
         <FirmantesCliente key={id} id={id} editable={editarFirmantes && cliente.estado !== 'Eliminado'} />
       </Seccion>}
 
