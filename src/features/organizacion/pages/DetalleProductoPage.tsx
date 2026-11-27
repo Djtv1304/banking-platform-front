@@ -23,6 +23,7 @@ import {
   useProductoAdmin,
 } from '@/features/organizacion/hooks/useProductosAdmin'
 import { condicionesDe, ETIQUETA_TIPO, mensajeErrorProducto } from '@/features/organizacion/lib/producto-form'
+import { PestanaHistorial } from '@/features/auditoria'
 
 const AYUDA_PARAMETROS = {
   Credito: 'Cada subproducto personaliza sus tasas, comisiones, seguros y tablas de amortización.',
@@ -232,6 +233,7 @@ function Detalle({ producto, volver }: { producto: ProductoAdmin; volver: ReactN
         onCerrar={() => setParametrizar(null)}
         onGuardado={alGuardar}
       />
+      <PestanaHistorial tipo="ProductosFinancieros.Producto" id={producto.idProducto} />
       {esAdmin && (
         <>
           <ProductoFormDialog modo={formulario} onCerrar={() => setFormulario(null)} onGuardado={alGuardar} />

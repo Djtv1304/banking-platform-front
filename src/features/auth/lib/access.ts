@@ -43,6 +43,9 @@ export const ORGANIZACION_ROLES = {
   agencias: ['ADMIN'],
 } as const
 
+/** E8-01: consulta de la bitácora de auditoría. Exportar exige además org-exportar. */
+export const AUDITORIA_ROLES: readonly string[] = ['ADMIN', 'SUPERVISOR', 'AUDITOR']
+
 /** Permisos concretos de UI; el backend sigue siendo quien autoriza la operación. */
 export function hasAnyRole(roles: readonly string[], allowed: readonly string[]) {
   return roles.some((role) => allowed.includes(role.trim().toUpperCase()))
