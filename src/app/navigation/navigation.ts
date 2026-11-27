@@ -1,6 +1,6 @@
-import { SlidersHorizontal, ClipboardCheck, Building2, BookOpenText, Calculator, CalendarDays, CreditCard, FilePlus, Files, HandCoins, House, Landmark, Library, Package, ShieldCheck, UserPlus, UserSearch, Vault, WalletCards, type LucideIcon } from 'lucide-react'
+import { SlidersHorizontal, ClipboardCheck, Building2, BookOpenText, Calculator, CalendarDays, CreditCard, FilePlus, Files, HandCoins, House, Landmark, Library, Package, ScrollText, ShieldCheck, UserPlus, UserSearch, Vault, WalletCards, type LucideIcon } from 'lucide-react'
 
-import { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
+import { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, AUDITORIA_ROLES, getAccessProfile, hasAnyRole, PERMISOS, type AccessProfile, type Permiso } from '@/features/auth'
 import { ROLES_GESTION_USUARIOS, ROLES_USUARIO } from '@/features/usuarios'
 import { CATALOGOS_ROLES } from '@/features/catalogos'
 import { CONTABILIDAD_ROLES } from '@/features/contabilidad'
@@ -146,6 +146,11 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
       { to: '/seguridad/pestanas', label: 'Accesos por función', Icon: ShieldCheck, roles: ROLES_CONSULTA_ROLES },
       { to: '/seguridad/roles', label: 'Roles y accesos', Icon: ShieldCheck, roles: ROLES_CONSULTA_ROLES },
     ],
+  },
+  {
+    // E8-01: la API valida los mismos roles; exportar exige además org-exportar
+    title: 'Auditoría',
+    items: [{ to: '/auditoria', label: 'Bitácora de auditoría', Icon: ScrollText, roles: AUDITORIA_ROLES }],
   },
 ]
 

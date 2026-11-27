@@ -20,6 +20,7 @@ import { leerIdCuenta } from '@/features/cuenta/lib/filtros'
 import { formatearFechaConsulta, formatearMonto } from '@/features/cuenta/lib/formato'
 import { MovimientosCuenta } from '@/features/cuenta/pages/MovimientosCuentaPage'
 import { RetencionesCuenta } from '@/features/cuenta/components/RetencionesCuenta'
+import { PestanaHistorial } from '@/features/auditoria'
 
 const cardClassName = 'flex flex-col gap-6 rounded-3xl border border-border bg-card p-6 sm:p-8'
 const tabClassName = 'rounded-lg border border-border px-4 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground'
@@ -65,6 +66,7 @@ export function DetalleCuentaPage() {
         </Link>
       </Button>
       {contenido}
+      {idCuenta != null && <PestanaHistorial tipo="Cuentas.Cuenta" id={idCuenta} />}
     </div>
   )
 }
