@@ -25,6 +25,7 @@ import {
   TIPO_DOCUMENTO_LABEL,
   varianteEstado,
 } from '@/features/clientes/lib/consulta'
+import { PestanaHistorial } from '@/features/auditoria'
 
 /*
  * Compone la ficha de C-03, las acciones de C-04 y la gestión de direcciones C-07.
@@ -66,7 +67,7 @@ export function FichaClientePage() {
         {noExiste ? (
           <ClienteNoEncontrado />
         ) : !acceso.consulta ? (
-          (acceso.historial || verRiesgo) ? <div className="flex flex-col gap-6"><h1 className="text-3xl font-bold text-heading">Historial del cliente #{id}</h1>{acceso.historial && <HistorialCliente key={id} id={id!} />}{verRiesgo && <GestionRiesgo key={`riesgo-${id}`} id={id!} nombre={`cliente #${id}`} />}</div> : <p role="alert">No tienes permiso para consultar este cliente.</p>
+          (acceso.historial || verRiesgo) ? <div className="flex flex-col gap-6"><h1 className="text-3xl font-bold text-heading">Historial del cliente #{id}</h1>{acceso.historial && <HistorialCliente key={id} id={id!} />}<PestanaHistorial key={`auditoria-${id}`} tipo="Clientes.Cliente" id={id!} />{verRiesgo && <GestionRiesgo key={`riesgo-${id}`} id={id!} nombre={`cliente #${id}`} />}</div> : <p role="alert">No tienes permiso para consultar este cliente.</p>
         ) : consulta.isError ? (
           <div
             role="alert"
