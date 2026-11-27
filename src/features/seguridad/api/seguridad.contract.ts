@@ -49,4 +49,4 @@ export const pestanaRolesSchema = z.object({
 export type PestanaRoles = z.infer<typeof pestanaRolesSchema>
 
 /** Entradas sin configuración individual por rol. Plantillas usa su permiso de WorkOS. */
-export const PESTANAS_FIJAS: readonly string[] = ['/', '/seguridad/roles', '/seguridad/pestanas', '/contabilidad/plantillas', '/auditoria']
+export const PESTANAS_FIJAS: readonly string[] = ['/', '/seguridad/roles', '/seguridad/pestanas', '/contabilidad/plantillas', '/auditoria', '/auditoria/integridad']

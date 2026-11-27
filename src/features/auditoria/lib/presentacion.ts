@@ -1,3 +1,4 @@
+import type { Verificacion } from '@/features/auditoria/api/auditoria.contract'
 import type { TonoInsignia } from '@/shared/ui'
 
 export function tonoResultado(resultado: string | null): TonoInsignia {
@@ -22,4 +23,9 @@ export function textoFechaLocal(fechaHoraLocal: string | null): string {
 export function fechaEcuador(dias = 0, ahora = new Date()): string {
   const fecha = new Date(ahora.getTime() + dias * 86_400_000)
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Guayaquil' }).format(fecha)
+}
+
+/** Texto del resultado: la primera secuencia rota es lo que el auditor necesita investigar. */
+export function textoResultado(v: Pick<Verificacion, 'resultado' | 'primeraRota'>): string {
+  return v.resultado === 'Integra' ? 'Íntegra' : `Rota desde la secuencia ${v.primeraRota ?? '—'}`
 }

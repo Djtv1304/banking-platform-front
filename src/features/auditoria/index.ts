@@ -3,4 +3,5 @@
 
 export { BitacoraPage } from '@/features/auditoria/pages/BitacoraPage'
 export { DetalleEventoPage } from '@/features/auditoria/pages/DetalleEventoPage'
+export { IntegridadPage } from '@/features/auditoria/pages/IntegridadPage'
 export { PestanaHistorial } from '@/features/auditoria/components/PestanaHistorial'

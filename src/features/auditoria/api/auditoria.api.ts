@@ -3,7 +3,9 @@ import { descargarCsv } from '@/shared/lib'
 import {
   detalleEventoSchema,
   paginaEventosSchema,
+  paginaVerificacionesSchema,
   tiposEventoSchema,
+  verificacionSchema,
   type FiltrosBusqueda,
   type FiltrosExportacion,
 } from '@/features/auditoria/api/auditoria.contract'
@@ -61,4 +63,16 @@ export async function exportarEventos(filtros: FiltrosExportacion) {
   enlace.download = `auditoria-${filtros.desde}-${filtros.hasta}.pdf`
   enlace.click()
   setTimeout(() => URL.revokeObjectURL(url), 0)
+}
+
+/** E8-02 · POST /verificaciones — el rango va en el cuerpo; 201 con Integra o Rota */
+export async function verificarIntegridad(desde: string, hasta: string) {
+  const { data } = await apiClient.post(`${BASE}/verificaciones`, { desde, hasta })
+  return verificacionSchema.parse(data)
+}
+
+/** E8-02 · GET /verificaciones — nocturnas y manuales, de la más reciente a la más antigua */
+export async function listarVerificaciones(page: number, pageSize: number) {
+  const { data } = await apiClient.get(`${BASE}/verificaciones`, { params: { page, pageSize } })
+  return paginaVerificacionesSchema.parse(data)
 }

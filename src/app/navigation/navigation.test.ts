@@ -47,7 +47,7 @@ describe('contratos de consulta por rol', () => {
   it('auditor recibe los directorios y las consultas de E1-14 sin abrir administración de usuarios', () => {
     const operativas = ['Bóvedas', 'Plan de cuentas', 'Cuentas por producto', 'Asientos contables', 'Fecha contable']
     expect(opciones('CONTADOR')).toEqual(['Inicio', ...operativas])
-    expect(opciones('AUDITOR')).toEqual(['Inicio', 'Parámetros', 'Directorios de auditoría', ...operativas, 'Bitácora de auditoría'])
+    expect(opciones('AUDITOR')).toEqual(['Inicio', 'Parámetros', 'Directorios de auditoría', ...operativas, 'Bitácora de auditoría', 'Integridad de la bitácora'])
   })
 
   it.each(['SUPERVISOR', 'CONTADOR', 'AUDITOR', 'ADMIN'])('%s ve Bóvedas (BOV-01 a BOV-03)', (rol) => {
@@ -121,13 +121,13 @@ describe('contratos de consulta por rol', () => {
 
 describe('matriz completa de consultas del menu por rol', () => {
   const rutas: Record<string, string[]> = {
-    ADMIN: ['/', '/organizacion/entidad', '/parametros', '/organizacion/agencias', '/organizacion/directorios', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/bovedas', '/contabilidad', '/contabilidad/cuentas-producto', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/pestanas', '/seguridad/roles', '/auditoria'],
+    ADMIN: ['/', '/organizacion/entidad', '/parametros', '/organizacion/agencias', '/organizacion/directorios', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas', '/bovedas', '/contabilidad', '/contabilidad/cuentas-producto', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/usuarios', '/seguridad/pestanas', '/seguridad/roles', '/auditoria', '/auditoria/integridad'],
     ASESOR: ['/', '/organizacion/entidad', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/creditos', '/tarjetas'],
     CAJERO: ['/', '/clientes-busqueda', '/cuentas'],
-    SUPERVISOR: ['/', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas', '/bovedas', '/auditoria'],
+    SUPERVISOR: ['/', '/parametros', '/productos', '/catalogos', '/clientes-busqueda', '/cuentas', '/tarjetas', '/bovedas', '/auditoria', '/auditoria/integridad'],
     APROBADOR_CREDITO: ['/', '/productos'],
     CONTADOR: ['/', '/productos', '/bovedas', '/contabilidad', '/contabilidad/cuentas-producto', '/contabilidad/asientos', '/contabilidad/fecha-contable'],
-    AUDITOR: ['/', '/parametros', '/organizacion/directorios', '/productos', '/bovedas', '/contabilidad', '/contabilidad/cuentas-producto', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/auditoria'],
+    AUDITOR: ['/', '/parametros', '/organizacion/directorios', '/productos', '/bovedas', '/contabilidad', '/contabilidad/cuentas-producto', '/contabilidad/asientos', '/contabilidad/fecha-contable', '/auditoria', '/auditoria/integridad'],
   }
   it.each(Object.entries(rutas))('%s respeta todos los contratos de consulta disponibles', (rol, esperadas) => {
     // Productos se consulta con prd-consultar, que en WorkOS tienen todos los roles menos CAJERO
