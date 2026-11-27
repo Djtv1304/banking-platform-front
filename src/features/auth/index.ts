@@ -5,7 +5,7 @@ export { LoginPage } from '@/features/auth/pages/LoginPage';
 export { AvisoInactividad } from '@/features/auth/components/AvisoInactividad';
 export { useActividadReciente } from '@/features/auth/inactividad';
 export { useAccessProfile, useAuthStatus, useAuthStore, usePermisos } from '@/features/auth/store/auth.store';
-export { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, getAccessProfile, hasAnyRole, hasPermission, PERMISOS, ROLES } from '@/features/auth/lib/access';
+export { canAccess, CLIENTES_ROLES, CUENTAS_ROLES, TARJETAS_ROLES, CREDITOS_ROLES, ORGANIZACION_ROLES, AUDITORIA_ROLES, getAccessProfile, hasAnyRole, hasPermission, PERMISOS, ROLES } from '@/features/auth/lib/access';
 export type { AccessProfile, Permiso } from '@/features/auth/lib/access';
 export type { AuthStatus } from '@/features/auth/store/auth.store';
 export { registerAuthHandlers, restoreSession, refreshSession, startSessionSync, signOut } from '@/features/auth/session';
