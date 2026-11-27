@@ -36,9 +36,12 @@ describe('E5-04 · edición por sección', () => {
     expect(ordinarios).toContain('editar-estado-civil')
     expect(ordinarios).not.toContain('editar-email')
     expect(sensibles).toContain('Requiere aprobación')
-    for (const campo of ['nombres', 'apellidos', 'identificacion', 'tipoDocumento', 'fechaNacimiento', 'email']) {
+    for (const campo of ['nombres', 'apellidos', 'fechaNacimiento', 'email']) {
       expect(sensibles).toContain(`editar-${campo}`)
     }
+    expect(sensibles).toContain('sección Documentos')
+    expect(sensibles).not.toContain('editar-identificacion')
+    expect(sensibles).not.toContain('editar-tipoDocumento')
     expect(sensibles).toContain('Enviar a aprobación')
     expect(sensibles).not.toContain('editar-telefonoCelular')
   })
@@ -62,9 +65,9 @@ describe('E5-04 · edición por sección', () => {
     for (const boton of botones) expect(boton).toContain('disabled')
   })
 
-  it('E5-05 · documento, correo y teléfonos empiezan vacíos con la máscara de placeholder y sin required', () => {
+  it('E5-05 · correo y teléfonos empiezan vacíos con la máscara de placeholder y sin required', () => {
     const html = render(natural)
-    for (const [campo, mascara] of [['identificacion', '******4065'], ['email', 'm***@example.test'], ['telefonoCelular', '******4567'], ['telefonoConvencional', '******2345']]) {
+    for (const [campo, mascara] of [['email', 'm***@example.test'], ['telefonoCelular', '******4567'], ['telefonoConvencional', '******2345']]) {
       const input = html.match(new RegExp(`<input[^>]*id="editar-${campo}"[^>]*>`))?.[0] ?? ''
       expect(input).toContain('value=""')
       expect(input).toContain(`placeholder="${mascara} · Escribe el nuevo valor para cambiarlo"`)

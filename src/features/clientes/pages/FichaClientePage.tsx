@@ -1,3 +1,4 @@
+import { DocumentosCliente } from '@/features/clientes/components/DocumentosCliente'
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { ArrowLeft, CircleAlert, LoaderCircle, UserRoundX } from 'lucide-react'
@@ -5,6 +6,7 @@ import { ArrowLeft, CircleAlert, LoaderCircle, UserRoundX } from 'lucide-react'
 import { ApiError } from '@/shared/api'
 import { GestionDirecciones } from '@/features/clientes/components/GestionDirecciones'
 import { ArchivosCliente } from '@/features/clientes/components/ArchivosCliente'
+import { FirmantesCliente } from '@/features/clientes/components/FirmantesCliente'
 import { puedeGestionarDirecciones } from '@/features/clientes/lib/direcciones'
 import { Badge, Button } from '@/shared/ui'
 import { usePuedeFuncion, useAuthStore, usePermisos } from '@/features/auth'
@@ -26,6 +28,7 @@ import {
   TIPO_DOCUMENTO_LABEL,
   varianteEstado,
 } from '@/features/clientes/lib/consulta'
+import { PestanaHistorial } from '@/features/auditoria'
 
 /*
  * Compone la ficha de C-03, las acciones de C-04 y la gestión de direcciones C-07.
@@ -67,7 +70,7 @@ export function FichaClientePage() {
         {noExiste ? (
           <ClienteNoEncontrado />
         ) : !acceso.consulta ? (
-          (acceso.historial || verRiesgo) ? <div className="flex flex-col gap-6"><h1 className="text-3xl font-bold text-heading">Historial del cliente #{id}</h1>{acceso.historial && <HistorialCliente key={id} id={id!} />}{verRiesgo && <GestionRiesgo key={`riesgo-${id}`} id={id!} nombre={`cliente #${id}`} />}</div> : <p role="alert">No tienes permiso para consultar este cliente.</p>
+          (acceso.historial || verRiesgo) ? <div className="flex flex-col gap-6"><h1 className="text-3xl font-bold text-heading">Historial del cliente #{id}</h1>{acceso.historial && <HistorialCliente key={id} id={id!} />}<PestanaHistorial key={`auditoria-${id}`} tipo="Clientes.Cliente" id={id!} />{verRiesgo && <GestionRiesgo key={`riesgo-${id}`} id={id!} nombre={`cliente #${id}`} />}</div> : <p role="alert">No tienes permiso para consultar este cliente.</p>
         ) : consulta.isError ? (
           <div
             role="alert"
@@ -87,7 +90,7 @@ export function FichaClientePage() {
             Cargando la ficha del cliente…
           </p>
         ) : (
-          <Ficha cliente={consulta.data} />
+          <Ficha cliente={consulta.data} editarFirmantes={acceso.edicion} />
         )}
       </div>
     </div>
@@ -109,7 +112,7 @@ function ClienteNoEncontrado() {
   )
 }
 
-function Ficha({ cliente }: { cliente: Cliente }) {
+function Ficha({ cliente, editarFirmantes }: { cliente: Cliente; editarFirmantes: boolean }) {
   const permisos = usePermisos()
   const gestion = usePuedeFuncion('clientes.direcciones.gestionar', puedeGestionarDirecciones(permisos))
   const verDirecciones = usePuedeFuncion('clientes.direcciones.consultar', gestion)
@@ -118,14 +121,21 @@ function Ficha({ cliente }: { cliente: Cliente }) {
   const verArchivos = usePuedeFuncion('clientes.archivos.consultar', permisos.includes('clientesArchivosConsultar'))
   const subirArchivos = usePuedeFuncion('clientes.archivos.gestionar', permisos.includes('clientesArchivosGestionar'))
   const mostrarArchivos = cliente.estado !== 'Eliminado' && (verArchivos || subirArchivos)
+  const editarDocumentos = usePuedeFuncion('clientes.editar', gestion)
+  const verDocumentos = usePuedeFuncion(
+    'clientes.consultar', (roles ?? []).some((rol) => ['ASESOR', 'CAJERO', 'SUPERVISOR', 'ADMIN'].includes(rol.toUpperCase())),
+  )
   // Mismos roles que GET /clientes/{id}/habilitacion: el cajero no la consulta (ficha reducida).
   const verHabilitacion = (roles ?? []).some((rol) => ROLES_HABILITACION.includes(rol.trim().toUpperCase()))
   const agencias = useAgencias()
   const agencia = agencias.data.find((item) => item.idAgencia === cliente.idAgenciaRegistro)
   const id = cliente.idCliente
+  const fichaCompleta = (roles ?? []).some(rol => ['ASESOR', 'SUPERVISOR', 'ADMIN'].includes(rol))
   const secciones = [
     { id: 'ficha-identidad', titulo: 'Identidad' },
+    ...(verDocumentos ? [{ id: 'ficha-documentos', titulo: 'Documentos' }] : []),
     { id: 'ficha-contacto', titulo: 'Contacto' },
+    ...(fichaCompleta ? [{ id: 'ficha-relacionados', titulo: 'Relacionados' }] : []),
     ...(verDirecciones ? [{ id: 'ficha-direcciones', titulo: 'Direcciones' }] : []),
     ...(mostrarArchivos ? [{ id: 'ficha-archivos', titulo: 'Archivos' }] : []),
     ...(verRiesgo ? [{ id: 'riesgo-titulo', titulo: 'Riesgo' }] : []),
@@ -152,7 +162,7 @@ function Ficha({ cliente }: { cliente: Cliente }) {
 
       <Seccion id="ficha-identidad" titulo="Identidad">
         <dl className="grid gap-5 sm:grid-cols-2">
-          <Dato etiqueta={`Documento (${TIPO_DOCUMENTO_LABEL[cliente.tipoDocumento]})`}>
+          <Dato etiqueta={`Documento (${TIPO_DOCUMENTO_LABEL[cliente.tipoDocumento] ?? cliente.tipoDocumento})`}>
             <CampoEnmascarado idCliente={id} campo="identificacion" valor={cliente.identificacion} etiqueta="el documento" />
           </Dato>
           <Dato etiqueta="Tipo de cliente">{TIPO_CLIENTE_LABEL[cliente.tipoCliente]}</Dato>
@@ -165,6 +175,12 @@ function Ficha({ cliente }: { cliente: Cliente }) {
           </Dato>
         </dl>
       </Seccion>
+
+      {verDocumentos && (
+        <Seccion id="ficha-documentos" titulo="Documentos">
+          <DocumentosCliente key={id} idCliente={id} editar={editarDocumentos && cliente.estado !== 'Eliminado'} />
+        </Seccion>
+      )}
 
       <Seccion id="ficha-contacto" titulo="Contacto">
         <dl className="grid gap-5 sm:grid-cols-2">
@@ -190,6 +206,10 @@ function Ficha({ cliente }: { cliente: Cliente }) {
           />
         </Seccion>
       )}
+
+      {fichaCompleta && <Seccion id="ficha-relacionados" titulo="Relacionados">
+        <FirmantesCliente key={id} id={id} editable={editarFirmantes && cliente.estado !== 'Eliminado'} />
+      </Seccion>}
 
       {verRiesgo && <GestionRiesgo key={`riesgo-${id}`} id={id} nombre={nombreVisible(cliente)} estado={cliente.estado} />}
 

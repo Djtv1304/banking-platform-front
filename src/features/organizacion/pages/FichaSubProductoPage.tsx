@@ -9,6 +9,7 @@ import { ETIQUETA_TIPO_TASA, type TipoTasa } from '@/features/catalogos'
 import { CuentasSubproducto } from '@/features/contabilidad'
 import { useFichaSubProducto, useImprimirFicha } from '@/features/organizacion/hooks/useProductosAdmin'
 import { dinero, ETIQUETA_TIPO, mensajeErrorProducto, porcentaje, rutaProducto } from '@/features/organizacion/lib/producto-form'
+import { PestanaHistorial } from '@/features/auditoria'
 
 const delProducto = (heredado: boolean) => (heredado ? ' · del producto' : '')
 
@@ -134,6 +135,7 @@ export function FichaSubProductoPage() {
           </Bloque>
         )}
         <CuentasSubproducto idSubProducto={sub.idSubProducto} />
+        <PestanaHistorial tipo="ProductosFinancieros.SubProducto" id={sub.idSubProducto} />
       </div>
     </div>
   )

@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { toApiError } from '@/shared/api'
-import { Aviso, Cargando, Paginacion } from '@/shared/ui'
+import { Aviso, Button, Cargando, Paginacion } from '@/shared/ui'
+import { useAuthStore } from '@/features/auth'
 import type { TarjetaResumen } from '@/features/tarjetas/api/tarjetas.contract'
 import { EstadoTarjetaBadge } from '@/features/tarjetas/components/EstadoTarjetaBadge'
 import { FiltrosTarjetas } from '@/features/tarjetas/components/FiltrosTarjetas'
-import { useBuscarTarjetas } from '@/features/tarjetas/hooks/useConsultaTarjetas'
+import { useBuscarTarjetas, useTarjetasPorRenovar } from '@/features/tarjetas/hooks/useConsultaTarjetas'
 import {
   armarParametros,
   FILTROS_VACIOS,
@@ -21,7 +22,11 @@ export function BuscarTarjetasPage() {
   // Los filtros quedan en memoria, no en la URL
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_VACIOS)
   const [page, setPage] = useState(1)
-  const tarjetas = useBuscarTarjetas(armarParametros(filtros, page))
+  const [porRenovar, setPorRenovar] = useState(false)
+  const agencia = useAuthStore((state) => state.user?.idAgencia)
+  const busqueda = useBuscarTarjetas(armarParametros(filtros, page), !porRenovar)
+  const renovaciones = useTarjetasPorRenovar(porRenovar ? agencia : null, page)
+  const tarjetas = porRenovar ? renovaciones : busqueda
 
   const buscar = (nuevos: Filtros) => {
     setFiltros(nuevos)
@@ -29,14 +34,15 @@ export function BuscarTarjetasPage() {
   }
 
   const resultado = (() => {
+    if (porRenovar && !agencia) return <Aviso>Selecciona una agencia operativa para consultar las tarjetas por renovar.</Aviso>
     if (tarjetas.isError) return <Aviso tono="error">{mensajeErrorTarjetas(toApiError(tarjetas.error))}</Aviso>
     if (tarjetas.isPending) return <Cargando texto="Buscando tarjetas…" />
-    if (tarjetas.data.items.length === 0) return <Aviso>No se encontraron tarjetas con esos filtros.</Aviso>
+    if (tarjetas.data.items.length === 0) return <Aviso>{porRenovar ? 'No hay tarjetas por renovar en la agencia operativa.' : 'No se encontraron tarjetas con esos filtros.'}</Aviso>
 
     const { items, total } = tarjetas.data
     return (
       <div className="flex flex-col gap-4">
-        <TablaTarjetas tarjetas={items} />
+        <TablaTarjetas tarjetas={items} porRenovar={porRenovar} />
         <Paginacion
           resumen={resumenPaginacion(page, total)}
           page={page}
@@ -57,9 +63,13 @@ export function BuscarTarjetasPage() {
         </p>
       </header>
 
-      <section className="rounded-3xl border border-border bg-card p-6 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-8">
+      <div className="flex gap-2" aria-label="Vistas de tarjetas">
+        <Button variant={!porRenovar ? 'default' : 'outline'} aria-pressed={!porRenovar} onClick={() => { setPorRenovar(false); setPage(1) }}>Todas</Button>
+        <Button variant={porRenovar ? 'default' : 'outline'} aria-pressed={porRenovar} onClick={() => { setPorRenovar(true); setPage(1) }}>Por renovar</Button>
+      </div>
+      {!porRenovar && <section className="rounded-3xl border border-border bg-card p-6 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-8">
         <FiltrosTarjetas buscando={tarjetas.isFetching} onBuscar={buscar} />
-      </section>
+      </section>}
 
       <section aria-label="Resultados" className="rounded-3xl border border-border bg-card p-6 sm:p-8">
         {resultado}
@@ -68,15 +78,15 @@ export function BuscarTarjetasPage() {
   )
 }
 
-const ENCABEZADOS = ['Número', 'Nombre impreso', 'Tipo', 'Estado', 'Extensión', 'Emisión']
+const ENCABEZADOS = ['Número', 'Nombre impreso', 'Tipo', 'Estado', 'Extensión']
 
-function TablaTarjetas({ tarjetas }: { tarjetas: TarjetaResumen[] }) {
+function TablaTarjetas({ tarjetas, porRenovar }: { tarjetas: TarjetaResumen[]; porRenovar: boolean }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] text-left text-sm">
         <thead className="border-b border-border text-muted-foreground">
           <tr>
-            {ENCABEZADOS.map((titulo) => (
+            {[...ENCABEZADOS, porRenovar ? 'Vencimiento' : 'Emisión'].map((titulo) => (
               <th key={titulo} scope="col" className="px-3 py-3 font-medium">
                 {titulo}
               </th>
@@ -101,7 +111,7 @@ function TablaTarjetas({ tarjetas }: { tarjetas: TarjetaResumen[] }) {
                 <EstadoTarjetaBadge estado={tarjeta.estadoActual} />
               </td>
               <td className="px-3 py-3 text-heading">{tarjeta.esExtension ? 'Sí' : 'No'}</td>
-              <td className="px-3 py-3 text-heading">{formatearDia(tarjeta.fechaEmision)}</td>
+              <td className="px-3 py-3 text-heading">{formatearDia(porRenovar ? tarjeta.fechaExpiracion : tarjeta.fechaEmision)}</td>
             </tr>
           ))}
         </tbody>

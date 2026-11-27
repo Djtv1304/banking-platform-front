@@ -16,6 +16,7 @@ import { useUsuario } from '@/features/usuarios/hooks/useUsuarios'
 import { accesoUsuarios } from '@/features/usuarios/lib/acceso'
 import { leerIdUsuario } from '@/features/usuarios/lib/filtros'
 import { iniciales, nombreCompleto, tonoEstado } from '@/features/usuarios/lib/formato'
+import { PestanaHistorial } from '@/features/auditoria'
 
 /** AUT-07 (ficha), AUT-08 (datos, agencia y estado) y AUT-09 (rol) de un usuario interno */
 export function DetalleUsuarioPage() {
@@ -59,6 +60,7 @@ export function DetalleUsuarioPage() {
         </Link>
       </Button>
       {contenido}
+      {idUsuario != null && <PestanaHistorial tipo="Organizacion.Usuarios" id={idUsuario} />}
     </div>
   )
 }

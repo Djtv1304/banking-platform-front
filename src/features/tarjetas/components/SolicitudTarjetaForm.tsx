@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CircleAlert, CreditCard, Info, LoaderCircle, MapPin, PenLine, Star, Wallet } from 'lucide-react'
@@ -39,13 +40,21 @@ const TIPOS_TARJETA = [
 /** Las tarjetas de envío se entregan en Ecuador */
 const PAIS_ENVIO = 'ECU'
 
-export function SolicitudTarjetaForm({ agencia }: { agencia: string }) {
+export function SolicitudTarjetaForm({ agencia, origen }: { agencia: string; origen?: Tarjeta }) {
   const [identificacion, setIdentificacion] = useState<string>()
   const [registrada, setRegistrada] = useState<Tarjeta | null>(null)
+  const navegar = useNavigate()
+  const inicial = origen ? {
+    ...SOLICITUD_VACIA,
+    idCuenta: String(origen.idCuenta),
+    nombreTarjeta: origen.nombreTarjeta,
+    esExtension: origen.esExtension,
+    idTarjetaTitular: origen.idTarjetaTitular ? String(origen.idTarjetaTitular) : '',
+  } : SOLICITUD_VACIA
 
   const form = useForm<SolicitudTarjetaInput, unknown, SolicitudTarjetaData>({
     resolver: zodResolver(solicitudTarjetaSchema),
-    defaultValues: SOLICITUD_VACIA,
+    defaultValues: inicial,
   })
   const {
     control,
@@ -57,7 +66,8 @@ export function SolicitudTarjetaForm({ agencia }: { agencia: string }) {
   } = form
 
   const consultaCliente = useClientePorIdentificacion(identificacion)
-  const cliente: Cliente | null = consultaCliente.data ?? null
+  const otroCliente = !!origen && !!consultaCliente.data && consultaCliente.data.idCliente !== origen.idCliente
+  const cliente: Cliente | null = otroCliente ? null : consultaCliente.data ?? null
   const solicitar = useSolicitarTarjeta()
 
   const [
@@ -84,7 +94,7 @@ export function SolicitudTarjetaForm({ agencia }: { agencia: string }) {
   })
 
   const { data: cuentasCliente, isFetching: cargandoCuentas } = useCuentasCliente(cliente?.idCliente)
-  const cuentas = cuentasCliente?.filter((cuenta) => cuenta.idAgencia.trim() === agencia)
+  const cuentas = origen ? cuentasCliente?.filter((cuenta) => cuenta.idCuenta === origen.idCuenta) : cuentasCliente
   const { data: productos, isLoading: cargandoProductos } = useProductos('Tarjeta', tipoTarjeta, cliente?.idCliente)
   const { data: tarjetasCuenta } = useTarjetasPrincipales(idCuenta ? Number(idCuenta) : undefined, esExtension)
   const { data: direcciones, isFetching: cargandoDirecciones } = useDireccionesCliente(
@@ -107,7 +117,7 @@ export function SolicitudTarjetaForm({ agencia }: { agencia: string }) {
 
   const buscarCliente = (valor: string) => {
     if (valor === identificacion) return
-    reset(SOLICITUD_VACIA)
+    reset(inicial)
     solicitar.reset()
     setIdentificacion(valor)
   }
@@ -137,11 +147,16 @@ export function SolicitudTarjetaForm({ agencia }: { agencia: string }) {
 
   const enviar = (valor: SolicitudTarjetaData) => {
     const envio = resolverEnvio(valor)
-    if (!subproducto || envio === undefined) return
-    solicitar.mutate(aSolicitud(valor, subproducto.idProducto, envio), { onSuccess: setRegistrada })
+    const cuentaSeleccionada = cuentas?.find(cuenta => cuenta.idCuenta === Number(valor.idCuenta))
+    if (!subproducto || envio === undefined || !cuentaSeleccionada || !cuentaAdmiteTarjeta(cuentaSeleccionada.estado)) return
+    solicitar.mutate({
+      ...aSolicitud(valor, subproducto.idProducto, envio),
+      ...(origen && { idTarjetaReemplazada: origen.idTarjeta }),
+    }, { onSuccess: setRegistrada })
   }
 
   const nuevaSolicitud = () => {
+    if (origen) { void navegar('/solicitar-tarjeta', { replace: true, state: null }); return }
     reset(SOLICITUD_VACIA)
     solicitar.reset()
     setRegistrada(null)
@@ -157,12 +172,13 @@ export function SolicitudTarjetaForm({ agencia }: { agencia: string }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <section className="flex flex-col gap-10 rounded-3xl border border-border bg-card p-6 not-dark:shadow-xl not-dark:shadow-brand-ink/5 sm:p-10">
+        {origen && <p className="rounded-xl bg-field p-3 text-sm text-heading">Tarjeta anterior {origen.numeroEnmascarado}. Identifica a su titular para tramitar la reemisión.</p>}
         <FormSection numero={1} title="Cliente" description="Busca al cliente que solicita la tarjeta.">
           <BuscarCliente
             buscada={identificacion}
             cliente={cliente}
             buscando={consultaCliente.isFetching}
-            error={consultaCliente.error}
+            error={otroCliente ? new Error('El cliente debe ser el titular de la tarjeta anterior.') : consultaCliente.error}
             onBuscar={buscarCliente}
           />
         </FormSection>
@@ -177,7 +193,7 @@ export function SolicitudTarjetaForm({ agencia }: { agencia: string }) {
               {cargandoCuentas && <Cargando texto="Cargando cuentas…" />}
               {cuentas && cuentas.length === 0 && (
                 <p className="rounded-xl border border-border bg-field px-4 py-3 text-sm text-muted-foreground">
-                  El cliente no tiene cuentas en la agencia operativa.
+                  El cliente no tiene cuentas registradas.
                 </p>
               )}
               {cuentas && cuentas.length > 0 && (
@@ -191,7 +207,7 @@ export function SolicitudTarjetaForm({ agencia }: { agencia: string }) {
                           name="idCuenta"
                           value={String(cuenta.idCuenta)}
                           checked={idCuenta === String(cuenta.idCuenta)}
-                          disabled={!activa}
+                          disabled={!activa || !!origen}
                           onChange={(event) => elegirCuenta(event.target.value)}
                           className="peer sr-only"
                         />
@@ -211,6 +227,11 @@ export function SolicitudTarjetaForm({ agencia }: { agencia: string }) {
                 </div>
               )}
               <FieldError id="idCuenta" error={errors.idCuenta?.message} />
+              {cuentaElegida && cuentaElegida.idAgencia.trim() !== agencia && (
+                <p className="text-sm text-muted-foreground">
+                  La tarjeta quedará asociada a la cuenta de la agencia {cuentaElegida.idAgencia.trim()}. La solicitud se tramitará en la agencia {agencia}.
+                </p>
+              )}
             </FormSection>
 
             {idCuenta && (
@@ -290,13 +311,13 @@ export function SolicitudTarjetaForm({ agencia }: { agencia: string }) {
                     />
                   </Field>
 
-                  <CasillaConDetalle
+                  {!origen && <CasillaConDetalle
                     id="esExtension"
                     control={control}
                     name="esExtension"
                     titulo="Es una tarjeta adicional (extensión)"
                     descripcion="Se emite sobre una tarjeta principal vigente de la misma cuenta."
-                  />
+                  />}
 
                   {esExtension && (
                     <Controller
@@ -311,7 +332,7 @@ export function SolicitudTarjetaForm({ agencia }: { agencia: string }) {
                             onBlur={field.onBlur}
                             error={fieldState.error?.message}
                             placeholder={titulares.length ? 'Selecciona la tarjeta titular' : 'La cuenta no tiene tarjetas vigentes'}
-                            disabled={!titulares.length}
+                            disabled={!!origen || !titulares.length}
                             options={titulares.map((tarjeta) => ({
                               value: String(tarjeta.idTarjeta),
                               label: `${tarjeta.numeroEnmascarado} · ${tarjeta.nombreTarjeta} · ${tarjeta.estadoActual}`,
