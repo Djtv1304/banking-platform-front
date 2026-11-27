@@ -5,6 +5,7 @@ import { ArrowLeft, CircleAlert, LoaderCircle, UserRoundX } from 'lucide-react'
 
 import { ApiError } from '@/shared/api'
 import { GestionDirecciones } from '@/features/clientes/components/GestionDirecciones'
+import { FirmantesCliente } from '@/features/clientes/components/FirmantesCliente'
 import { puedeGestionarDirecciones } from '@/features/clientes/lib/direcciones'
 import { Badge, Button } from '@/shared/ui'
 import { usePuedeFuncion, useAuthStore, usePermisos } from '@/features/auth'
@@ -88,7 +89,7 @@ export function FichaClientePage() {
             Cargando la ficha del cliente…
           </p>
         ) : (
-          <Ficha cliente={consulta.data} />
+          <Ficha cliente={consulta.data} editarFirmantes={acceso.edicion} />
         )}
       </div>
     </div>
@@ -110,7 +111,7 @@ function ClienteNoEncontrado() {
   )
 }
 
-function Ficha({ cliente }: { cliente: Cliente }) {
+function Ficha({ cliente, editarFirmantes }: { cliente: Cliente; editarFirmantes: boolean }) {
   const gestion = usePuedeFuncion('clientes.direcciones.gestionar', puedeGestionarDirecciones(usePermisos()))
   const verDirecciones = usePuedeFuncion('clientes.direcciones.consultar', gestion)
   const roles = useAuthStore((estado) => estado.user?.roles)
@@ -125,10 +126,12 @@ function Ficha({ cliente }: { cliente: Cliente }) {
   const agencias = useAgencias()
   const agencia = agencias.data.find((item) => item.idAgencia === cliente.idAgenciaRegistro)
   const id = cliente.idCliente
+  const fichaCompleta = (roles ?? []).some(rol => ['ASESOR', 'SUPERVISOR', 'ADMIN'].includes(rol))
   const secciones = [
     { id: 'ficha-identidad', titulo: 'Identidad' },
     ...(verDocumentos ? [{ id: 'ficha-documentos', titulo: 'Documentos' }] : []),
     { id: 'ficha-contacto', titulo: 'Contacto' },
+    ...(fichaCompleta ? [{ id: 'ficha-relacionados', titulo: 'Relacionados' }] : []),
     ...(verDirecciones ? [{ id: 'ficha-direcciones', titulo: 'Direcciones' }] : []),
     ...(verRiesgo ? [{ id: 'riesgo-titulo', titulo: 'Riesgo' }] : []),
     { id: 'ficha-productos', titulo: 'Productos' },
@@ -198,6 +201,10 @@ function Ficha({ cliente }: { cliente: Cliente }) {
           />
         </Seccion>
       )}
+
+      {fichaCompleta && <Seccion id="ficha-relacionados" titulo="Relacionados">
+        <FirmantesCliente key={id} id={id} editable={editarFirmantes && cliente.estado !== 'Eliminado'} />
+      </Seccion>}
 
       {verRiesgo && <GestionRiesgo key={`riesgo-${id}`} id={id} nombre={nombreVisible(cliente)} estado={cliente.estado} />}
 

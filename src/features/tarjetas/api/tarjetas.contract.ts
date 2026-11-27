@@ -27,6 +27,7 @@ export const TARJETAS_ENDPOINTS = {
   direcciones: (idCliente: number) => `${BASE}/clientes/${idCliente}/direcciones`,
   cuentas: `${BASE}/cuentas`,
   tarjetas: `${BASE}/tarjetas`,
+  porRenovar: `${BASE}/tarjetas/por-renovar`,
   tarjeta: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}`,
   estado: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}/estado`,
   envio: (idTarjeta: number) => `${BASE}/tarjetas/${idTarjeta}/envio`,
@@ -82,6 +83,7 @@ export const tarjetaResumenSchema = z.object({
   numeroEnmascarado: z.string(),
   estadoActual: z.string(),
   fechaEmision: z.string(),
+  fechaExpiracion: z.string().optional(),
   /** Extensión (adicional) y su tarjeta titular; las principales llevan false y null */
   esExtension: z.boolean(),
   idTarjetaTitular: z.number().nullable(),
@@ -124,6 +126,9 @@ export const tarjetaSchema = tarjetaResumenSchema.extend({
   sobreDescargadoEn: z.string().nullish(),
   envio: envioTarjetaSchema.nullish(),
   idSolicitudAprobacion: z.number().int().positive().nullish(),
+  idTarjetaReemplazada: z.number().int().positive().nullish(),
+  renovable: z.boolean().optional(),
+  reponible: z.boolean().optional(),
 })
 
 /** TAR-01 · Body `TarjetaCreate` */
@@ -135,6 +140,7 @@ export interface TarjetaCreate {
   nombreTarjeta: string
   esExtension: boolean
   idTarjetaTitular?: number
+  idTarjetaReemplazada?: number
   requiereEnvio: boolean
   direccionEnvio?: string
   idCiudadEnvio?: number

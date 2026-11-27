@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 
-import { usePuedeFuncion } from '@/features/auth'
+import { useAuthStore, usePuedeFuncion } from '@/features/auth'
 import { toApiError } from '@/shared/api'
 import { Aviso, Button, Cargando } from '@/shared/ui'
 import type { Tarjeta } from '@/features/tarjetas/api/tarjetas.contract'
@@ -84,6 +84,9 @@ function SinDetalle({ children }: { children: ReactNode }) {
 
 function DetalleTarjeta({ tarjeta }: { tarjeta: Tarjeta }) {
   const permisos = usePermisosTarjeta()
+  const rolEmisor = useAuthStore((state) => state.user?.roles.some((rol) => rol === 'ASESOR' || rol === 'ADMIN') ?? false)
+  const puedeEmitir = usePuedeFuncion('tarjetas.emitir', rolEmisor)
+  const reposicion = tarjeta.reponible === true
   return (
     <>
       <header className="flex flex-wrap items-center gap-3">
@@ -91,6 +94,13 @@ function DetalleTarjeta({ tarjeta }: { tarjeta: Tarjeta }) {
           {tarjeta.numeroEnmascarado}
         </h1>
         <EstadoTarjetaBadge estado={tarjeta.estadoActual} />
+        {puedeEmitir && (reposicion || tarjeta.renovable) && (
+          <Button asChild variant="outline">
+            <Link to="/solicitar-tarjeta" state={{ idTarjetaReemplazada: tarjeta.idTarjeta }}>
+              {reposicion ? 'Reponer tarjeta' : 'Renovar tarjeta'}
+            </Link>
+          </Button>
+        )}
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -116,6 +126,9 @@ function DetalleTarjeta({ tarjeta }: { tarjeta: Tarjeta }) {
             <Dato label="PIN asignado">{tarjeta.pinAsignado ? 'Sí' : 'No'}</Dato>
             <Dato label="ID de la cuenta">{tarjeta.idCuenta}</Dato>
             <Dato label="ID del cliente">{tarjeta.idCliente}</Dato>
+            {tarjeta.idTarjetaReemplazada && (
+              <Dato label="Tarjeta anterior"><Link className="text-link underline" to={`/tarjetas/${tarjeta.idTarjetaReemplazada}`}>Consultar tarjeta anterior</Link></Dato>
+            )}
           </dl>
         </section>
 
