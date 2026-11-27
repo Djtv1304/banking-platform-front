@@ -17,6 +17,7 @@ vi.mock('@/features/catalogos', () => ({ useAgencias: () => ({ data: [{ idAgenci
 vi.mock('@/features/clientes/components/GestionCliente', () => ({ GestionCliente: () => <p>acciones</p> }))
 vi.mock('@/features/clientes/components/GestionRiesgo', () => ({ GestionRiesgo: () => <p>seccion-riesgo</p> }))
 vi.mock('@/features/clientes/components/GestionDirecciones', () => ({ GestionDirecciones: () => <p>seccion-direcciones</p> }))
+vi.mock('@/features/clientes/components/FirmantesCliente', () => ({ FirmantesCliente: () => <p>historial-firmantes</p> }))
 vi.mock('@/features/clientes/components/HistorialCliente', () => ({ HistorialCliente: () => null }))
 vi.mock('@/features/clientes/components/IndicadorHabilitacion', () => ({ IndicadorHabilitacion: () => <p>habilitacion</p> }))
 vi.mock('@/features/clientes/components/CampoEnmascarado', () => ({
@@ -49,6 +50,7 @@ describe('E5-05 · ficha con datos enmascarados por sección', () => {
     expect(html).toContain('habilitacion')
     expect(html).toContain('Identidad')
     expect(html).toContain('Contacto')
+    expect(html).toContain('historial-firmantes')
   })
 
   it('el cajero (solo consulta) ve la ficha reducida: sin direcciones, riesgo ni habilitación', () => {
@@ -56,6 +58,7 @@ describe('E5-05 · ficha con datos enmascarados por sección', () => {
     const html = render()
     expect(html).not.toContain('habilitacion')
     expect(html).not.toContain('seccion-direcciones')
+    expect(html).not.toContain('historial-firmantes')
     expect(html).not.toContain('href="#ficha-direcciones"')
     expect(html).not.toContain('href="#riesgo-titulo"')
   })
