@@ -1,10 +1,10 @@
-import { Controller, useForm, useWatch } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { EyeOff, LoaderCircle, ShieldCheck } from 'lucide-react'
+import { LoaderCircle } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
 import { cn } from '@/shared/lib'
-import { Button } from '@/shared/ui'
+import { Button, Input } from '@/shared/ui'
 import { useDenominaciones } from '@/features/catalogos'
 import { mensajeErrorOperacion } from '@/features/boveda/api/bovedas.api'
 import { OBSERVACIONES_MAX, TIPOS_ARQUEO, type Arqueo, type RegistrarArqueo } from '@/features/boveda/api/bovedas.contract'
@@ -12,17 +12,16 @@ import { Campo } from '@/features/boveda/components/Campo'
 import { CuadriculaDenominaciones } from '@/features/boveda/components/operaciones/CuadriculaDenominaciones'
 import { DialogoOperacion, ErrorOperacion } from '@/features/boveda/components/operaciones/DialogoOperacion'
 import { ResumenArqueo } from '@/features/boveda/components/operaciones/ResumenArqueo'
-import { SelectorUsuario } from '@/features/boveda/components/operaciones/SelectorUsuario'
 import { useRegistrarArqueo } from '@/features/boveda/hooks/useBovedas'
-import { ariaCampo, textareaClassName } from '@/features/boveda/lib/campos'
+import { ariaCampo, campoClassName, textareaClassName } from '@/features/boveda/lib/campos'
 import { formatearMonto, valoresPorDenominacion } from '@/features/boveda/lib/formato'
 import {
   ARQUEO_VACIO,
   arqueoFormSchema,
-  arqueoPendiente,
   armarDesglose,
   claveDenominacion,
   DESCRIPCION_ARQUEO,
+  erroresPorDenominacion,
   totalDesglose,
   type ArqueoForm,
 } from '@/features/boveda/lib/operaciones'
@@ -31,18 +30,15 @@ interface RegistrarArqueoDialogProps {
   idBoveda: number
   codigoBoveda: string
   open: boolean
-  puedeAprobar: boolean
   onCerrar: () => void
-  /** El arqueo quedó registrado (el diálogo sigue abierto mostrando el resultado) */
   onRegistrado: (arqueo: Arqueo) => void
-  onAprobar: (arqueo: Arqueo) => void
 }
 
 /**
  * BOV-05 · Conteo físico de la bóveda. Es un conteo a ciegas: no se muestra lo que el sistema espera
  * para que el conteo sea independiente. La diferencia llega en la respuesta.
  */
-export function RegistrarArqueoDialog({ idBoveda, codigoBoveda, open, puedeAprobar, onCerrar, onRegistrado, onAprobar }: RegistrarArqueoDialogProps) {
+export function RegistrarArqueoDialog({ idBoveda, codigoBoveda, open, onCerrar, onRegistrado }: RegistrarArqueoDialogProps) {
   const registro = useRegistrarArqueo(idBoveda)
   const catalogo = useDenominaciones()
   const {
@@ -60,11 +56,7 @@ export function RegistrarArqueoDialog({ idBoveda, codigoBoveda, open, puedeAprob
   const valores = valoresPorDenominacion(catalogo.data)
   const contado = totalDesglose(armarDesglose(cantidades), valores)
   const errorPiezas = (errors.cantidades as { message?: string } | undefined)?.message
-  const erroresPiezas = Object.fromEntries(
-    Object.entries(errors.cantidades ?? {}).flatMap(([clave, error]) =>
-      error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? [[clave, error.message]] : [],
-    ),
-  )
+  const erroresPiezas = erroresPorDenominacion(errors.cantidades)
 
   const cerrar = () => {
     if (pendiente) return
@@ -80,44 +72,20 @@ export function RegistrarArqueoDialog({ idBoveda, codigoBoveda, open, puedeAprob
       for (const { field, message } of toApiError(error).fields) {
         const campo = field.split('.').pop() ?? field
         if (field.includes('desglose') || campo === 'cantidad' || campo === 'idDenominacion') setError('cantidades', { message })
-        else if (campo === 'tipoArqueo' || campo === 'idUsuarioTestigo' || campo === 'observaciones') setError(campo, { message }, { shouldFocus: true })
+        else if (campo === 'tipoArqueo' || campo === 'idUsuarioResponsable' || campo === 'observaciones') setError(campo, { message }, { shouldFocus: true })
       }
     }
   }
 
   if (resultado) {
-    const aprobable = puedeAprobar && arqueoPendiente(resultado)
     return (
       <DialogoOperacion
         open={open}
         ocupado={false}
         onCerrar={cerrar}
-        titulo="Arqueo registrado"
-        descripcion={
-          arqueoPendiente(resultado)
-            ? 'Queda pendiente de aprobación. Hasta entonces el saldo de la bóveda no cambia.'
-            : 'Este es el resultado del conteo.'
-        }
-        pie={
-          <>
-            <Button type="button" variant={aprobable ? 'outline' : 'default'} onClick={cerrar} className="min-h-11 rounded-xl px-6">
-              {aprobable ? 'Aprobar después' : 'Listo'}
-            </Button>
-            {aprobable && (
-              <Button
-                type="button"
-                onClick={() => {
-                  cerrar()
-                  onAprobar(resultado)
-                }}
-                className="min-h-11 rounded-xl px-6 font-semibold"
-              >
-                <ShieldCheck />
-                Revisar y aprobar
-              </Button>
-            )}
-          </>
-        }
+        titulo="Arqueo cerrado"
+        descripcion="Resultado del conteo físico."
+        pie={<Button type="button" onClick={cerrar} className="min-h-11 rounded-xl px-6">Listo</Button>}
       >
         <ResumenArqueo arqueo={resultado} valores={valores} />
       </DialogoOperacion>
@@ -130,8 +98,8 @@ export function RegistrarArqueoDialog({ idBoveda, codigoBoveda, open, puedeAprob
       ocupado={pendiente}
       onCerrar={cerrar}
       ancho="amplio"
-      titulo="Registrar arqueo"
-      descripcion={`Cuenta el efectivo de ${codigoBoveda} pieza por pieza, en presencia de un testigo.`}
+      titulo="Cerrar arqueo"
+      descripcion={`Registra el conteo físico de ${codigoBoveda}. Al cerrar, el saldo se ajusta a lo contado.`}
       pie={
         <>
           <p className="mr-auto text-sm text-muted-foreground" aria-live="polite">
@@ -140,9 +108,9 @@ export function RegistrarArqueoDialog({ idBoveda, codigoBoveda, open, puedeAprob
           <Button type="button" variant="outline" disabled={pendiente} onClick={cerrar} className="min-h-11 rounded-xl px-6">
             Cancelar
           </Button>
-          <Button type="submit" form="form-arqueo" disabled={pendiente} className="min-h-11 rounded-xl px-6 font-semibold">
+          <Button type="submit" form="form-arqueo" disabled={pendiente || !catalogo.isSuccess} className="min-h-11 rounded-xl px-6 font-semibold">
             {pendiente && <LoaderCircle className="animate-spin" />}
-            {pendiente ? 'Registrando…' : 'Registrar arqueo'}
+            {pendiente ? 'Cerrando…' : contado === 0 ? `Cerrar con ${formatearMonto(0)}` : 'Cerrar arqueo'}
           </Button>
         </>
       }
@@ -181,20 +149,13 @@ export function RegistrarArqueoDialog({ idBoveda, codigoBoveda, open, puedeAprob
             </div>
           </fieldset>
 
-          <Campo id="arqueo-testigo" label="Testigo" error={errors.idUsuarioTestigo?.message} ayuda="Quien presencia el conteo y da fe del resultado.">
-            <Controller
-              control={control}
-              name="idUsuarioTestigo"
-              render={({ field }) => (
-                <SelectorUsuario
-                  id="arqueo-testigo"
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  error={errors.idUsuarioTestigo?.message}
-                  disabled={pendiente}
-                />
-              )}
+          <Campo id="arqueo-responsable" label="Cajero responsable" error={errors.idUsuarioResponsable?.message}
+            ayuda="Si hay faltante, ingresa el número de usuario interno del cajero de la agencia."
+          >
+            <Input id="arqueo-responsable" inputMode="numeric" autoComplete="off" maxLength={10}
+              className={campoClassName}
+              {...ariaCampo('arqueo-responsable', errors.idUsuarioResponsable?.message, true)}
+              {...register('idUsuarioResponsable')}
             />
           </Campo>
 
@@ -216,10 +177,7 @@ export function RegistrarArqueoDialog({ idBoveda, codigoBoveda, open, puedeAprob
             <h3 id="arqueo-piezas" className="text-[15px] font-semibold text-heading">
               Conteo físico
             </h3>
-            <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
-              <EyeOff aria-hidden className="mt-0.5 size-4 shrink-0" />
-              No mostramos lo que espera el sistema para que el conteo sea independiente. Deja en blanco lo que no haya.
-            </p>
+            <p className="text-sm text-muted-foreground">Deja en blanco las denominaciones que no contaste.</p>
           </header>
           {catalogo.isError ? (
             <ErrorOperacion>No pudimos cargar las denominaciones. Cierra y vuelve a intentarlo.</ErrorOperacion>

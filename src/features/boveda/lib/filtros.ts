@@ -104,13 +104,13 @@ export function armarParametrosArqueos(filtros: FiltrosArqueos, page: number) {
 
 /* ── SMV-02 · Solicitudes de movimiento ──────────────────────────────── */
 
-/** `''` = todas; por defecto se ven las pendientes, que son las que esperan una acción */
+/** `''` = todas, incluidas las solicitudes que esperan despacho o recepción */
 export interface FiltrosSolicitudes {
   idAgencia: string
   estado: '' | (typeof ESTADOS_SOLICITUD)[number]
 }
 
-export const FILTROS_SOLICITUDES_INICIALES: FiltrosSolicitudes = { idAgencia: '', estado: 'PENDIENTE' }
+export const FILTROS_SOLICITUDES_INICIALES: FiltrosSolicitudes = { idAgencia: '', estado: '' }
 
 /** Parámetros de SMV-02: solo los filtros con valor */
 export function armarParametrosSolicitudes({ idAgencia, estado }: FiltrosSolicitudes, page: number, pageSize = PAGE_SIZE) {

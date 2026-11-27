@@ -1,158 +1,21 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, Ban, CircleCheck, LoaderCircle, ShieldAlert, ShieldCheck, XCircle } from 'lucide-react'
+import { Ban, LoaderCircle, XCircle } from 'lucide-react'
 
 import { toApiError } from '@/shared/api'
-import { cn } from '@/shared/lib'
 import { Button } from '@/shared/ui'
 import { mensajeErrorOperacion } from '@/features/boveda/api/bovedas.api'
-import { MOTIVO_MAX, type MovimientoBoveda, type SolicitudMovimiento } from '@/features/boveda/api/bovedas.contract'
+import { MOTIVO_MAX, type SolicitudMovimiento } from '@/features/boveda/api/bovedas.contract'
 import { Campo } from '@/features/boveda/components/Campo'
 import { DialogoOperacion, ErrorOperacion } from '@/features/boveda/components/operaciones/DialogoOperacion'
 import {
-  useAprobarSolicitudMovimiento,
   useCancelarSolicitudMovimiento,
   useRechazarSolicitudMovimiento,
 } from '@/features/boveda/hooks/useBovedas'
 import { ariaCampo, textareaClassName } from '@/features/boveda/lib/campos'
-import { etiquetaMovimiento, formatearMonto, montoConSigno } from '@/features/boveda/lib/formato'
 
-interface AprobarSolicitudDialogProps {
-  open: boolean
-  solicitud: SolicitudMovimiento
-  origen: string
-  contraparte: string | null
-  /** Código de cada bóveda por id, para nombrar los movimientos ejecutados */
-  nombrar: (idBoveda: number) => string
-  onCerrar: () => void
-}
-
-/**
- * SMV-04 · Aprobar ejecuta el movimiento al instante: se muestra qué se mueve y lo que implica antes
- * de confirmar, y después los movimientos registrados con el saldo que dejó cada uno.
- */
-export function AprobarSolicitudDialog({ open, solicitud, origen, contraparte, nombrar, onCerrar }: AprobarSolicitudDialogProps) {
-  const aprobacion = useAprobarSolicitudMovimiento()
-  const pendiente = aprobacion.isPending
-
-  const cerrar = () => {
-    if (pendiente) return
-    aprobacion.reset()
-    onCerrar()
-  }
-
-  if (aprobacion.data) {
-    return (
-      <DialogoOperacion
-        open={open}
-        ocupado={false}
-        onCerrar={cerrar}
-        titulo="Movimiento ejecutado"
-        descripcion={`Aprobamos la solicitud N.º ${solicitud.idSolicitudMovimiento} y el efectivo ya se movió.`}
-        pie={
-          <Button type="button" onClick={cerrar} className="min-h-11 rounded-xl px-6 font-semibold">
-            Listo
-          </Button>
-        }
-      >
-        <MovimientosEjecutados movimientos={aprobacion.data} nombrar={nombrar} />
-      </DialogoOperacion>
-    )
-  }
-
-  return (
-    <DialogoOperacion
-      open={open}
-      ocupado={pendiente}
-      onCerrar={cerrar}
-      titulo={`¿Aprobar la solicitud N.º ${solicitud.idSolicitudMovimiento}?`}
-      descripcion="Al aprobarla se ejecuta el movimiento en este mismo momento."
-      pie={
-        <>
-          <Button type="button" variant="outline" disabled={pendiente} onClick={cerrar} className="min-h-11 rounded-xl px-6">
-            Volver
-          </Button>
-          <Button
-            type="button"
-            disabled={pendiente}
-            onClick={() => aprobacion.mutate(solicitud.idSolicitudMovimiento)}
-            className="min-h-11 rounded-xl px-6 font-semibold"
-          >
-            {pendiente ? <LoaderCircle className="animate-spin" /> : <ShieldCheck />}
-            {pendiente ? 'Ejecutando…' : `Aprobar y mover ${formatearMonto(solicitud.monto)}`}
-          </Button>
-        </>
-      }
-    >
-      <div className="flex flex-col gap-5" aria-busy={pendiente}>
-        <div className="flex flex-col gap-1 rounded-2xl border border-border bg-field p-5">
-          <p className="text-sm text-muted-foreground">{etiquetaMovimiento(solicitud.tipoMovimiento)}</p>
-          <p className="text-3xl font-bold tracking-tight text-heading tabular-nums">{formatearMonto(solicitud.monto)}</p>
-          <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
-            {origen}
-            {contraparte && (
-              <>
-                <ArrowRight aria-label="hacia" className="size-3.5 text-muted-foreground" />
-                {contraparte}
-              </>
-            )}
-          </p>
-        </div>
-        <div className="flex items-start gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-5">
-          <ShieldAlert aria-hidden className="mt-0.5 size-5 shrink-0 text-destructive" />
-          <ul className="flex list-disc flex-col gap-1.5 pl-4 text-sm text-foreground">
-            <li>Se registran los movimientos y cambia el saldo {contraparte ? 'de las dos bóvedas' : 'de la bóveda'}.</li>
-            <li>Debe aprobarse desde una sesión distinta de la que creó la solicitud.</li>
-            <li>No hay una opción para revertir la aprobación desde esta pantalla.</li>
-          </ul>
-        </div>
-        {aprobacion.isError && <ErrorOperacion>{mensajeErrorOperacion(aprobacion.error, 'aprobar solicitudes de movimiento')}</ErrorOperacion>}
-      </div>
-    </DialogoOperacion>
-  )
-}
-
-function MovimientosEjecutados({ movimientos, nombrar }: { movimientos: MovimientoBoveda[]; nombrar: (idBoveda: number) => string }) {
-  if (movimientos.length === 0) {
-    return (
-      <p className="flex items-start gap-3 rounded-2xl border border-info/60 bg-info/15 p-5 text-sm text-foreground">
-        <CircleCheck aria-hidden className="mt-0.5 size-5 shrink-0 text-heading" />
-        La solicitud quedó ejecutada. Revisa los movimientos de la bóveda para ver el detalle.
-      </p>
-    )
-  }
-  return (
-    <ul className="flex flex-col gap-3">
-      {movimientos.map((movimiento) => {
-        const ingreso = movimiento.naturaleza === 'I'
-        const Icono = ingreso ? ArrowDownLeft : ArrowUpRight
-        return (
-          <li key={movimiento.idMovimiento} className="flex items-center gap-4 rounded-2xl border border-border p-4">
-            <span
-              aria-hidden
-              className={cn('flex size-9 shrink-0 items-center justify-center rounded-full', ingreso ? 'bg-info/40 text-foreground' : 'bg-muted text-muted-foreground')}
-            >
-              <Icono className="size-4" />
-            </span>
-            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="font-semibold text-heading">{nombrar(movimiento.idBoveda)}</span>
-              <span className="text-sm text-muted-foreground tabular-nums">
-                {formatearMonto(movimiento.saldoAnterior)} → <span className="font-medium text-heading">{formatearMonto(movimiento.saldoPosterior)}</span>
-              </span>
-            </span>
-            <span className={cn('font-bold whitespace-nowrap tabular-nums', ingreso ? 'text-heading' : 'text-muted-foreground')}>
-              <span className="sr-only">{ingreso ? 'Ingreso de ' : 'Egreso de '}</span>
-              {montoConSigno(movimiento)}
-            </span>
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
-
-export type ModoMotivo = 'rechazar' | 'cancelar'
+export type ModoMotivo = 'rechazar' | 'cancelar' | 'anular'
 
 const TEXTOS: Record<ModoMotivo, { titulo: string; descripcion: string; boton: string; enviando: string; ayuda: string; permiso: string }> = {
   rechazar: {
@@ -170,6 +33,14 @@ const TEXTOS: Record<ModoMotivo, { titulo: string; descripcion: string; boton: s
     enviando: 'Cancelando…',
     ayuda: 'Queda registrado junto a la solicitud.',
     permiso: 'cancelar solicitudes de movimiento',
+  },
+  anular: {
+    titulo: 'Anular la aprobación',
+    descripcion: 'Se libera la reserva de efectivo y cupo. Usa esta acción antes del despacho o la recepción física.',
+    boton: 'Anular solicitud',
+    enviando: 'Anulando…',
+    ayuda: 'El motivo queda junto al historial de aprobación.',
+    permiso: 'anular solicitudes de movimiento',
   },
 }
 

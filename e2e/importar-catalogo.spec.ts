@@ -44,10 +44,11 @@ async function simular(page: Page, opciones: Opciones = {}) {
       if (opciones.aplicar !== false) funciones.push('contabilidad.importaciones.aplicar')
       const autorizacion = opciones.sinWorkOS ? undefined : { version: 'a'.repeat(64), activa: true, funciones, rutas: ['/contabilidad'] }
       return responder({ idUsuario: 'user_fixture_importacion', nombre: 'Persona QA', email: 'qa@example.invalid',
-        idOrganizacion: 'org_fixture', roles: ['CONTADOR'], permisos: opciones.sinWorkOS ? [] : ['con-cuenta-editar'], idAgencia: null, autorizacion })
+        idOrganizacion: 'org_fixture', roles: ['CONTADOR'], permisos: opciones.sinWorkOS ? [] : ['con-cuenta-editar'], idAgencia: '001', autorizacion })
     }
     if (ruta.endsWith('/auth/agencias')) {
-      return responder({ idAgencia: null, idAgenciaPrincipal: null, agenciasAsignadas: [], agenciasPermitidas: [], requiereSeleccionAgencia: false, alcanceGlobal: true, accesoTodasAgencias: true })
+      const matriz = { idAgencia: '001', codigo: 'MATRIZ', estado: 'A' }
+      return responder({ idAgencia: '001', agenciaEsMatriz: true, idAgenciaPrincipal: '001', agenciasAsignadas: [matriz], agenciasPermitidas: [matriz], requiereSeleccionAgencia: false, alcanceGlobal: false, accesoTodasAgencias: false })
     }
     if (ruta.endsWith('/institucion')) return responder({ nombre: 'Cooperativa QA', sitioWeb: null, logoUrl: null, origen: 'ENTIDAD' })
     if (ruta.endsWith('/aprobaciones/accesos')) return responder({ puedeVer: false, puedeSolicitar: false, pendientesParaMi: 0, diasResaltar: 30 })

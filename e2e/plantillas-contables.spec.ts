@@ -30,7 +30,8 @@ const lineas = [
 ]
 const cuenta = { idCuentaContable: 42, codigoCuenta: '11010101', nombreCuenta: 'Caja auxiliar', estado: 'Activo', esImputable: true, idCuentaSuperior: 11, saldo: 0, naturaleza: 'DEUDORA' }
 
-async function simular(page: Page, opciones: { editar?: boolean; aprobador?: boolean; validar?: boolean; falloListado?: boolean; catalogoNoDesplegado?: boolean; primas?: boolean; agenciaRestringida?: boolean; integracionPendiente?: boolean } = {}) {
+async function simular(page: Page, opciones: { editar?: boolean; aprobador?: boolean; validar?: boolean; falloListado?: boolean; catalogoNoDesplegado?: boolean; primas?: boolean; agenciaRestringida?: boolean; integracionPendiente?: boolean; enSucursal?: boolean } = {}) {
+  const idAgencia = opciones.enSucursal ? '002' : '001'
   const movimientos = opciones.primas
     ? ['PRIMA_FIJA', 'PRIMA_VARIABLE'].flatMap(base => lineas.map(linea => ({ ...linea, ComponenteImporte: base })))
       .map((linea, i) => ({ ...linea, Orden: i + 1 }))
@@ -50,10 +51,10 @@ async function simular(page: Page, opciones: { editar?: boolean; aprobador?: boo
     const permisos = opciones.editar === false ? [] : ['con-plantilla-editar']
     const funciones = ['contabilidad.plantillas.consultar', ...(opciones.editar === false ? [] : ['contabilidad.plantillas.editar'])]
     if (pathname.endsWith('/auth/me')) return responder({ idUsuario: 'user_plantillas', nombre: 'Contadora QA',
-      email: 'qa@example.invalid', idOrganizacion: 'org_qa', roles: ['CONTADOR'], permisos, idAgencia: opciones.agenciaRestringida ? '001' : null,
+      email: 'qa@example.invalid', idOrganizacion: 'org_qa', roles: ['CONTADOR'], permisos, idAgencia,
       autorizacion: { version: 'a'.repeat(64), activa: true, funciones, rutas: [ruta] } })
     if (pathname.endsWith('/auth/agencias')) return responder({
-      idAgencia: opciones.agenciaRestringida ? '001' : null, idAgenciaPrincipal: null, agenciasAsignadas: [],
+      idAgencia, agenciaEsMatriz: !opciones.enSucursal, idAgenciaPrincipal: '001', agenciasAsignadas: [],
       agenciasPermitidas: [{ idAgencia: '001', codigo: 'MATRIZ', estado: 'A' },
         ...(opciones.agenciaRestringida ? [] : [{ idAgencia: '002', codigo: 'NORTE', estado: 'A' }])],
       requiereSeleccionAgencia: false, alcanceGlobal: !opciones.agenciaRestringida, accesoTodasAgencias: !opciones.agenciaRestringida,
@@ -147,6 +148,14 @@ async function simular(page: Page, opciones: { editar?: boolean; aprobador?: boo
   await expect(page.getByRole('heading', { name: 'Plantillas contables' })).toBeVisible()
   return estado
 }
+
+test('impide abrir Contabilidad desde una agencia sucursal aunque el rol tenga permiso', async ({ page }) => {
+  const estado = await simular(page, { enSucursal: true })
+  await page.goto(ruta)
+  await expect(page.getByText('Selecciona la agencia matriz para acceder a esta sección.')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Plantillas contables' })).toHaveCount(0)
+  expect(estado.evaluaciones).toEqual([])
+})
 
 async function verDetalle(page: Page) {
   await page.getByRole('button', { name: 'Ver Depósito de caja, versión 2' }).click()

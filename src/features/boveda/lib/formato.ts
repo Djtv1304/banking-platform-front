@@ -150,6 +150,8 @@ const ETIQUETAS_MOVIMIENTO: Record<string, string> = {
   DevolucionCaja: 'Devolución de caja',
   AbastecimientoATM: 'Abastecimiento de ATM',
   RemanenteATM: 'Remanente de ATM',
+  RetornoRemesa: 'Retorno de remesa',
+  ReposicionFaltante: 'Reposición de faltante',
 }
 
 /** Un tipo que la SPA no conoce se muestra separando sus palabras: «NuevoTipo» → «Nuevo tipo» */

@@ -1,16 +1,17 @@
 import { useState, type ReactNode } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
 import { ArrowLeft, ArrowRight, Ban, CircleCheck, FileClock, RefreshCw, ShieldCheck, X, XCircle } from 'lucide-react'
 
 import { cn } from '@/shared/lib'
 import { Aviso, Button, Cargando } from '@/shared/ui'
-import { useAuthStore } from '@/features/auth'
+import { obtenerContextoAgencias, useAuthStore } from '@/features/auth'
 import { useAgencias, useDenominaciones } from '@/features/catalogos'
 import { esBovedaInexistente, mensajeErrorBoveda } from '@/features/boveda/api/bovedas.api'
-import type { SolicitudMovimiento } from '@/features/boveda/api/bovedas.contract'
+import type { AccionSolicitud, SolicitudMovimiento } from '@/features/boveda/api/bovedas.contract'
 import { EstadoBadge } from '@/features/boveda/components/EstadoBadge'
+import { ConfirmarSolicitudDialog } from '@/features/boveda/components/solicitudes/ConfirmarSolicitudDialog'
 import {
-  AprobarSolicitudDialog,
   MotivoSolicitudDialog,
   type ModoMotivo,
 } from '@/features/boveda/components/solicitudes/ResolverSolicitudDialogs'
@@ -20,6 +21,7 @@ import { accesoBoveda } from '@/features/boveda/lib/acceso'
 import { leerIdBoveda } from '@/features/boveda/lib/filtros'
 import { etiquetaMovimiento, etiquetaValor, formatearCantidad, formatearFechaHora, formatearMonto, nombreAgencia } from '@/features/boveda/lib/formato'
 import {
+  accionesConfirmacion,
   etiquetaEstadoSolicitud,
   nombreBoveda,
   solicitudPendiente,
@@ -30,19 +32,31 @@ import {
 } from '@/features/boveda/lib/solicitudes'
 
 const SIN_FILTROS = {}
+const ACCION_SOLICITUD: Record<AccionSolicitud, string> = {
+  aprobacion: 'Aprobar',
+  despacho: 'Confirmar despacho',
+  recepcion: 'Confirmar recepción',
+  devolucion: 'Confirmar retorno',
+  cierre: 'Cerrar envío',
+}
+const RESULTADO_MOTIVO: Record<ModoMotivo, string> = {
+  rechazar: 'Solicitud rechazada.',
+  cancelar: 'Solicitud cancelada.',
+  anular: 'Solicitud anulada. Se liberó la reserva.',
+}
 
-/** SMV-03 a SMV-06 · Una solicitud de movimiento: qué se pide, quién y, si sigue pendiente, aprobar, rechazar o cancelar */
 export function DetalleSolicitudPage() {
   const { idSolicitud: param } = useParams()
   const idSolicitud = leerIdBoveda(param)
   const roles = useAuthStore((state) => state.user?.roles)
   const acceso = accesoBoveda(roles ?? [])
+  const contexto = useQuery({ queryKey: ['auth', 'agencias'], queryFn: ({ signal }) => obtenerContextoAgencias(signal), retry: false })
   const solicitud = useSolicitudMovimiento(idSolicitud, acceso.solicitudes)
   const bovedas = useBovedas(SIN_FILTROS, acceso.listar)
   const agencias = useAgencias()
   const catalogo = useDenominaciones()
 
-  const [aprobando, setAprobando] = useState(false)
+  const [accion, setAccion] = useState<AccionSolicitud | null>(null)
   const [motivo, setMotivo] = useState<ModoMotivo | null>(null)
   const [confirmacion, setConfirmacion] = useState<string | null>(null)
 
@@ -79,8 +93,12 @@ export function DetalleSolicitudPage() {
     const origen = nombrar(datos.idBoveda)
     const contraparte = nombreBoveda(datos.idBovedaContraparte, lista)
     const pendiente = solicitudPendiente(datos)
-    const puedeResolver = pendiente && acceso.resolverSolicitud
-    const puedeCancelar = pendiente && acceso.cancelarSolicitud
+    const agenciaOperativa = contexto.data?.idAgencia ?? null
+    const enOrigen = agenciaOperativa !== null && datos.idAgencia === agenciaOperativa
+    const puedeResolver = pendiente && acceso.resolverSolicitud && enOrigen
+    const puedeCancelar = pendiente && acceso.cancelarSolicitud && enOrigen
+    const puedeAnular = datos.estado === 'APROBADO' && acceso.resolverSolicitud && enOrigen
+    const confirmaciones = acceso.resolverSolicitud ? accionesConfirmacion(datos, agenciaOperativa) : []
 
     return (
       <>
@@ -102,7 +120,7 @@ export function DetalleSolicitudPage() {
               )}
             </div>
           </div>
-          {(puedeResolver || puedeCancelar) && (
+          {(puedeResolver || puedeCancelar || puedeAnular || confirmaciones.length > 0) && (
             <div className="flex w-full flex-wrap gap-3 sm:w-auto">
               {puedeCancelar && (
                 <Button variant="ghost" size="lg" onClick={() => setMotivo('cancelar')} className="h-11 rounded-xl px-4 text-muted-foreground">
@@ -111,17 +129,22 @@ export function DetalleSolicitudPage() {
                 </Button>
               )}
               {puedeResolver && (
-                <>
-                  <Button variant="outline" size="lg" onClick={() => setMotivo('rechazar')} className="h-11 rounded-xl px-4 font-semibold">
-                    <XCircle />
-                    Rechazar
-                  </Button>
-                  <Button size="lg" onClick={() => setAprobando(true)} className="h-11 rounded-xl px-5 font-semibold">
-                    <ShieldCheck />
-                    Aprobar y ejecutar
-                  </Button>
-                </>
+                <Button variant="outline" size="lg" onClick={() => setMotivo('rechazar')} className="h-11 rounded-xl px-4 font-semibold">
+                  <XCircle /> Rechazar
+                </Button>
               )}
+              {puedeAnular && (
+                <Button variant="outline" size="lg" onClick={() => setMotivo('anular')} className="h-11 rounded-xl px-4">
+                  <Ban /> Anular aprobación
+                </Button>
+              )}
+              {confirmaciones.map((paso) => (
+                <Button key={paso} size="lg" variant={paso === 'devolucion' ? 'outline' : 'default'}
+                  onClick={() => setAccion(paso)} className="h-11 rounded-xl px-5 font-semibold"
+                >
+                  <ShieldCheck /> {ACCION_SOLICITUD[paso]}
+                </Button>
+              ))}
             </div>
           )}
         </header>
@@ -141,8 +164,8 @@ export function DetalleSolicitudPage() {
           </div>
         )}
 
-        {pendiente && !acceso.resolverSolicitud && (
-          <Aviso>Esta solicitud espera la aprobación de un Supervisor o Administrador. El saldo no cambia hasta entonces.</Aviso>
+        {pendiente && !puedeResolver && (
+          <Aviso>La solicitud espera la aprobación del jefe de origen.</Aviso>
         )}
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
@@ -164,7 +187,8 @@ export function DetalleSolicitudPage() {
               <Dato label="Solicitada por">
                 <UsuarioOperacion idUsuario={datos.idUsuarioSolicitante} />
               </Dato>
-              <Dato label="Agencia">{datos.idAgencia ? nombreAgencia(datos.idAgencia, agencias.data) : <Vacio>Sin agencia</Vacio>}</Dato>
+              <Dato label="Agencia de origen">{datos.idAgencia ? nombreAgencia(datos.idAgencia, agencias.data) : <Vacio>Sin agencia</Vacio>}</Dato>
+              {datos.idAgenciaDestino && <Dato label="Agencia de destino">{nombreAgencia(datos.idAgenciaDestino, agencias.data)}</Dato>}
               {datos.observaciones && (
                 <Dato label="Observaciones" className="sm:col-span-2">
                   <span className="font-normal text-foreground">{datos.observaciones}</span>
@@ -179,12 +203,34 @@ export function DetalleSolicitudPage() {
         </div>
 
         {!pendiente && (
-          <Bloque id="solicitud-resolucion" titulo="Resolución">
+          <Bloque id="solicitud-resolucion" titulo="Seguimiento">
             <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
               <Dato label={textoResolucion(datos.estado)}>
                 <UsuarioOperacion idUsuario={datos.idUsuarioResolucion} />
               </Dato>
               <Dato label="Fecha">{datos.fechaResolucion ? formatearFechaHora(datos.fechaResolucion) : <Vacio>—</Vacio>}</Dato>
+              {datos.idUsuarioDespacho != null && (
+                <Dato label="Despachada por"><UsuarioOperacion idUsuario={datos.idUsuarioDespacho} /></Dato>
+              )}
+              {datos.fechaDespacho && <Dato label="Fecha de despacho">{formatearFechaHora(datos.fechaDespacho)}</Dato>}
+              {datos.numeroGuia && <Dato label="Número de guía">{datos.numeroGuia}</Dato>}
+              {datos.precinto && <Dato label="Precinto">{datos.precinto}</Dato>}
+              {datos.idUsuarioConfirmacion != null && (
+                <Dato label="Confirmada por"><UsuarioOperacion idUsuario={datos.idUsuarioConfirmacion} /></Dato>
+              )}
+              {datos.fechaConfirmacion && <Dato label="Fecha de confirmación">{formatearFechaHora(datos.fechaConfirmacion)}</Dato>}
+              {datos.montoConfirmado != null && <Dato label="Monto confirmado">{formatearMonto(datos.montoConfirmado)}</Dato>}
+              {datos.diferencia != null && <Dato label="Diferencia">{formatearMonto(datos.diferencia)}</Dato>}
+              {datos.actaNovedad && <Dato label="Acta de novedad">{datos.actaNovedad}</Dato>}
+              {datos.comprobanteBanco && <Dato label="Comprobante bancario">{datos.comprobanteBanco}</Dato>}
+              {datos.idAsientoDespacho != null && <Dato label="Asiento de despacho">N.º {datos.idAsientoDespacho}</Dato>}
+              {datos.idAsientoConfirmacion != null && <Dato label="Asiento de confirmación">N.º {datos.idAsientoConfirmacion}</Dato>}
+              {datos.idAsientoNovedad != null && <Dato label="Asiento de novedad">N.º {datos.idAsientoNovedad}</Dato>}
+              {datos.idUsuarioAnulacion != null && (
+                <Dato label="Anulada por"><UsuarioOperacion idUsuario={datos.idUsuarioAnulacion} /></Dato>
+              )}
+              {datos.fechaAnulacion && <Dato label="Fecha de anulación">{formatearFechaHora(datos.fechaAnulacion)}</Dato>}
+              {datos.motivoAnulacion && <Dato label="Motivo de anulación">{datos.motivoAnulacion}</Dato>}
               {datos.idsMovimientos.length > 0 && (
                 <Dato label="Movimientos registrados">
                   <span className="flex flex-wrap gap-1.5">
@@ -202,17 +248,25 @@ export function DetalleSolicitudPage() {
                 </Dato>
               )}
             </dl>
+            {!!datos.conteoConfirmado?.length && (
+              <div className="flex flex-col gap-3">
+                <h3 className="font-semibold text-heading">Conteo confirmado</h3>
+                <Desglose solicitud={{ desglose: datos.conteoConfirmado, monto: datos.montoConfirmado ?? 0 }} catalogo={catalogo.data} />
+              </div>
+            )}
           </Bloque>
         )}
 
-        {acceso.resolverSolicitud && (
-          <AprobarSolicitudDialog
-            open={aprobando}
+        {accion && (
+          <ConfirmarSolicitudDialog
+            key={accion}
+            accion={accion}
             solicitud={datos}
-            origen={origen}
-            contraparte={contraparte}
-            nombrar={nombrar}
-            onCerrar={() => setAprobando(false)}
+            onCerrar={() => setAccion(null)}
+            onConfirmada={(mensaje) => {
+              setAccion(null)
+              setConfirmacion(mensaje)
+            }}
           />
         )}
         {(acceso.resolverSolicitud || acceso.cancelarSolicitud) && (
@@ -220,11 +274,9 @@ export function DetalleSolicitudPage() {
             modo={motivo}
             solicitud={datos}
             onCerrar={() => setMotivo(null)}
-            onResuelta={(resuelta, modo) => {
+            onResuelta={(_, modo) => {
               setMotivo(null)
-              setConfirmacion(
-                `${modo === 'rechazar' ? 'Rechazamos' : 'Cancelamos'} la solicitud N.º ${resuelta.idSolicitudMovimiento}. El movimiento no se ejecutará.`,
-              )
+              setConfirmacion(RESULTADO_MOTIVO[modo])
             }}
           />
         )}
@@ -240,7 +292,7 @@ export function DetalleSolicitudPage() {
   )
 }
 
-function Desglose({ solicitud, catalogo }: { solicitud: SolicitudMovimiento; catalogo: readonly { idDenominacion: number; valor: number }[] }) {
+function Desglose({ solicitud, catalogo }: { solicitud: Pick<SolicitudMovimiento, 'desglose' | 'monto'>; catalogo: readonly { idDenominacion: number; valor: number }[] }) {
   const valores = valoresDeSolicitud(solicitud, catalogo)
   const piezas = [...solicitud.desglose].sort((a, b) => (valores.get(b.idDenominacion) ?? 0) - (valores.get(a.idDenominacion) ?? 0))
   if (piezas.length === 0) return <p className="text-sm text-muted-foreground">La solicitud no trae el desglose por denominación.</p>
