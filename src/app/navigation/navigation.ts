@@ -150,7 +150,10 @@ export const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
   {
     // E8-01: la API valida los mismos roles; exportar exige además org-exportar
     title: 'Auditoría',
-    items: [{ to: '/auditoria', label: 'Bitácora de auditoría', Icon: ScrollText, roles: AUDITORIA_ROLES }],
+    items: [
+      { to: '/auditoria', label: 'Bitácora de auditoría', Icon: ScrollText, roles: AUDITORIA_ROLES, end: true },
+      { to: '/auditoria/integridad', label: 'Integridad de la bitácora', Icon: ShieldCheck, roles: AUDITORIA_ROLES },
+    ],
   },
 ]
 

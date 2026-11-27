@@ -87,3 +87,22 @@ export interface FiltrosBusqueda {
 export interface FiltrosExportacion extends Omit<FiltrosBusqueda, 'page' | 'pageSize'> {
   formato: 'csv' | 'pdf'
 }
+
+// --- E8-02 · Integridad de la bitácora (POST/GET /verificaciones) ---
+export const verificacionSchema = z.object({
+  idVerificacion: z.number().int(),
+  secuenciaDesde: z.number().int(),
+  secuenciaHasta: z.number().int(),
+  resultado: z.enum(['Integra', 'Rota']),
+  primeraRota: z.number().int().nullable(),
+  /** null = tarea nocturna */
+  ejecutadaPor: z.number().int().nullable(),
+  fechaUtc: z.string(),
+})
+export type Verificacion = z.infer<typeof verificacionSchema>
+export const paginaVerificacionesSchema = z.object({
+  items: z.array(verificacionSchema),
+  total: z.number().int().nonnegative(),
+  page: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
+})

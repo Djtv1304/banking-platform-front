@@ -5,12 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError, apiClient } from '@/shared/api'
 import { descargarCsv } from '@/shared/lib'
-import { buscarEventos, exportarEventos, obtenerEvento } from '@/features/auditoria/api/auditoria.api'
+import { buscarEventos, exportarEventos, listarVerificaciones, obtenerEvento, verificarIntegridad } from '@/features/auditoria/api/auditoria.api'
 import { detalleEventoSchema, type DetalleEvento as Detalle, type EventoItem } from '@/features/auditoria/api/auditoria.contract'
 import { DetalleEvento } from '@/features/auditoria/components/DetalleEvento'
 import { PestanaHistorial } from '@/features/auditoria/components/PestanaHistorial'
+import { IntegridadPage } from '@/features/auditoria/pages/IntegridadPage'
 import { aFiltros, esquemaFiltros, type FormularioFiltros } from '@/features/auditoria/lib/filtros'
-import { fechaEcuador, textoFechaLocal } from '@/features/auditoria/lib/presentacion'
+import { fechaEcuador, textoFechaLocal, textoResultado } from '@/features/auditoria/lib/presentacion'
 
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
 // El barril de auth necesita el navegador; aquí solo interesan los roles de la sesión
@@ -123,5 +124,28 @@ describe('E8-01 · exportación', () => {
   it('PDF: rechaza una respuesta que no es un PDF', async () => {
     vi.spyOn(apiClient, 'post').mockResolvedValue({ data: new Blob(['<html>'], { type: 'text/html' }), status: 200 })
     await expect(exportarEventos({ desde: '2026-11-01', hasta: '2026-11-20', formato: 'pdf' })).rejects.toBeInstanceOf(ApiError)
+  })
+})
+
+describe('E8-02 · integridad de la bitácora', () => {
+  it('verifica un rango enviándolo en el cuerpo y valida la respuesta', async () => {
+    const post = vi.spyOn(apiClient, 'post').mockResolvedValue({ data: {
+      idVerificacion: 3, secuenciaDesde: 1, secuenciaHasta: 40, resultado: 'Rota', primeraRota: 7, ejecutadaPor: 1, fechaUtc: '2026-11-27T06:00:00Z',
+    } })
+    const v = await verificarIntegridad('2026-11-01', '2026-11-26')
+    expect(post).toHaveBeenCalledWith('/api/v1/auditoria/verificaciones', { desde: '2026-11-01', hasta: '2026-11-26' })
+    expect(textoResultado(v)).toBe('Rota desde la secuencia 7')
+    expect(textoResultado({ resultado: 'Integra', primeraRota: null })).toBe('Íntegra')
+  })
+  it('lista las verificaciones paginadas, nocturnas y manuales', async () => {
+    const get = vi.spyOn(apiClient, 'get').mockResolvedValue({ data: { items: [], total: 0, page: 2, pageSize: 20 } })
+    await listarVerificaciones(2, 20)
+    expect(get).toHaveBeenCalledWith('/api/v1/auditoria/verificaciones', { params: { page: 2, pageSize: 20 } })
+  })
+  it('la pantalla ofrece verificar ahora y muestra las últimas verificaciones', () => {
+    const html = pintar(<IntegridadPage />)
+    expect(html).toContain('Integridad de la bitácora')
+    expect(html).toContain('Verificar ahora')
+    expect(html).toContain('Cargando verificaciones')
   })
 })

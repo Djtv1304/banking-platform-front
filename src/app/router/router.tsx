@@ -29,7 +29,7 @@ import { BuscarTarjetasPage, DetalleTarjetaPage, SolicitarTarjetaPage } from '@/
 import { BuscarCuentasPage, CuposCuentaPage, DetalleCuentaPage, MovimientosCuentaPage } from '@/features/cuenta'
 import { AbrirCuentaPage } from '@/features/cuenta'
 import { AsientosPage, CONTABILIDAD_ROLES, CuentasProductoPage, FechaContablePage, NuevoAsientoPage, PlanCuentasPage } from '@/features/contabilidad'
-import { BitacoraPage, DetalleEventoPage } from '@/features/auditoria'
+import { BitacoraPage, DetalleEventoPage, IntegridadPage } from '@/features/auditoria'
 import { GuestOnly, RequireAuth, RequirePermiso, RequireProfile, RequireRoles } from '@/app/router/guards'
 import { ROUTE_ACCESS } from '@/app/router/route-access'
 import { Aviso, ModuloEnPreparacion } from '@/shared/ui'
@@ -61,6 +61,7 @@ export const router = createBrowserRouter([
             children: [
               { path: '/auditoria', element: <BitacoraPage /> },
               { path: '/auditoria/eventos/:idEvento', element: <DetalleEventoPage /> },
+              { path: '/auditoria/integridad', element: <IntegridadPage /> },
             ],
           },
           {
