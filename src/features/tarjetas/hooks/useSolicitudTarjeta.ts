@@ -51,6 +51,9 @@ export function useSolicitarTarjeta() {
     mutationFn: solicitarTarjeta,
     onSuccess: (tarjeta) => Promise.all([
       queryClient.invalidateQueries({ queryKey: ['tarjetas', 'por-cuenta', tarjeta.idCuenta] }),
+      queryClient.invalidateQueries({ queryKey: ['tarjetas', 'buscar'] }),
+      queryClient.invalidateQueries({ queryKey: ['tarjetas', 'por-renovar'] }),
+      ...(tarjeta.idTarjetaReemplazada ? [queryClient.invalidateQueries({ queryKey: ['tarjetas', 'detalle', tarjeta.idTarjetaReemplazada] })] : []),
       queryClient.invalidateQueries({ queryKey: ['aprobaciones'] }),
     ]),
   })
