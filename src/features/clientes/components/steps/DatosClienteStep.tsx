@@ -133,10 +133,25 @@ export function DatosClienteStep({ form, onNext, soloDocumento = false, verifica
           )}
           {regla?.requiereVencimiento && (
             <Controller control={control} name="fechaVencimiento" render={({ field, fieldState }) => (
-              <div><FechaInput id="fechaVencimiento" label="Fecha de vencimiento" value={field.value ?? ''}
-                onChange={field.onChange} onBlur={field.onBlur} invalid={!!fieldState.error}
-                errorId={fieldState.error ? 'fecha-vencimiento-error' : undefined} />
-                {fieldState.error && <p role="alert" id="fecha-vencimiento-error">{fieldState.error.message}</p>}</div>
+              <div className="flex min-w-0 flex-col gap-2.5 sm:col-span-2">
+                <FechaInput
+                  id="fechaVencimiento"
+                  label="Fecha de vencimiento"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  inputRef={field.ref}
+                  inputClassName={fieldClassName}
+                  required
+                  invalid={!!fieldState.error}
+                  errorId={fieldState.error ? 'fecha-vencimiento-error' : undefined}
+                />
+                {fieldState.error && (
+                  <p role="alert" id="fecha-vencimiento-error" className="text-sm text-destructive">
+                    {fieldState.error.message}
+                  </p>
+                )}
+              </div>
             )} />
           )}
 
