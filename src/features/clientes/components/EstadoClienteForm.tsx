@@ -77,7 +77,7 @@ export function EstadoClienteForm({
                 setPalabraConfirmacion('')
               }}
             >
-              <option value="">Seleccionar</option>
+              <option value="" disabled hidden>Elige un estado</option>
               {opciones.map((opcion) => (
                 <option key={opcion} value={opcion}>
                   {opcion}

@@ -98,7 +98,7 @@ export function EditarClienteForm({ cliente, guardar, ocupado, error, onBorrador
     <Field key={campo.campo} id={`editar-${campo.campo}`} label={campo.label} optional={!campo.requerido && !ENMASCARADOS.includes(campo.campo)}>
       <Input id={`editar-${campo.campo}`} className={fieldClassName} type={campo.type ?? 'text'}
         minLength={campo.min} maxLength={campo.max} required={campo.requerido} value={valor(campo.campo)}
-        placeholder={ENMASCARADOS.includes(campo.campo) ? placeholderEnmascarado(cliente[campo.campo as keyof Cliente]) : undefined}
+        placeholder={ENMASCARADOS.includes(campo.campo) ? placeholderEnmascarado(cliente[campo.campo as keyof Cliente], campo.campo) : undefined}
         pattern={campo.requerido && !campo.type ? '.*\\S.*' : undefined}
         onChange={(event) => cambiar(campo.campo, event.target.value)} />
     </Field>
@@ -149,7 +149,8 @@ export function EditarClienteForm({ cliente, guardar, ocupado, error, onBorrador
   )
 }
 
-function placeholderEnmascarado(actual: unknown) {
+function placeholderEnmascarado(actual: unknown, campo: Campo) {
+  if (campo === 'telefonoCelular') return typeof actual === 'string' && actual ? actual : 'Nuevo número'
   return typeof actual === 'string' && actual ? `${actual} · ${AYUDA_ENMASCARADO}` : AYUDA_ENMASCARADO
 }
 
