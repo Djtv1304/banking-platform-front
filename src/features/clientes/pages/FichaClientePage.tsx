@@ -1,6 +1,7 @@
 import { DocumentosCliente } from '@/features/clientes/components/DocumentosCliente'
 import type { ReactNode } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
+import { Tabs } from 'radix-ui'
 import { ArrowLeft, CircleAlert, LoaderCircle, UserRoundX } from 'lucide-react'
 
 import { ApiError } from '@/shared/api'
@@ -90,7 +91,7 @@ export function FichaClientePage() {
             Cargando la ficha del cliente…
           </p>
         ) : (
-          <Ficha cliente={consulta.data} editarFirmantes={acceso.edicion} />
+          <Ficha key={consulta.data.idCliente} cliente={consulta.data} editarFirmantes={acceso.edicion} />
         )}
       </div>
     </div>
@@ -113,6 +114,8 @@ function ClienteNoEncontrado() {
 }
 
 function Ficha({ cliente, editarFirmantes }: { cliente: Cliente; editarFirmantes: boolean }) {
+  const ubicacion = useLocation()
+  const navegar = useNavigate()
   const gestion = usePuedeFuncion('clientes.direcciones.gestionar', puedeGestionarDirecciones(usePermisos()))
   const verDirecciones = usePuedeFuncion('clientes.direcciones.consultar', gestion)
   const roles = useAuthStore((estado) => estado.user?.roles)
@@ -135,28 +138,35 @@ function Ficha({ cliente, editarFirmantes }: { cliente: Cliente; editarFirmantes
     ...(fichaCompleta ? [{ id: 'ficha-relacionados', titulo: 'Relacionados' }] : []),
     ...(verDirecciones ? [{ id: 'ficha-direcciones', titulo: 'Direcciones' }] : []),
     ...(verRiesgo ? [{ id: 'riesgo-titulo', titulo: 'Riesgo' }] : []),
-    { id: 'ficha-productos', titulo: 'Productos' },
+    ...(verHabilitacion ? [{ id: 'ficha-productos', titulo: 'Productos' }] : []),
   ]
+  const pedida = ubicacion.hash.slice(1)
+  const seleccionada = secciones.some(({ id }) => id === pedida) ? pedida : 'ficha-identidad'
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-center gap-3">
-        <h1 className="text-[40px] leading-tight font-bold tracking-tight text-heading">{nombreVisible(cliente)}</h1>
-        <Badge variant={varianteEstado(cliente.estado)}>{cliente.estado}</Badge>
-      </header>
+      <GestionCliente key={id} cliente={cliente}>
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <h1 className="text-3xl leading-tight font-bold tracking-tight break-words text-heading sm:text-[40px]">{nombreVisible(cliente)}</h1>
+          <Badge variant={varianteEstado(cliente.estado)}>{cliente.estado}</Badge>
+        </div>
+      </GestionCliente>
 
-      <nav aria-label="Secciones de la ficha" className="flex flex-wrap gap-2">
+      <Tabs.Root value={seleccionada} activationMode="manual" className="min-w-0 rounded-2xl border border-border bg-card"
+        onValueChange={valor => void navegar(
+          { pathname: ubicacion.pathname, search: ubicacion.search, hash: `#${valor}` },
+          { replace: true, preventScrollReset: true },
+        )}>
+      <Tabs.List aria-label="Secciones de la ficha" className="flex gap-1 overflow-x-auto rounded-t-2xl border-b border-border bg-muted/35 px-3 pt-2">
         {secciones.map((seccion) => (
-          <a key={seccion.id} href={`#${seccion.id}`}
-            className="rounded-full border border-border px-3 py-1 text-sm font-medium text-heading hover:bg-muted">
+          <Tabs.Trigger key={seccion.id} value={seccion.id}
+            className="min-h-11 shrink-0 border-b-2 border-transparent px-3 text-sm font-semibold whitespace-nowrap text-muted-foreground hover:text-heading focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring data-[state=active]:border-primary data-[state=active]:bg-card data-[state=active]:text-heading">
             {seccion.titulo}
-          </a>
+          </Tabs.Trigger>
         ))}
-      </nav>
+      </Tabs.List>
 
-      <GestionCliente key={id} cliente={cliente} />
-
-      <Seccion id="ficha-identidad" titulo="Identidad">
+      <Seccion id="ficha-identidad" titulo="Identidad" conservar={false}>
         <dl className="grid gap-5 sm:grid-cols-2">
           <Dato etiqueta={`Documento (${TIPO_DOCUMENTO_LABEL[cliente.tipoDocumento] ?? cliente.tipoDocumento})`}>
             <CampoEnmascarado idCliente={id} campo="identificacion" valor={cliente.identificacion} etiqueta="el documento" />
@@ -178,7 +188,7 @@ function Ficha({ cliente, editarFirmantes }: { cliente: Cliente; editarFirmantes
         </Seccion>
       )}
 
-      <Seccion id="ficha-contacto" titulo="Contacto">
+      <Seccion id="ficha-contacto" titulo="Contacto" conservar={false}>
         <dl className="grid gap-5 sm:grid-cols-2">
           <Dato etiqueta="Correo electrónico">
             <CampoEnmascarado idCliente={id} campo="email" valor={cliente.email} etiqueta="el correo" />
@@ -211,23 +221,29 @@ function Ficha({ cliente, editarFirmantes }: { cliente: Cliente; editarFirmantes
         <FirmantesCliente key={id} id={id} editable={editarFirmantes && cliente.estado !== 'Eliminado'} />
       </Seccion>}
 
-      {verRiesgo && <GestionRiesgo key={`riesgo-${id}`} id={id} nombre={nombreVisible(cliente)} estado={cliente.estado} />}
+      {verRiesgo && <Seccion id="riesgo-titulo">
+        <GestionRiesgo key={`riesgo-${id}`} id={id} nombre={nombreVisible(cliente)} estado={cliente.estado} />
+      </Seccion>}
 
       {verHabilitacion && (
         <Seccion id="ficha-productos" titulo="Productos">
           <IndicadorHabilitacion idCliente={id} />
         </Seccion>
       )}
+      </Tabs.Root>
     </div>
   )
 }
 
-function Seccion({ id, titulo, children }: { id: string; titulo: string; children: ReactNode }) {
+function Seccion({ id, titulo, children, conservar = true }: {
+  id: string; titulo?: string; children: ReactNode; conservar?: boolean
+}) {
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 sm:p-6">
-      <h2 id={id} className="scroll-mt-6 border-b border-border pb-3 text-lg font-semibold text-heading">{titulo}</h2>
+    <Tabs.Content value={id} forceMount={conservar ? true : undefined}
+      className="flex min-w-0 flex-col gap-5 p-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring data-[state=inactive]:hidden sm:p-6">
+      {titulo && <h2 className="text-lg font-semibold text-heading">{titulo}</h2>}
       {children}
-    </section>
+    </Tabs.Content>
   )
 }
 

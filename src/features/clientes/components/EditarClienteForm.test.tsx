@@ -67,10 +67,14 @@ describe('E5-04 · edición por sección', () => {
 
   it('E5-05 · correo y teléfonos empiezan vacíos con la máscara de placeholder y sin required', () => {
     const html = render(natural)
-    for (const [campo, mascara] of [['email', 'm***@example.test'], ['telefonoCelular', '******4567'], ['telefonoConvencional', '******2345']]) {
+    for (const [campo, placeholder] of [
+      ['email', 'm***@example.test · Escribe el nuevo valor para cambiarlo'],
+      ['telefonoCelular', '******4567'],
+      ['telefonoConvencional', '******2345 · Escribe el nuevo valor para cambiarlo'],
+    ]) {
       const input = html.match(new RegExp(`<input[^>]*id="editar-${campo}"[^>]*>`))?.[0] ?? ''
       expect(input).toContain('value=""')
-      expect(input).toContain(`placeholder="${mascara} · Escribe el nuevo valor para cambiarlo"`)
+      expect(input).toContain(`placeholder="${placeholder}"`)
       expect(input).not.toContain('required')
     }
     expect(html).not.toContain('value="******4065"')
