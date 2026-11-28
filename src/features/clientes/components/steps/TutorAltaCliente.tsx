@@ -104,16 +104,16 @@ export function TutorAltaCliente({ datos, cambiar, fechaActual }: {
       </FormSection>
       <FormSection title="Respaldo del tutor">
         <fieldset disabled={busqueda.isPending} className="grid min-w-0 gap-6 sm:grid-cols-2">
-          <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
-            <div className="w-full min-w-0 max-w-lg sm:flex-1 sm:basis-80">
-              <FechaInput id="fecha-tutor-alta" label="Fecha efectiva del respaldo" value={datos.fechaEfectiva}
-                onChange={fechaEfectiva => cambiar(actual => ({ ...actual, fechaEfectiva }))} onBlur={() => {}}
-                inputClassName={fieldClassName} required />
-            </div>
-            <Button type="button" variant="outline" className="h-[52px] w-full rounded-xl px-6 text-base sm:w-auto"
-              onClick={() => cambiar(actual => ({ ...actual, fechaEfectiva: fechaActual }))}>
-              Usar fecha de hoy
-            </Button>
+          <div className="sm:col-span-2">
+            <FechaInput id="fecha-tutor-alta" label="Fecha efectiva del respaldo" value={datos.fechaEfectiva}
+              onChange={fechaEfectiva => cambiar(actual => ({ ...actual, fechaEfectiva }))} onBlur={() => {}}
+              inputClassName={fieldClassName} required
+              accion={
+                <Button type="button" variant="outline" className="h-[52px] w-full rounded-xl px-6 text-base sm:w-auto"
+                  onClick={() => cambiar(actual => ({ ...actual, fechaEfectiva: fechaActual }))}>
+                  Usar fecha de hoy
+                </Button>
+              } />
           </div>
           <Field id="tipo-respaldo-tutor" label="Tipo de respaldo">
             <Input id="tipo-respaldo-tutor" className={fieldClassName} value={datos.tipoRespaldo} maxLength={80}
