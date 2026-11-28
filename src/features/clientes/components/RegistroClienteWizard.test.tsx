@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router'
+import { createMemoryRouter, RouterProvider } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '@/shared/api'
@@ -15,11 +15,10 @@ function renderWizard(props: RegistroClienteWizardProps = {}) {
       mutations: { retry: false },
     },
   })
+  const router = createMemoryRouter([{ path: '/', element: <RegistroClienteWizard {...props} /> }])
   return renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <RegistroClienteWizard {...props} />
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   )
 }

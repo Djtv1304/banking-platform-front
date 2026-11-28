@@ -1,11 +1,14 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router'
+import { Link, useBlocker } from 'react-router'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CircleCheck, UserPlus } from 'lucide-react'
 
-import { Aviso, AvisoRequiereAprobacion, Button } from '@/shared/ui'
+import {
+  Aviso, AvisoRequiereAprobacion, Button, Dialog, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle,
+} from '@/shared/ui'
 import { toApiError } from '@/shared/api'
 import { registrarCliente, reincorporarCliente, errorRegistro } from '@/features/clientes/api/registro-cliente'
 import { comprobarDocumento } from '@/features/clientes/api/documentos-identidad'
@@ -232,6 +235,34 @@ export function RegistroClienteWizard({
   }
 
   const ocupado = guardado.isPending || reincorporacion.isPending || consultaDocumento.isPending
+  const enviando = guardado.isPending || reincorporacion.isPending
+  const { isDirty: datosPendientes } = datosForm.formState
+  const { isDirty: direccionesPendientes } = direccionesForm.formState
+  const { isDirty: actividadPendiente } = actividadForm.formState
+  const tutorPendiente = Boolean(
+    tutor.idClienteRelacionado !== null || tutor.fechaEfectiva || tutor.tipoRespaldo || tutor.referenciaRespaldo ||
+    tutor.documentoConsulta.tipo !== TUTOR_VACIO.documentoConsulta.tipo ||
+    tutor.documentoConsulta.numero || tutor.documentoConsulta.pais,
+  )
+  const protegerSalida = !registro && idSolicitudReincorporacion === null &&
+    (datosPendientes || direccionesPendientes || actividadPendiente || tutorPendiente || enviando)
+  const salida = useBlocker(({ currentLocation, nextLocation }) =>
+    protegerSalida && currentLocation.pathname !== nextLocation.pathname,
+  )
+
+  useEffect(() => {
+    if (!protegerSalida) return
+    const avisar = (evento: BeforeUnloadEvent) => {
+      evento.preventDefault()
+      evento.returnValue = ''
+    }
+    window.addEventListener('beforeunload', avisar)
+    return () => window.removeEventListener('beforeunload', avisar)
+  }, [protegerSalida])
+
+  useEffect(() => {
+    if (!protegerSalida && salida.state === 'blocked') salida.reset()
+  }, [protegerSalida, salida])
 
   return (
     <div ref={inicioRef} className="flex scroll-mt-6 flex-col gap-8">
@@ -326,6 +357,26 @@ export function RegistroClienteWizard({
         {registro && <RegistroCompletado registro={registro} onNuevo={nuevoRegistro} />}
       </section>
       </fieldset>
+      {salida.state === 'blocked' && (
+        <Dialog open onOpenChange={abierto => { if (!abierto) salida.reset() }}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{enviando ? 'Guardado en curso' : 'Tienes datos sin guardar'}</DialogTitle>
+              <DialogDescription>
+                {enviando
+                  ? 'Espera a que termine el envío antes de salir del registro.'
+                  : 'Si sales del registro, se perderán los datos ingresados.'}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => salida.reset()}>Seguir editando</Button>
+              {!enviando && (
+                <Button type="button" variant="destructive" onClick={() => salida.proceed()}>Salir sin guardar</Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }
