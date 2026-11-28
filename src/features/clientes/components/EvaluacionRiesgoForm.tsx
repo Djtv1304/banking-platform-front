@@ -49,7 +49,7 @@ export function EvaluacionRiesgoForm({ nombre, ocupado, error, guardar, cancelar
 
   return (
     <>
-      <form onSubmit={revisar} noValidate className="flex flex-col gap-5 rounded-xl border border-border bg-field/30 p-4 sm:p-5">
+      <form onSubmit={revisar} noValidate className="flex flex-col gap-5">
         <p className="text-sm text-muted-foreground">Registra la evaluación realizada por el personal autorizado. Cada registro se conserva en el historial.</p>
         <fieldset disabled={ocupado} className="grid min-w-0 gap-5 sm:grid-cols-2">
           <Field id="riesgo-nivel" label="Nivel de riesgo LAFT" error={errores.nivelRiesgoLAFT}>

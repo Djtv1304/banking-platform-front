@@ -41,6 +41,7 @@ export function Field({ id, label, error, optional, className, children }: Field
 
 interface SelectFieldProps {
   id: string
+  name?: string
   value: string
   onChange: (value: string) => void
   onBlur?: () => void
@@ -48,13 +49,14 @@ interface SelectFieldProps {
   placeholder: string
   error?: string
   disabled?: boolean
+  required?: boolean
   descriptionId?: string
 }
 
-export function SelectField({ id, value, onChange, onBlur, options, placeholder, error, disabled, descriptionId }: SelectFieldProps) {
+export function SelectField({ id, name, value, onChange, onBlur, options, placeholder, error, disabled, required, descriptionId }: SelectFieldProps) {
   const describedBy = [error ? `${id}-error` : undefined, descriptionId].filter(Boolean).join(' ') || undefined
   return (
-    <Select value={value} onValueChange={onChange} disabled={disabled}>
+    <Select name={name} value={value} onValueChange={onChange} disabled={disabled} required={required}>
       <SelectTrigger id={id} onBlur={onBlur} className={selectClassName} {...a11y(id, error)} aria-describedby={describedBy}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
