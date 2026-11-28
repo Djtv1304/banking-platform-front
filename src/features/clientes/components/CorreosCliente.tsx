@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Badge, Button, Input, Label } from '@/shared/ui'
 import {
@@ -12,6 +12,8 @@ import { usePuedeVerSensible, useRevelacion } from '@/features/clientes/hooks/us
 interface Props {
   cliente: { idCliente: number; email: string; emailVerificado: boolean; estado: string }
   puedeGestionar: boolean
+  onBorrador?: (sucio: boolean) => void
+  onProcesando?: (procesando: boolean) => void
 }
 type Confirmacion = { tipo: 'principal' } | { tipo: 'verificar' | 'quitar'; correo: ClienteEmail }
 
@@ -20,7 +22,7 @@ const ESTADOS_SIN_ESCRITURA = ['Bloqueado', 'Eliminado']
 /** E5-05 · Los correos llegan enmascarados; los secundarios completos se piden juntos con MFA */
 const CAMPOS_SECUNDARIOS = ['correosSecundarios'] as const
 
-export function CorreosCliente({ cliente, puedeGestionar }: Props) {
+export function CorreosCliente({ cliente, puedeGestionar, onBorrador, onProcesando }: Props) {
   const id = cliente.idCliente
   const cache = useQueryClient()
   const [confirmacion, setConfirmacion] = useState<Confirmacion | null>(null)
@@ -46,6 +48,9 @@ export function CorreosCliente({ cliente, puedeGestionar }: Props) {
   const pendiente = alta.isPending || baja.isPending || principal.isPending || secundario.isPending
   const sinEscritura = ESTADOS_SIN_ESCRITURA.includes(cliente.estado)
   const acciones = puedeGestionar && !sinEscritura
+  const hayBorrador = acciones && Boolean(email || etiqueta || confirmacion)
+  useEffect(() => onBorrador?.(hayBorrador), [hayBorrador, onBorrador])
+  useEffect(() => onProcesando?.(pendiente), [pendiente, onProcesando])
   const errorAccion = baja.error ?? principal.error ?? secundario.error
   const correos = consulta.data ?? []
 

@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useActividadesEconomicas } from '@/features/catalogos'
 
 import type { Cliente, ClienteUpdate } from '@/features/clientes/api/gestion-clientes'
@@ -42,11 +42,12 @@ const selector = `${fieldClassName} w-full border text-foreground outline-none f
  * E5-04 · Dos secciones que se guardan por separado: los datos ordinarios se aplican al
  * instante; los de identidad y el correo principal los aprueba otra persona.
  */
-export function EditarClienteForm({ cliente, guardar, ocupado, error }: {
+export function EditarClienteForm({ cliente, guardar, ocupado, error, onBorrador }: {
   cliente: Cliente
   guardar: (cambios: ClienteUpdate) => Promise<void>
   ocupado: boolean
   error: Error | null
+  onBorrador?: (sucio: boolean) => void
 }) {
   const [borrador, setBorrador] = useState<Partial<Record<Campo, string>>>({})
   const [enviada, setEnviada] = useState<Seccion | null>(null)
@@ -66,6 +67,8 @@ export function EditarClienteForm({ cliente, guardar, ocupado, error }: {
   }
   const cambiados = (seccion: Seccion) =>
     camposSeccion[seccion].filter((campo) => borrador[campo] !== undefined && borrador[campo].trim() !== original(campo))
+  const hayBorrador = cambiados('ordinarios').length > 0 || cambiados('sensibles').length > 0
+  useEffect(() => onBorrador?.(hayBorrador), [hayBorrador, onBorrador])
 
   function armar(seccion: Seccion): ClienteUpdate {
     const cambios: Record<string, unknown> = {}

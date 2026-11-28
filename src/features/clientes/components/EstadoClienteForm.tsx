@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 
 import type { EstadoDestino } from '@/features/clientes/api/gestion-clientes'
 import { ErrorClientes } from '@/features/clientes/components/consulta-clientes'
@@ -12,6 +12,7 @@ export interface EstadoClienteFormProps {
   guardar: (estado: EstadoDestino, motivo: string) => Promise<void>
   ocupado: boolean
   error: Error | null
+  onBorrador?: (sucio: boolean) => void
   valoresIniciales?: {
     destino?: EstadoDestino
     motivo?: string
@@ -25,11 +26,14 @@ export function EstadoClienteForm({
   guardar,
   ocupado,
   error,
+  onBorrador,
   valoresIniciales,
 }: EstadoClienteFormProps) {
   const [estado, setEstado] = useState<string>(valoresIniciales?.destino ?? '')
   const [motivo, setMotivo] = useState(valoresIniciales?.motivo ?? '')
   const [palabraConfirmacion, setPalabraConfirmacion] = useState(valoresIniciales?.palabraConfirmacion ?? '')
+  const hayBorrador = Boolean(estado || motivo || palabraConfirmacion)
+  useEffect(() => onBorrador?.(hayBorrador), [hayBorrador, onBorrador])
 
   const destino = opciones.find((opcion) => opcion === estado)
   const requiereAprobacion = Boolean(destino && requiereAprobacionEstado(estadoActual, destino))
