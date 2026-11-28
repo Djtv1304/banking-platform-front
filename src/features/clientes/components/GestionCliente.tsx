@@ -148,7 +148,7 @@ export function GestionCliente({ cliente, children }: { cliente: Cliente; childr
       {!activa && resultado}
       <Dialog open={Boolean(activa)} onOpenChange={abierto => { if (!abierto) solicitarCierre() }}>
         {activa && <DialogContent showCloseButton={!ocupado}
-          className="top-0 right-0 left-auto flex h-dvh w-full max-w-full translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none p-0 sm:max-w-2xl data-open:zoom-in-100 data-closed:zoom-out-100"
+          className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
           onInteractOutside={evento => evento.preventDefault()}
           onCloseAutoFocus={evento => { evento.preventDefault(); disparador.current?.focus() }}>
           <DialogHeader className="shrink-0 border-b border-border px-5 py-4 pr-14 sm:px-6 sm:pr-14">
