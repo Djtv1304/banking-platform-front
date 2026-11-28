@@ -42,13 +42,13 @@ export function DireccionesStep({ form, onBack, onNext }: DireccionesStepProps) 
   const errorLista = errors.direcciones?.message ?? errors.direcciones?.root?.message
 
   const marcarPrincipal = (indice: number) => {
-    getValues('direcciones').forEach((_, i) => setValue(`direcciones.${i}.esPrincipal`, i === indice))
+    getValues('direcciones').forEach((_, i) => setValue(`direcciones.${i}.esPrincipal`, i === indice, { shouldDirty: true }))
   }
 
   const quitar = (indice: number) => {
     const eraPrincipal = getValues(`direcciones.${indice}.esPrincipal`)
     remove(indice)
-    if (eraPrincipal) setValue('direcciones.0.esPrincipal', true)
+    if (eraPrincipal) setValue('direcciones.0.esPrincipal', true, { shouldDirty: true })
   }
 
   return (
