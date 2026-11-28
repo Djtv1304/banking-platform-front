@@ -4,7 +4,7 @@ import { Button, FechaInput, Input } from '@/shared/ui'
 import { toApiError } from '@/shared/api'
 import { comprobarDocumento } from '@/features/clientes/api/documentos-identidad'
 import { usePaises } from '@/features/catalogos/hooks/useCatalogos'
-import { FormSection } from '@/features/clientes/components/form-fields'
+import { Field, FormSection, SelectField, fieldClassName } from '@/features/clientes/components/form-fields'
 import type { AltaTutor } from '@/features/clientes/api/tutores'
 
 export type BorradorTutor = Omit<AltaTutor, 'idClienteRelacionado'> & {
@@ -14,6 +14,10 @@ export type BorradorTutor = Omit<AltaTutor, 'idClienteRelacionado'> & {
 }
 
 const DOCUMENTO_VACIO = { tipo: 'CED', numero: '', pais: '' }
+const TIPOS_DOCUMENTO = [
+  { value: 'CED', label: 'Cédula' },
+  { value: 'PAS', label: 'Pasaporte' },
+] as const
 
 export function TutorAltaCliente({ datos, cambiar, fechaActual }: {
   datos: BorradorTutor
@@ -63,50 +67,70 @@ export function TutorAltaCliente({ datos, cambiar, fechaActual }: {
     }))
   }
   return (
-    <FormSection title="Tutor del menor" description="Busca una persona natural adulta y activa por su documento.">
-      <fieldset disabled={busqueda.isPending} className="grid gap-4">
-        <label htmlFor="tipo-documento-tutor">Documento del tutor
-          <select id="tipo-documento-tutor" value={tipo} className="block w-full rounded-lg border border-border bg-field p-2"
-            onChange={e => cambiarDocumento({ tipo: e.target.value })}>
-            <option value="CED">Cédula</option><option value="PAS">Pasaporte</option>
-          </select>
-        </label>
-        <label>Número del documento del tutor<Input value={numero} maxLength={20}
-          onChange={e => cambiarDocumento({ numero: e.target.value })} /></label>
-        {tipo === 'PAS' && <div>
-          <label htmlFor="emisor-documento-tutor">País emisor del pasaporte del tutor
-            <select id="emisor-documento-tutor" value={pais} className="block w-full rounded-lg border border-border bg-field p-2"
-              onChange={e => cambiarDocumento({ pais: e.target.value })}>
-              <option value="">Selecciona un país</option>
-              {paises.data.map(p => <option key={p.codigoPais} value={p.codigoPais}>{p.nombrePais}</option>)}
-            </select>
-          </label>
-          {paises.isError && <Button type="button" variant="outline" onClick={() => void paises.refetch()}>Reintentar países</Button>}
-        </div>}
-        <Button type="button" variant="outline" className="justify-self-start" onClick={() => void localizar()}
-          disabled={!numero.trim() || (tipo === 'PAS' && !pais)}>
-          {busqueda.isPending ? 'Buscando…' : 'Buscar tutor'}
-        </Button>
-        {datos.idClienteRelacionado !== null && <p role="status">Tutor seleccionado · documento terminado en {datos.documento}</p>}
-        {aviso && <p role="alert">{aviso}</p>}
-        <div className="flex flex-wrap gap-3">
-          <div className="min-w-0 flex-1 basis-60">
-            <FechaInput id="fecha-tutor-alta" label="Fecha efectiva del respaldo del tutor" value={datos.fechaEfectiva}
-              onChange={fechaEfectiva => cambiar(actual => ({ ...actual, fechaEfectiva }))} onBlur={() => {}} required />
+    <div className="flex flex-col gap-10">
+      <FormSection title="Tutor del menor" description="Busca una persona natural adulta y activa por su documento.">
+        <fieldset disabled={busqueda.isPending} className="grid min-w-0 gap-6 sm:grid-cols-2">
+          <Field id="tipo-documento-tutor" label="Tipo de documento del tutor">
+            <SelectField id="tipo-documento-tutor" value={tipo} onChange={tipo => cambiarDocumento({ tipo })}
+              options={TIPOS_DOCUMENTO} placeholder="Selecciona el documento" disabled={busqueda.isPending} />
+          </Field>
+          <Field id="numero-documento-tutor" label="Número de documento del tutor">
+            <Input id="numero-documento-tutor" className={fieldClassName} value={numero} maxLength={20}
+              onChange={e => cambiarDocumento({ numero: e.target.value })} />
+          </Field>
+          {tipo === 'PAS' && (
+            <Field id="emisor-documento-tutor" label="País emisor del pasaporte del tutor">
+              <SelectField id="emisor-documento-tutor" value={pais} onChange={pais => cambiarDocumento({ pais })}
+                options={paises.data.map(p => ({ value: p.codigoPais, label: p.nombrePais }))}
+                placeholder="Selecciona el país emisor" disabled={busqueda.isPending} />
+              {paises.isError && (
+                <button type="button" className="self-start text-link underline" onClick={() => void paises.refetch()}>
+                  Reintentar países
+                </button>
+              )}
+            </Field>
+          )}
+          <div className="flex flex-col items-start gap-3 sm:col-span-2">
+            <Button type="button" variant="outline" className="h-[52px] w-full rounded-xl px-6 text-base sm:w-auto"
+              onClick={() => void localizar()} disabled={!numero.trim() || (tipo === 'PAS' && !pais)}>
+              {busqueda.isPending ? 'Buscando…' : 'Buscar tutor'}
+            </Button>
+            {datos.idClienteRelacionado !== null && (
+              <p role="status" className="text-sm text-muted-foreground">Tutor seleccionado · documento terminado en {datos.documento}</p>
+            )}
+            {aviso && <p role="alert" className="text-sm text-destructive">{aviso}</p>}
           </div>
-          <Button type="button" variant="outline" onClick={() => cambiar(actual => ({ ...actual, fechaEfectiva: fechaActual }))}>Usar fecha de hoy</Button>
-        </div>
-        <label>Tipo de respaldo del tutor<Input value={datos.tipoRespaldo} maxLength={80}
-          onChange={e => {
-            const tipoRespaldo = e.target.value
-            cambiar(actual => ({ ...actual, tipoRespaldo }))
-          }} /></label>
-        <label>Referencia o descripción del respaldo del tutor<Input value={datos.referenciaRespaldo} maxLength={250}
-          onChange={e => {
-            const referenciaRespaldo = e.target.value
-            cambiar(actual => ({ ...actual, referenciaRespaldo }))
-          }} /></label>
-      </fieldset>
-    </FormSection>
+        </fieldset>
+      </FormSection>
+      <FormSection title="Respaldo del tutor">
+        <fieldset disabled={busqueda.isPending} className="grid min-w-0 gap-6 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <FechaInput id="fecha-tutor-alta" label="Fecha efectiva del respaldo" value={datos.fechaEfectiva}
+              onChange={fechaEfectiva => cambiar(actual => ({ ...actual, fechaEfectiva }))} onBlur={() => {}}
+              inputClassName={fieldClassName} required
+              accion={
+                <Button type="button" variant="outline" className="h-[52px] w-full rounded-xl px-6 text-base sm:w-auto"
+                  onClick={() => cambiar(actual => ({ ...actual, fechaEfectiva: fechaActual }))}>
+                  Usar fecha de hoy
+                </Button>
+              } />
+          </div>
+          <Field id="tipo-respaldo-tutor" label="Tipo de respaldo">
+            <Input id="tipo-respaldo-tutor" className={fieldClassName} value={datos.tipoRespaldo} maxLength={80}
+              onChange={e => {
+                const tipoRespaldo = e.target.value
+                cambiar(actual => ({ ...actual, tipoRespaldo }))
+              }} />
+          </Field>
+          <Field id="referencia-respaldo-tutor" label="Referencia o descripción del respaldo">
+            <Input id="referencia-respaldo-tutor" className={fieldClassName} value={datos.referenciaRespaldo} maxLength={250}
+              onChange={e => {
+                const referenciaRespaldo = e.target.value
+                cambiar(actual => ({ ...actual, referenciaRespaldo }))
+              }} />
+          </Field>
+        </fieldset>
+      </FormSection>
+    </div>
   )
 }
