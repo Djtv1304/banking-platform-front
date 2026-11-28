@@ -11,6 +11,9 @@ const mockQueryState = vi.hoisted(() => ({
 }))
 
 vi.mock('@/shared/theme', () => ({ useThemeStore: vi.fn() }))
+vi.mock('@/features/clientes/components/DialogoFicha', () => ({
+  DialogoFicha: ({ children }: { children: React.ReactNode }) => children,
+}))
 vi.mock('@tanstack/react-query', () => ({
   useQuery: () => mockQueryState,
   useMutation: () => ({ isPending: false, error: null, reset: vi.fn(), mutateAsync: vi.fn() }),
