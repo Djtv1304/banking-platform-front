@@ -1,4 +1,4 @@
-import type { ChangeEvent, FormEvent } from 'react'
+import type { ChangeEvent, FormEvent, ReactNode } from 'react'
 import { codigoCatalogo, useTiposIdentidad } from '@/features/clientes/api/documentos-identidad'
 import { usePaises } from '@/features/catalogos/hooks/useCatalogos'
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form'
@@ -30,11 +30,12 @@ const soloDigitos = (valor: string) => valor.replace(/\D/g, '')
 interface DatosClienteStepProps {
   form: UseFormReturn<DatosClienteInput, unknown, DatosClienteData>
   onNext: () => void
+  tutor?: ReactNode
   soloDocumento?: boolean
   verificar?: (documento: { tipoDocumento: string; numero: string; codigoPaisEmision?: string }) => Promise<void>
 }
 
-export function DatosClienteStep({ form, onNext, soloDocumento = false, verificar }: DatosClienteStepProps) {
+export function DatosClienteStep({ form, onNext, soloDocumento = false, verificar, tutor }: DatosClienteStepProps) {
   const {
     register,
     control,
@@ -389,6 +390,7 @@ export function DatosClienteStep({ form, onNext, soloDocumento = false, verifica
         </div>
       </FormSection>
 
+      {tutor}
       <StepActions submitLabel="Continuar" />
     </form>
   )

@@ -242,4 +242,5 @@ export const ACTIVIDAD_VACIA: ActividadInput = { idActividadEconomica: '', conse
 export interface RegistroClienteData {
   cliente: DatosClienteData & ActividadData
   direcciones: DireccionesData['direcciones']
+  tutor?: import('@/features/clientes/api/tutores').AltaTutor
 }
