@@ -35,6 +35,7 @@ import {
 
 const TUTOR_VACIO: BorradorTutor = {
   idClienteRelacionado: null, documento: '', fechaEfectiva: '', tipoRespaldo: '', referenciaRespaldo: '',
+  documentoConsulta: { tipo: 'CED', numero: '', pais: '' },
 }
 
 const PASOS = [
@@ -269,8 +270,8 @@ export function RegistroClienteWizard({
             </Aviso>}
             <DatosClienteStep form={datosForm} onNext={() => { if (validarTutor()) irA(2) }}
               tutor={esMenor && politica && <>
-                <TutorAltaCliente datos={tutor} fechaActual={politica.fechaActual} cambiar={valor => {
-                  setTutor(valor)
+                <TutorAltaCliente datos={tutor} fechaActual={politica.fechaActual} cambiar={actualizar => {
+                  setTutor(actualizar)
                   setErrorTutor('')
                 }} />
                 {errorTutor && <p role="alert" className="text-destructive">{errorTutor}</p>}
